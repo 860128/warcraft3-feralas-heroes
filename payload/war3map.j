@@ -84,9 +84,11 @@ globals
     real udg_AI_TargetX = 0.0
     real udg_AI_TargetY = 0.0
     boolean udg_AI_TargetFound = false
+    boolean udg_AI_TargetChanged = false
     integer udg_AI_CombatCount = 0
     group udg_AI_ArmyGroup = null
     group udg_AI_CombatGroup = null
+    unit array udg_AI_LockedTarget
 endglobals
 
 function InitGlobals takes nothing returns nothing
@@ -2681,6 +2683,7 @@ function Ninja_SpawnClone takes player p, real x, real y, real facing returns un
     endif
 
     set clone = CreateUnit(p, 'u002', x, y, facing)
+    call RemoveGuardPosition(clone)
     call UnitAddType(clone, UNIT_TYPE_SUMMONED)
 
     if lv > 0 then
@@ -3255,6 +3258,7 @@ function AI_SpawnCustomHeroForPlayer takes integer pId, real x, real y, real fac
         set hTypeId = 'H003'
     endif
     set h = CreateUnit(Player(pId), hTypeId, x, y, facing)
+    call RemoveGuardPosition(h)
     set udg_AI_CustomHero[pId] = h
     set udg_AI_HeroSpawned[pId] = true
     set udg_AI_DeadTimer[pId] = 0.0
@@ -3316,10 +3320,27 @@ function AI_FindStrategicTarget takes integer pId, real hx, real hy returns noth
     local real d = 0.0
     local integer ownerId = 0
 
+    set udg_AI_TargetChanged = false
+
     if h != null and not IsUnitType(h, UNIT_TYPE_DEAD) and GetWidgetLife(h) > 0.405 then
         set hLv = GetHeroLevel(h)
     endif
 
+    // 1. Check if existing locked target is still alive and an enemy
+    if udg_AI_LockedTarget[pId] != null then
+        if not IsUnitType(udg_AI_LockedTarget[pId], UNIT_TYPE_DEAD) and GetWidgetLife(udg_AI_LockedTarget[pId]) > 0.405 and IsUnitEnemy(udg_AI_LockedTarget[pId], p) then
+            set udg_AI_TargetFound = true
+            set udg_AI_TargetX = GetUnitX(udg_AI_LockedTarget[pId])
+            set udg_AI_TargetY = GetUnitY(udg_AI_LockedTarget[pId])
+            set p = null
+            set h = null
+            return
+        else
+            set udg_AI_LockedTarget[pId] = null
+        endif
+    endif
+
+    // 2. Target died or was null: scan map for new target
     call GroupClear(udg_EnumGroup)
     call GroupEnumUnitsInRect(udg_EnumGroup, bj_mapInitialPlayableArea, null)
     loop
@@ -3352,22 +3373,28 @@ function AI_FindStrategicTarget takes integer pId, real hx, real hy returns noth
         endif
     endloop
 
-    if (hLv < 3 and udg_AI_CombatCount < 6) and bestCreep != null then
-        set targetU = bestCreep
-    elseif bestPlayerEnemy != null then
+    // 3. Selection Priority:
+    // Prioritize enemy player units/structures whenever combat units >= 4 OR hero level >= 2
+    if (hLv >= 2 or udg_AI_CombatCount >= 4) and bestPlayerEnemy != null then
         set targetU = bestPlayerEnemy
     elseif bestCreep != null then
         set targetU = bestCreep
+    elseif bestPlayerEnemy != null then
+        set targetU = bestPlayerEnemy
     elseif bestAnyEnemy != null then
         set targetU = bestAnyEnemy
     endif
 
     if targetU != null then
+        set udg_AI_LockedTarget[pId] = targetU
         set udg_AI_TargetFound = true
+        set udg_AI_TargetChanged = true
         set udg_AI_TargetX = GetUnitX(targetU)
         set udg_AI_TargetY = GetUnitY(targetU)
     else
+        set udg_AI_LockedTarget[pId] = null
         set udg_AI_TargetFound = false
+        set udg_AI_TargetChanged = false
         set udg_AI_TargetX = 0.0
         set udg_AI_TargetY = 0.0
     endif
@@ -3392,9 +3419,6 @@ function AI_CommandArmyForPlayer takes integer pId returns nothing
     local integer uOrd = 0
     local real ux = 0.0
     local real uy = 0.0
-    local real dx = 0.0
-    local real dy = 0.0
-    local real distSq = 0.0
     local boolean heroAlive = false
     local boolean canOrderArmy = false
 
@@ -3432,20 +3456,26 @@ function AI_CommandArmyForPlayer takes integer pId returns nothing
         endif
     endloop
 
-    // Find strategic target
+    // Find strategic target (updates udg_AI_LockedTarget and udg_AI_TargetChanged)
     call AI_FindStrategicTarget(pId, hx, hy)
 
     if udg_AI_TargetFound then
+        // Strip all AI guard positions for computer player p
+        call RemoveAllGuardPositions(p)
+
         // 1. Hero Order
         if heroAlive then
+            call RemoveGuardPosition(h)
             set ord = GetUnitCurrentOrder(h)
             // Only if h is NOT currently casting our custom spells (852089 blizzard, 852579 charm, 852123 mirrorimage, 852594 summongrizzly)
             if not (ord == 852089 or ord == 852579 or ord == 852123 or ord == 852594) then
                 // NOT fleeing at low HP (GetWidgetLife(h) > MaxLife * 0.25 or H003)
                 if (GetWidgetLife(h) > GetUnitState(h, UNIT_STATE_MAX_LIFE) * 0.25 or GetUnitTypeId(h) == 'H003') then
-                    // If ord is idle (0), stop (851972), hold (851993), patrol (851990), OR no enemies within 700.0 range
-                    if (ord == 0 or ord == 851972 or ord == 851993 or ord == 851990) or not AI_HasEnemyInRange(p, hx, hy, 700.0) then
-                        call IssuePointOrder(h, "attack", udg_AI_TargetX, udg_AI_TargetY)
+                    // Only issue order if not fighting AND (not already attacking OR target changed)
+                    if not AI_HasEnemyInRange(p, hx, hy, 650.0) then
+                        if ord != 851983 or udg_AI_TargetChanged then
+                            call IssuePointOrder(h, "attack", udg_AI_TargetX, udg_AI_TargetY)
+                        endif
                     endif
                 endif
             endif
@@ -3459,22 +3489,15 @@ function AI_CommandArmyForPlayer takes integer pId returns nothing
                 set enumU = FirstOfGroup(udg_AI_CombatGroup)
                 exitwhen enumU == null
                 call GroupRemoveUnit(udg_AI_CombatGroup, enumU)
+                call RemoveGuardPosition(enumU)
                 set uOrd = GetUnitCurrentOrder(enumU)
                 // Exclude lumber harvesters (e.g. ghouls: 852018 harvest, 852020 returnresources)
                 if uOrd != 852018 and uOrd != 852020 then
                     set ux = GetUnitX(enumU)
                     set uy = GetUnitY(enumU)
-                    if uOrd == 0 or not AI_HasEnemyInRange(p, ux, uy, 600.0) then
-                        if heroAlive then
-                            set dx = ux - hx
-                            set dy = uy - hy
-                            set distSq = dx * dx + dy * dy
-                            if distSq > 810000.0 then // 900.0 * 900.0
-                                call IssuePointOrder(enumU, "attack", hx, hy)
-                            else
-                                call IssuePointOrder(enumU, "attack", udg_AI_TargetX, udg_AI_TargetY)
-                            endif
-                        else
+                    // Only issue order if not in active combat
+                    if not AI_HasEnemyInRange(p, ux, uy, 650.0) then
+                        if uOrd != 851983 or udg_AI_TargetChanged then
                             call IssuePointOrder(enumU, "attack", udg_AI_TargetX, udg_AI_TargetY)
                         endif
                     endif
@@ -3888,6 +3911,7 @@ function DM_CloneOneUnit takes unit caster, unit orig, real tx, real ty returns 
             // create clone with full active skills, matching level & items,
             // but completely stripped of hero properties (no altar revival, no XP gain, no hero icon):
             set clone = CreateUnit(p, uId, tx, ty, GetUnitFacing(orig))
+            call RemoveGuardPosition(clone)
             call UnitRemoveType(clone, UNIT_TYPE_HERO)
             call UnitAddType(clone, UNIT_TYPE_SUMMONED)
             call SuspendHeroXP(clone, true)
@@ -3917,6 +3941,7 @@ function DM_CloneOneUnit takes unit caster, unit orig, real tx, real ty returns 
         // Non-hero target (includes Peasants, Peons, Wisps, Acolytes, Creeps, Spellcasters):
         // Clone with full active skills, 15-minute duration, blue illusion tint
         set clone = CreateUnit(p, uId, tx, ty, GetUnitFacing(orig))
+        call RemoveGuardPosition(clone)
         call UnitAddType(clone, UNIT_TYPE_SUMMONED)
         call UnitApplyTimedLife(clone, 'BTLF', 900.0)
         call SetUnitVertexColor(clone, 100, 150, 255, 180)
@@ -4559,6 +4584,9 @@ function AI_OnUnitTrainFinish takes nothing returns boolean
         set p = GetOwningPlayer(trained)
         set pId = GetPlayerId(p)
         if GetPlayerController(p) == MAP_CONTROL_COMPUTER then
+            if udg_AI_HeroMode[pId] > 0 and not IsUnitType(trained, UNIT_TYPE_PEON) then
+                call RemoveGuardPosition(trained)
+            endif
             if GetUnitTypeId(trained) == 'H003' then
                 set udg_Ninja_TrueHero[pId] = trained
                 set udg_AI_CustomHero[pId] = trained
@@ -4616,6 +4644,7 @@ function DM_InitTriggers takes nothing returns nothing
         // Initialize AI variables
         set udg_AI_HeroMode[i] = 0
         set udg_AI_CustomHero[i] = null
+        set udg_AI_LockedTarget[i] = null
         set udg_AI_HeroSpawned[i] = false
         set udg_AI_CastCD_Q[i] = 0.0
         set udg_AI_CastCD_W[i] = 0.0
