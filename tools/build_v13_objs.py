@@ -316,19 +316,55 @@ Order = "summongrizzly"
 Researchtip = "学习 独断万古(|cffffcc00R|r)"
 Researchubertip = "终极技能：召唤一尊【独断万古·魔音神尊】（魔音忍者的终极强化形态，拥有3000生命、混沌攻击、暴击、闪避、分裂与魔法免疫），持续180秒。神尊击杀敌人同样会生成魔音忍者分身，且可作为不死替身！"
 Tip = "独断万古(|cffffcc00R|r)"
-Ubertip = "召唤【独断万古·魔音神尊】降临战场，持续180秒。|n|cffffcc00属性：|r3000生命值、160+混沌攻击、神圣护甲、魔法免疫、分裂攻击、暴击与闪避。|n|cffffcc00特性：|r神尊击杀任何单位同样会转化出魔音忍者分身，且在本体受死时可代死移魂！"
+Ubertip = "召唤【独断万古·魔音神尊】降临战场，持续180秒。|n|cffffcc00属性：|r3000生命值、160+混沌攻击、英雄护甲、魔法免疫、分裂攻击、暴击与闪避。|n|cffffcc00特性：|r神尊击杀任何单位同样会转化出魔音忍者分身，且在本体受死时可代死移魂！"
 
 [A015]
 _parent = "ACev"
 Name = "魔音闪避"
+hero = 0
 levels = 3
 DataA = {1 = 0.15, 2 = 0.25, 3 = 0.35}
+Art = "ReplaceableTextures\\\\PassiveButtons\\\\PASBTNEvasion.blp"
+Tip = {
+1 = "魔音闪避",
+2 = "魔音闪避",
+3 = "魔音闪避",
+}
+Ubertip = {
+1 = "有15%的几率闪避敌方的攻击。",
+2 = "有25%的几率闪避敌方的攻击。",
+3 = "有35%的几率闪避敌方的攻击。",
+}
+Buttonpos_1 = 2
+Buttonpos_2 = 2
 
 [A016]
 _parent = "ACev"
 Name = "神尊闪避"
+hero = 0
 levels = 1
 DataA = 0.35
+Art = "ReplaceableTextures\\\\PassiveButtons\\\\PASBTNEvasion.blp"
+Tip = "神尊闪避"
+Ubertip = "有35%的几率闪避敌方的攻击。"
+Buttonpos_1 = 2
+Buttonpos_2 = 2
+
+[A017]
+_parent = "AOcr"
+Name = "致命一击"
+hero = 0
+levels = 1
+DataA = 25.0
+DataB = 2.0
+DataC = 0.0
+DataD = 0.0
+DataE = 0
+Art = "ReplaceableTextures\\\\PassiveButtons\\\\PASBTNCriticalStrike.blp"
+Tip = "致命一击"
+Ubertip = "给予25%的几率造成2倍伤害。"
+Buttonpos_1 = 0
+Buttonpos_2 = 2
 """
 
 ini_unit = """[H002]
@@ -460,7 +496,7 @@ blue = 255
 HP = 3000
 regenHP = 25.0
 def = 15.0
-defType = "divine"
+defType = "hero"
 spd = 400
 atkType1 = "chaos"
 dmgplus1 = 160
@@ -469,7 +505,7 @@ sides1 = 15
 cool1 = 1.10
 rangeN1 = 150
 weapTp1 = "normal"
-abilList = "ACct,A016,ACce,Amim"
+abilList = "A017,ACce,Amim"
 fused = 0
 foodCost = 0
 level = 10
@@ -495,7 +531,7 @@ dice1 = 2
 sides1 = 8
 cool1 = 1.4
 rangeN1 = 128
-abilList = "ACct,AInv"
+abilList = "A017,AInv"
 foodCost = 0
 level = 5
 
@@ -570,5 +606,5 @@ for sym in [b'H002', b'H003', b'u000', b'u001', b'u002', b'halt', b'oalt', b'uao
 
 with open(os.path.join(PAYLOAD_DIR, "war3map.w3a"), "rb") as f:
     w3a_data = f.read()
-for sym in [b'A001', b'A002', b'A003', b'A004', b'A00V', b'A011', b'A012', b'A013', b'A014', b'A015', b'A016']:
+for sym in [b'A001', b'A002', b'A003', b'A004', b'A00V', b'A011', b'A012', b'A013', b'A014', b'A015', b'A016', b'A017']:
     print(f"w3a contains {sym.decode('ascii')}: {sym in w3a_data}")
