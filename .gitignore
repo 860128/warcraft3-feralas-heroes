@@ -1,0 +1,40 @@
+# Temporary extraction and verification directories
+hero_obj_raw/
+hero_obj_v2_raw/
+hero_obj_v3_extract/
+hero_obj_v3_raw/
+hero_obj_lni/
+test_extract/
+test_mini_extract/
+test_factory_mini/
+test_a003_ancl/
+test_a003_lni/
+test_ancl_lni/
+test_ancl_out_raw/
+verify/
+verify_mod/
+verify_v12/
+verify_v17/
+verify_lni/
+v3_lni_temp/
+factory_dl_ref/
+rebuild_lni/
+raw/
+
+# Third-party large tools (w3x2lni can be downloaded separately if needed)
+tools/w3x2lni/
+
+# Intermediate experiment maps
+hero_obj.w3x
+hero_obj_v2.w3x
+hero_obj_v3.w3x
+test_a003.w3x
+test_ancl.w3x
+test_out.w3x
+
+# Python bytecode and editor temporary files
+__pycache__/
+*.py[cod]
+.vscode/
+.idea/
+*.swp

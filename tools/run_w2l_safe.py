@@ -1,0 +1,10 @@
+﻿import subprocess, os
+w2l = os.path.abspath('tools/w3x2lni/w2l.exe')
+src = os.path.abspath('factory_tpl')
+dst = os.path.abspath('hero_obj_v3.w3x')
+if os.path.exists(dst): os.remove(dst)
+p = subprocess.run([w2l, 'obj', src, dst], cwd=os.path.dirname(w2l), input=b"y\n", capture_output=True)
+print('RC:', p.returncode)
+print('STDOUT:', p.stdout.decode('utf-8', 'replace')[:300])
+print('STDERR:', p.stderr.decode('utf-8', 'replace')[:300])
+print('Exists:', os.path.exists(dst), os.path.getsize(dst) if os.path.exists(dst) else 0)
