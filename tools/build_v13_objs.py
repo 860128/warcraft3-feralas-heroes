@@ -365,6 +365,194 @@ Tip = "致命一击"
 Ubertip = "给予25%的几率造成2倍伤害。"
 Buttonpos_1 = 0
 Buttonpos_2 = 2
+
+[A021]
+_parent = "ANcl"
+Name = "渊潜掠影"
+Hotkey = "Q"
+Researchhotkey = "Q"
+Buttonpos_1 = 0
+Buttonpos_2 = 2
+Researchbuttonpos_1 = 0
+Researchbuttonpos_2 = 0
+levels = 3
+hero = 1
+reqLevel = 1
+levelSkip = 2
+Cost = {1 = 50, 2 = 50, 3 = 50}
+Cool = {1 = 12.0, 2 = 10.0, 3 = 8.0}
+Art = "ReplaceableTextures\\\\CommandButtons\\\\BTNCryptFiendBurrow.blp"
+ResearchArt = "ReplaceableTextures\\\\CommandButtons\\\\BTNCryptFiendBurrow.blp"
+DataA = {1 = 0.0, 2 = 0.0, 3 = 0.0}
+DataB = {1 = 0, 2 = 0, 3 = 0}
+DataC = {1 = 1, 2 = 1, 3 = 1}
+DataD = {1 = 0.0, 2 = 0.0, 3 = 0.0}
+DataE = {1 = 0, 2 = 0, 3 = 0}
+DataF = {1 = "windwalk", 2 = "windwalk", 3 = "windwalk"}
+Order = "windwalk"
+Researchtip = "学习 渊潜掠影(|cffffcc00Q|r) - [|cffffcc00等级 %d|r]"
+Researchubertip = "遁入地底进入绝对隐匿状态，持续20/25/30秒（再次点击可提前破土而出）。|n|cffffcc00遁地效果：|r移速拉满至522极限，无视单位碰撞，仅在真视视野下可见。|n|cffffcc00破土突袭：|r钻出地面瞬间对周围250码敌军造成0.75秒击飞与高额突袭伤害！"
+Tip = {
+1 = "渊潜掠影(|cffffcc00Q|r) - [|cffffcc00等级 1|r]",
+2 = "渊潜掠影(|cffffcc00Q|r) - [|cffffcc00等级 2|r]",
+3 = "渊潜掠影(|cffffcc00Q|r) - [|cffffcc00等级 3|r]",
+}
+Ubertip = {
+1 = "遁入地底进入绝对隐匿状态，持续20秒（遁地中再次施放可提前破土而出）。|n|cffffcc00遁地效果：|r移速提升至522极限，无视单位碰撞，仅在真视视野下可见。|n|cffffcc00破土突袭：|r破土瞬间对周围250码敌军造成0.75秒击飞，并造成90(+1.5x敏捷)点突袭物理伤害。",
+2 = "遁入地底进入绝对隐匿状态，持续25秒（遁地中再次施放可提前破土而出）。|n|cffffcc00遁地效果：|r移速提升至522极限，无视单位碰撞，仅在真视视野下可见。|n|cffffcc00破土突袭：|r破土瞬间对周围250码敌军造成0.75秒击飞，并造成150(+1.5x敏捷)点突袭物理伤害。",
+3 = "遁入地底进入绝对隐匿状态，持续30秒（遁地中再次施放可提前破土而出）。|n|cffffcc00遁地效果：|r移速提升至522极限，无视单位碰撞，仅在真视视野下可见。|n|cffffcc00破土突袭：|r破土瞬间对周围250码敌军造成0.75秒击飞，并造成210(+1.5x敏捷)点突袭物理伤害。",
+}
+
+[A022]
+_parent = "ANcl"
+Name = "捕食吞噬"
+Hotkey = "W"
+Researchhotkey = "W"
+Buttonpos_1 = 1
+Buttonpos_2 = 2
+Researchbuttonpos_1 = 1
+Researchbuttonpos_2 = 0
+levels = 3
+hero = 1
+reqLevel = 1
+levelSkip = 2
+Cost = {1 = 75, 2 = 75, 3 = 75}
+Cool = {1 = 12.0, 2 = 10.0, 3 = 8.0}
+Rng = {1 = 250.0, 2 = 275.0, 3 = 300.0}
+Art = "ReplaceableTextures\\\\CommandButtons\\\\BTNDevour.blp"
+ResearchArt = "ReplaceableTextures\\\\CommandButtons\\\\BTNDevour.blp"
+DataA = {1 = 0.0, 2 = 0.0, 3 = 0.0}
+DataB = {1 = 1, 2 = 1, 3 = 1}
+DataC = {1 = 1, 2 = 1, 3 = 1}
+DataD = {1 = 0.0, 2 = 0.0, 3 = 0.0}
+DataE = {1 = 0, 2 = 0, 3 = 0}
+DataF = {1 = "devour", 2 = "devour", 3 = "devour"}
+Order = "devour"
+targs = "air,ground,enemy,neutral,organic"
+Researchtip = "学习 捕食吞噬(|cffffcc00W|r) - [|cffffcc00等级 %d|r]"
+Researchubertip = "撕裂并吞噬生命值低于30%的非魔免单位（敌方英雄需低于25%），直接将其致死斩杀！|n吞噬后进入5~10秒消化期，消化完成后恢复生命并触发【拟态伪装】与【基因掠夺/进化】！吞噬敌方英雄还可永久夺取4点主属性并从其4个技能中任选1个掠夺！"
+Tip = {
+1 = "捕食吞噬(|cffffcc00W|r) - [|cffffcc00等级 1|r]",
+2 = "捕食吞噬(|cffffcc00W|r) - [|cffffcc00等级 2|r]",
+3 = "捕食吞噬(|cffffcc00W|r) - [|cffffcc00等级 3|r]",
+}
+Ubertip = {
+1 = "撕裂并吞噬射程250码内生命值低于30%的非魔免单位（敌方英雄需低于25%），直接斩杀！|n吞噬后进入10秒消化期，消化完成后恢复15%最大生命值，并解锁受害者的【拟态伪装】与【基因进化】。吞噬敌方英雄永久夺取4点主属性并掠夺其英雄技能！",
+2 = "撕裂并吞噬射程275码内生命值低于30%的非魔免单位（敌方英雄需低于25%），直接斩杀！|n吞噬后进入7秒消化期，消化完成后恢复25%最大生命值，并解锁受害者的【拟态伪装】与【基因进化】。吞噬敌方英雄永久夺取4点主属性并掠夺其英雄技能！",
+3 = "撕裂并吞噬射程300码内生命值低于30%的非魔免单位（敌方英雄需低于25%），直接斩杀！|n吞噬后进入5秒消化期，消化完成后恢复35%最大生命值，并解锁受害者的【拟态伪装】与【基因进化】。吞噬敌方英雄永久夺取4点主属性并掠夺其英雄技能！",
+}
+
+[A023]
+_parent = "ANcl"
+Name = "拟态伪装"
+Hotkey = "E"
+Researchhotkey = "E"
+Buttonpos_1 = 2
+Buttonpos_2 = 2
+Researchbuttonpos_1 = 2
+Researchbuttonpos_2 = 0
+levels = 3
+hero = 1
+reqLevel = 1
+levelSkip = 2
+Cost = {1 = 0, 2 = 0, 3 = 0}
+Cool = {1 = 2.0, 2 = 2.0, 3 = 2.0}
+Art = "ReplaceableTextures\\\\CommandButtons\\\\BTNPolymorph.blp"
+ResearchArt = "ReplaceableTextures\\\\CommandButtons\\\\BTNPolymorph.blp"
+DataA = {1 = 0.0, 2 = 0.0, 3 = 0.0}
+DataB = {1 = 0, 2 = 0, 3 = 0}
+DataC = {1 = 1, 2 = 1, 3 = 1}
+DataD = {1 = 0.0, 2 = 0.0, 3 = 0.0}
+DataE = {1 = 0, 2 = 0, 3 = 0}
+DataF = {1 = "ambush", 2 = "ambush", 3 = "ambush"}
+Order = "ambush"
+Researchtip = "学习 拟态伪装(|cffffcc00E|r) - [|cffffcc00等级 %d|r]"
+Researchubertip = "消化猎物后，点击可拟态伪装为受害者的模型与阵营颜色！|n|cffffcc00间谍效果：|r外表与阵营颜色完全同步为受害者，野怪将视你为中立生物不主动攻击。|n|cffffcc00破隐暴击：|r发动普攻、施放伤害技能或被真视照射时伪装碎裂，破隐第一击造成150%/175%/200%暴击伤害！"
+Tip = {
+1 = "拟态伪装(|cffffcc00E|r) - [|cffffcc00等级 1|r]",
+2 = "拟态伪装(|cffffcc00E|r) - [|cffffcc00等级 2|r]",
+3 = "拟态伪装(|cffffcc00E|r) - [|cffffcc00等级 3|r]",
+}
+Ubertip = {
+1 = "点击拟态伪装为最近消化的猎物模型与阵营颜色（再次点击或攻击/施法解除）。|n|cffffcc00间谍特性：|r野怪视你为中立生物不主动攻击。|n|cffffcc00破隐暴击：|r解除伪装的第一击造成150%伤害暴击。",
+2 = "点击拟态伪装为最近消化的猎物模型与阵营颜色（再次点击或攻击/施法解除）。|n|cffffcc00间谍特性：|r野怪视你为中立生物不主动攻击。|n|cffffcc00破隐暴击：|r解除伪装的第一击造成175%伤害暴击。",
+3 = "点击拟态伪装为最近消化的猎物模型与阵营颜色（再次点击或攻击/施法解除）。|n|cffffcc00间谍特性：|r野怪视你为中立生物不主动攻击。|n|cffffcc00破隐暴击：|r解除伪装的第一击造成200%伤害暴击。",
+}
+
+[A024]
+_parent = "ANcl"
+Name = "异种进化：基因掠夺"
+Hotkey = "R"
+Researchhotkey = "R"
+Buttonpos_1 = 3
+Buttonpos_2 = 2
+Researchbuttonpos_1 = 3
+Researchbuttonpos_2 = 0
+levels = 1
+hero = 1
+reqLevel = 1
+Cost = 0
+Cool = 1.0
+Art = "ReplaceableTextures\\\\CommandButtons\\\\BTNLocustSwarm.blp"
+ResearchArt = "ReplaceableTextures\\\\CommandButtons\\\\BTNLocustSwarm.blp"
+DataA = 0.0
+DataB = 0
+DataC = 1
+DataD = 0.0
+DataE = 0
+DataF = "ancestralspirit"
+Order = "ancestralspirit"
+Researchtip = "学习 异种进化：基因掠夺(|cffffcc00R|r)"
+Researchubertip = "消化猎物后自动掠夺其标志性技能或基因！点击此技能可呼出【基因保留/舍弃与进化面板】。|n|cffffcc00同种叠层进化：|r重复吞噬同类单位可将技能进化至2阶、3阶终极形态（如步兵举盾->精钢偏斜->85%减伤反弹异质反射盾；小鹿毒矛->双倍减速->群体扩散剧毒）。|n|cffffcc00英雄吞噬(Apex Harvest)：|r吞噬敌方英雄可永久夺取4点主属性，并4选1掠夺其英雄技能；重复吞噬可叠加【基因超载】层数，释放技能时追加酸液新星爆发与50%法力返还！"
+Tip = "异种进化：基因掠夺(|cffffcc00R|r)"
+Ubertip = "点击打开【基因控制面板】：查看当前基因层数、主动激发基因技能、或随时舍弃当前基因以吸收新猎物。|n- 吞噬同类普通单位：自动升阶进化（最高3阶质变）|n- 吞噬敌方英雄：永久夺取4点主属性 + 4选1掠夺英雄技能 + 多层吞噬基因超载强化！"
+
+[A025]
+_parent = "AUts"
+hero = 0
+levels = 3
+Name = "异种甲壳进化"
+Art = "ReplaceableTextures\\\\PassiveButtons\\\\PASBTNThornShield.blp"
+Buttonpos_1 = 0
+Buttonpos_2 = 2
+DataA = {1 = 0.25, 2 = 0.50, 3 = 0.85}
+DataB = {1 = 0.75, 2 = 0.50, 3 = 0.15}
+DataC = {1 = 5.0, 2 = 10.0, 3 = 18.0}
+Tip = {
+1 = "异种甲壳进化 - [|cffffcc001阶|r]",
+2 = "异质精钢壳 - [|cffffcc002阶|r]",
+3 = "异质反射盾 - [|cffffcc003阶终极|r]",
+}
+Ubertip = {
+1 = "受到坚硬甲壳保护，护甲提升5点，并反弹25%近战伤害。",
+2 = "甲壳质变为精钢结构，护甲提升10点，并反弹50%近战伤害。",
+3 = "基因突变生成终极异质反射盾，护甲提升18点，反弹85%近战伤害并大幅偏斜冲击！",
+}
+
+[A026]
+_parent = "Aspo"
+hero = 0
+levels = 3
+Name = "异种剧毒进化"
+Art = "ReplaceableTextures\\\\PassiveButtons\\\\PASBTNSlowPoison.blp"
+Buttonpos_1 = 1
+Buttonpos_2 = 2
+DataA = {1 = 8.0, 2 = 16.0, 3 = 30.0}
+DataB = {1 = 0.50, 2 = 0.60, 3 = 0.70}
+DataC = {1 = 0.25, 2 = 0.40, 3 = 0.60}
+Dur = {1 = 5.0, 2 = 5.0, 3 = 5.0}
+HeroDur = {1 = 1.0, 2 = 2.0, 3 = 3.0}
+targs = "air,ground,organic"
+Tip = {
+1 = "异种剧毒 - [|cffffcc001阶|r]",
+2 = "双重剧毒 - [|cffffcc002阶|r]",
+3 = "群体扩散剧毒 - [|cffffcc003阶终极|r]",
+}
+Ubertip = {
+1 = "普攻附带神经毒素，每秒造成8点毒性伤害，降低目标50%移速与25%攻速，持续5秒（英雄1秒）。",
+2 = "毒素浓度翻倍，每秒造成16点伤害，降低目标60%移速与40%攻速，持续5秒（英雄2秒）。",
+3 = "终极异种群体毒素，每秒造成30点剧毒伤害，降低目标70%移速与60%攻速，持续5秒（英雄3秒）！",
+}
 """
 
 ini_unit = """[H002]
@@ -535,21 +723,66 @@ abilList = "A017,AInv"
 foodCost = 0
 level = 5
 
+[H004]
+_parent = "Ucrl"
+Name = "异种之源"
+Propernames = "太古原虫,深渊母体,基因掠夺者"
+Tip = "召唤 异种之源(|cffffcc00P|r)"
+Ubertip = "来自远古地底的终极捕食者与欺诈潜伏者。擅长极速潜地突袭、斩杀吞噬残血猎物、拟态伪装成受害者混入敌阵，并通过基因掠夺无限窃取与进化敌方单位及英雄的技能！|n|n|cffffcc00技能：|r|n- 渊潜掠影 (Q)|n- 捕食吞噬 (W)|n- 拟态伪装 (E)|n- 异种进化：基因掠夺 (R)"
+Revivetip = "复活 异种之源(|cffffcc00P|r)"
+Awakentip = "唤醒 异种之源(|cffffcc00P|r)"
+Hotkey = "P"
+Art = "ReplaceableTextures\\\\CommandButtons\\\\BTNArachnathid.blp"
+file = "Units\\\\Creeps\\\\Archnathid\\\\Archnathid"
+"file:hd" = "Units\\\\Creeps\\\\Archnathid\\\\Archnathid"
+"file:sd" = "Units\\\\Creeps\\\\Archnathid\\\\Archnathid"
+unitSound = "Arachnathid"
+modelScale = 1.25
+scale = 1.25
+Primary = "AGI"
+primary = "AGI"
+STR = 21
+AGI = 25
+INT = 17
+STRplus = 2.40
+AGIplus = 3.30
+INTplus = 1.80
+spd = 315
+dmgplus1 = 26
+dice1 = 2
+sides1 = 8
+cool1 = 1.45
+rangeN1 = 128
+bpx = 2
+bpy = 2
+Buttonpos_1 = 2
+Buttonpos_2 = 2
+fused = 5
+goldcost = 425
+lumbercost = 100
+bldtm = 55
+heroAbilList = "A021,A022,A023,A024"
+abilList = "AInv"
+requires = ""
+requirescount = 0
+requires1 = ""
+requires2 = ""
+
 [halt]
 _parent = "halt"
-Trains = "Hamg,Hmkg,Hpal,Hblm,H002,H003"
+Trains = "Hamg,Hmkg,Hpal,Hblm,H002,H003,H004"
 
 [oalt]
 _parent = "oalt"
-Trains = "Obla,Ofar,Otch,Oshd,H002,H003"
+Trains = "Obla,Ofar,Otch,Oshd,H002,H003,H004"
 
 [uaod]
 _parent = "uaod"
-Trains = "Udea,Ulic,Udre,Ucrl,H002,H003"
+Trains = "Udea,Ulic,Udre,Ucrl,H002,H003,H004"
 
 [eate]
 _parent = "eate"
-Trains = "Edem,Ekee,Emoo,Ewar,H002,H003"
+Trains = "Edem,Ekee,Emoo,Ewar,H002,H003,H004"
 """
 
 # 1. Write ini files to factory_tpl/table
@@ -601,10 +834,10 @@ for fn in ["war3map.w3u", "war3map.w3a"]:
 print("\n--- Verifying compiled payload files ---")
 with open(os.path.join(PAYLOAD_DIR, "war3map.w3u"), "rb") as f:
     w3u_data = f.read()
-for sym in [b'H002', b'H003', b'u000', b'u001', b'u002', b'halt', b'oalt', b'uaod', b'eate']:
+for sym in [b'H002', b'H003', b'H004', b'u000', b'u001', b'u002', b'halt', b'oalt', b'uaod', b'eate']:
     print(f"w3u contains {sym.decode('ascii')}: {sym in w3u_data}")
 
 with open(os.path.join(PAYLOAD_DIR, "war3map.w3a"), "rb") as f:
     w3a_data = f.read()
-for sym in [b'A001', b'A002', b'A003', b'A004', b'A00V', b'A011', b'A012', b'A013', b'A014', b'A015', b'A016', b'A017']:
+for sym in [b'A001', b'A002', b'A003', b'A004', b'A00V', b'A011', b'A012', b'A013', b'A014', b'A015', b'A016', b'A017', b'A021', b'A022', b'A023', b'A024', b'A025', b'A026']:
     print(f"w3a contains {sym.decode('ascii')}: {sym in w3a_data}")
