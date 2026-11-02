@@ -553,6 +553,15 @@ Ubertip = {
 2 = "毒素浓度翻倍，每秒造成16点伤害，降低目标60%移速与40%攻速，持续5秒（英雄2秒）。",
 3 = "终极异种群体毒素，每秒造成30点剧毒伤害，降低目标70%移速与60%攻速，持续5秒（英雄3秒）！",
 }
+
+[A027]
+_parent = "Apiv"
+hero = 0
+levels = 1
+Name = "异种潜伏隐匿"
+Dur = 0.05
+HeroDur = 0.05
+DataA = 0
 """
 
 ini_unit = """[H002]
@@ -839,5 +848,5 @@ for sym in [b'H002', b'H003', b'H004', b'u000', b'u001', b'u002', b'halt', b'oal
 
 with open(os.path.join(PAYLOAD_DIR, "war3map.w3a"), "rb") as f:
     w3a_data = f.read()
-for sym in [b'A001', b'A002', b'A003', b'A004', b'A00V', b'A011', b'A012', b'A013', b'A014', b'A015', b'A016', b'A017', b'A021', b'A022', b'A023', b'A024', b'A025', b'A026']:
+for sym in [b'A001', b'A002', b'A003', b'A004', b'A00V', b'A011', b'A012', b'A013', b'A014', b'A015', b'A016', b'A017', b'A021', b'A022', b'A023', b'A024', b'A025', b'A026', b'A027']:
     print(f"w3a contains {sym.decode('ascii')}: {sym in w3a_data}")

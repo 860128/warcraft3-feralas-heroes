@@ -54,6 +54,7 @@ globals
     integer array udg_Strain_MimicType
     player array udg_Strain_MimicOwner
     unit array udg_Strain_MimicActor
+    boolean array udg_Strain_AmbushReady
 
     // Gene Evolution State per player (0..7)
     // GeneCat: 0=None, 1=Shield(步兵举盾/反射), 2=Poison(小鹿剧毒/扩散), 3=Bloodlust(萨满/野怪嗜血), 4=Thunder(法系/巨兽雷击), 5=StolenHeroSkill(英雄技能)
@@ -2996,6 +2997,10 @@ function Strain_BreakMimicry takes unit u, integer pId returns nothing
         set udg_Strain_MimicActor[pId] = null
     endif
     if u != null then
+        call UnitRemoveAbility(u, 'A027')
+        call UnitRemoveAbility(u, 'A00V')
+        call UnitRemoveBuffBJ('Binv', u)
+        call SetUnitPathing(u, true)
         call SetUnitVertexColor(u, 255, 255, 255, 255)
         call SetUnitColor(u, GetPlayerColor(GetOwningPlayer(u)))
         call SetPlayerAllianceStateBJ(Player(PLAYER_NEUTRAL_AGGRESSIVE), GetOwningPlayer(u), bj_ALLIANCE_UNALLIED)
@@ -3011,8 +3016,10 @@ function Strain_Unburrow takes unit u, integer pId returns nothing
     endif
     set udg_Strain_Burrowed[pId] = false
     set udg_Strain_BurrowTimer[pId] = 0.0
-    call UnitRemoveBuffBJ('Binv', u)
+    call UnitRemoveAbility(u, 'Abun')
+    call UnitRemoveAbility(u, 'A027')
     call UnitRemoveAbility(u, 'A00V')
+    call UnitRemoveBuffBJ('Binv', u)
     call SetUnitPathing(u, true)
     if udg_Strain_GeneCat[pId] == 1 and udg_Strain_EvoTier[pId] >= 2 then
         call SetUnitMoveSpeed(u, GetUnitDefaultMoveSpeed(u) + 65.0)
@@ -3405,6 +3412,10 @@ function DM_StealthLoop takes nothing returns nothing
     local real dur = 30.0
     local unit enumU = null
     local integer pId = 0
+    local unit checkU = null
+    local boolean isRevealed = false
+    local real dx = 0.0
+    local real dy = 0.0
 
     // 1. Process pending stealth queue
     set i = 0
@@ -3507,13 +3518,17 @@ function DM_StealthLoop takes nothing returns nothing
         if udg_Strain_Burrowed[pId] then
             set u = udg_Strain_Hero[pId]
             if u == null or IsUnitType(u, UNIT_TYPE_DEAD) then
-                set udg_Strain_Burrowed[pId] = false
-                set udg_Strain_BurrowTimer[pId] = 0.0
+                if u != null then
+                    call Strain_Unburrow(u, pId)
+                else
+                    set udg_Strain_Burrowed[pId] = false
+                    set udg_Strain_BurrowTimer[pId] = 0.0
+                endif
             else
                 set udg_Strain_BurrowTimer[pId] = udg_Strain_BurrowTimer[pId] - 0.05
                 call SetUnitMoveSpeed(u, 522.0)
                 if (R2I(udg_Strain_BurrowTimer[pId] * 20.0) - (R2I(udg_Strain_BurrowTimer[pId] * 20.0) / 6) * 6) == 0 then
-                    call DestroyEffect(AddSpecialEffect("Objects\\Spawnmodels\\Undead\\ImpaleTargetDust\\ImpaleTargetDust.mdl", GetUnitX(u), GetUnitY(u)))
+                    call DestroyEffect(AddSpecialEffectTarget("Objects\\Spawnmodels\\Undead\\ImpaleTargetDust\\ImpaleTargetDust.mdl", u, "origin"))
                 endif
                 if udg_Strain_BurrowTimer[pId] <= 0.0 then
                     call Strain_Unburrow(u, pId)
@@ -3524,19 +3539,57 @@ function DM_StealthLoop takes nothing returns nothing
         set pId = pId + 1
     endloop
 
-    // 6. Hero #3 Mimicry Actor Position Sync Loop
+    // 6. Hero #3 Mimicry Actor Position Sync & True Sight Check Loop
     set pId = 0
     loop
         exitwhen pId > 7
         if udg_Strain_MimicActive[pId] then
             set u = udg_Strain_Hero[pId]
             set enumU = udg_Strain_MimicActor[pId]
-            if u == null or IsUnitType(u, UNIT_TYPE_DEAD) then
-                call Strain_BreakMimicry(u, pId)
-            elseif enumU != null and not IsUnitType(enumU, UNIT_TYPE_DEAD) then
-                call SetUnitX(enumU, GetUnitX(u))
-                call SetUnitY(enumU, GetUnitY(u))
-                call SetUnitFacing(enumU, GetUnitFacing(u))
+            if u == null or IsUnitType(u, UNIT_TYPE_DEAD) or enumU == null or IsUnitType(enumU, UNIT_TYPE_DEAD) then
+                if u != null then
+                    call Strain_BreakMimicry(u, pId)
+                else
+                    set udg_Strain_MimicActive[pId] = false
+                    if enumU != null then
+                        call RemoveUnit(enumU)
+                        set udg_Strain_MimicActor[pId] = null
+                    endif
+                endif
+            else
+                // True Sight Detection Check
+                call GroupClear(udg_EnumGroup)
+                call GroupEnumUnitsInRange(udg_EnumGroup, GetUnitX(u), GetUnitY(u), 700.0, null)
+                set isRevealed = false
+                loop
+                    set checkU = FirstOfGroup(udg_EnumGroup)
+                    exitwhen checkU == null or isRevealed
+                    call GroupRemoveUnit(udg_EnumGroup, checkU)
+                    if IsUnitEnemy(checkU, GetOwningPlayer(u)) and not IsUnitType(checkU, UNIT_TYPE_DEAD) and GetUnitTypeId(checkU) != 'u000' and not IsUnitInGroup(checkU, udg_FakeHeroGroup) then
+                        if IsUnitDetected(u, GetOwningPlayer(checkU)) then
+                            set isRevealed = true
+                        endif
+                    endif
+                endloop
+                set checkU = null
+
+                if isRevealed then
+                    call Strain_BreakMimicry(u, pId)
+                    set udg_Strain_AmbushReady[pId] = false
+                    call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 3.0, "|cffffcc00[拟态伪装]|r 被敌方真视识破，伪装碎裂！")
+                else
+                    // Check movement & sync position/facing
+                    set dx = GetUnitX(u) - GetUnitX(enumU)
+                    set dy = GetUnitY(u) - GetUnitY(enumU)
+                    call RemoveGuardPosition(enumU)
+                    call SetUnitX(enumU, GetUnitX(u))
+                    call SetUnitY(enumU, GetUnitY(u))
+                    call SetUnitFacing(enumU, GetUnitFacing(u))
+
+                    if dx * dx + dy * dy <= 4.0 then
+                        call IssueImmediateOrder(enumU, "stop")
+                    endif
+                endif
             endif
             set u = null
             set enumU = null
@@ -4378,7 +4431,7 @@ function AI_TacticalLoop takes nothing returns nothing
 
                             // 4. Cast E (A023 拟态伪装) when out of combat to prepare ambush
                             if udg_AI_CastCD_E[i] <= 0.0 and GetUnitAbilityLevel(h, 'A023') > 0 and not udg_Strain_MimicActive[i] and udg_Strain_MimicType[i] != 0 and enemyCount == 0 then
-                                call IssueImmediateOrder(h, "berserk")
+                                call IssueImmediateOrder(h, "ambush")
                                 set udg_AI_CastCD_E[i] = 20.0
                             endif
 
@@ -4727,6 +4780,7 @@ function DM_OnSpellEffect takes nothing returns boolean
     local integer abil = GetSpellAbilityId()
     local integer pId = 0
     local unit ult = null
+    local player victimP = null
 
     if abil == 'A001' then
         call DM_OnCastMirror(caster)
@@ -4772,18 +4826,21 @@ function DM_OnSpellEffect takes nothing returns boolean
         else
             if udg_Strain_MimicActive[pId] then
                 call Strain_BreakMimicry(caster, pId)
+                set udg_Strain_AmbushReady[pId] = false
             endif
             set udg_Strain_Burrowed[pId] = true
             set udg_Strain_BurrowTimer[pId] = 15.0 + 5.0 * I2R(GetUnitAbilityLevel(caster, 'A021'))
             call SetUnitPathing(caster, false)
             call SetUnitMoveSpeed(caster, 522.0)
             call SetUnitVertexColor(caster, 120, 95, 65, 110)
+            call UnitAddAbility(caster, 'Abun')
+            call UnitAddAbility(caster, 'A027')
             set ult = CreateUnit(GetOwningPlayer(caster), 'u000', GetUnitX(caster), GetUnitY(caster), 0.0)
             call UnitAddAbility(ult, 'A00V')
-            call IssueTargetOrder(ult, "invisibility", caster)
+            call IssueTargetOrderById(ult, 852069, caster)
             call UnitApplyTimedLife(ult, 'BTLF', 1.0)
             set ult = null
-            call DestroyEffect(AddSpecialEffect("Objects\\Spawnmodels\\Undead\\ImpaleTargetDust\\ImpaleTargetDust.mdl", GetUnitX(caster), GetUnitY(caster)))
+            call DestroyEffect(AddSpecialEffectTarget("Objects\\Spawnmodels\\Undead\\ImpaleTargetDust\\ImpaleTargetDust.mdl", caster, "origin"))
         endif
     elseif abil == 'A022' then
         set pId = GetPlayerId(GetOwningPlayer(caster))
@@ -4809,6 +4866,7 @@ function DM_OnSpellEffect takes nothing returns boolean
         set udg_Strain_Hero[pId] = caster
         if udg_Strain_MimicActive[pId] then
             call Strain_BreakMimicry(caster, pId)
+            set udg_Strain_AmbushReady[pId] = false
         else
             if udg_Strain_MimicType[pId] == 0 then
                 call DisplayTimedTextToPlayer(GetOwningPlayer(caster), 0, 0, 3.0, "|cffffcc00[拟态伪装]|r 尚未消化任何猎物样本，请先使用W【捕食吞噬】！")
@@ -4817,23 +4875,36 @@ function DM_OnSpellEffect takes nothing returns boolean
                     call Strain_Unburrow(caster, pId)
                 endif
                 set udg_Strain_MimicActive[pId] = true
+                set udg_Strain_AmbushReady[pId] = true
                 call SetUnitVertexColor(caster, 255, 255, 255, 0)
-                set ult = CreateUnit(GetOwningPlayer(caster), udg_Strain_MimicType[pId], GetUnitX(caster), GetUnitY(caster), GetUnitFacing(caster))
+                call SetUnitPathing(caster, false)
+                call UnitAddAbility(caster, 'A027')
+                set ult = CreateUnit(GetOwningPlayer(caster), 'u000', GetUnitX(caster), GetUnitY(caster), 0.0)
+                call UnitAddAbility(ult, 'A00V')
+                call IssueTargetOrderById(ult, 852069, caster)
+                call UnitApplyTimedLife(ult, 'BTLF', 1.0)
+                set ult = null
+
+                set victimP = udg_Strain_MimicOwner[pId]
+                if victimP == null then
+                    set victimP = Player(PLAYER_NEUTRAL_PASSIVE)
+                endif
+                set ult = CreateUnit(victimP, udg_Strain_MimicType[pId], GetUnitX(caster), GetUnitY(caster), GetUnitFacing(caster))
                 if IsUnitType(ult, UNIT_TYPE_HERO) or IsHeroUnitId(udg_Strain_MimicType[pId]) then
                     call UnitRemoveType(ult, UNIT_TYPE_HERO)
                     call UnitAddType(ult, UNIT_TYPE_SUMMONED)
                     call SuspendHeroXP(ult, true)
                     call GroupAddUnit(udg_FakeHeroGroup, ult)
                 endif
-                call UnitAddAbility(ult, 'Aloc')
-                call UnitAddAbility(ult, 'Avul')
+                call UnitAddAbility(ult, 'Abun')
                 call SetUnitPathing(ult, false)
-                if udg_Strain_MimicOwner[pId] != null then
-                    call SetUnitColor(ult, GetPlayerColor(udg_Strain_MimicOwner[pId]))
-                    call SetUnitColor(caster, GetPlayerColor(udg_Strain_MimicOwner[pId]))
-                endif
+                call RemoveGuardPosition(ult)
+                call SetUnitMoveSpeed(ult, 522.0)
+
                 set udg_Strain_MimicActor[pId] = ult
                 set ult = null
+                set victimP = null
+
                 call SetPlayerAllianceStateBJ(Player(PLAYER_NEUTRAL_AGGRESSIVE), GetOwningPlayer(caster), bj_ALLIANCE_NEUTRAL)
                 call DestroyEffect(AddSpecialEffect("Abilities\\Spells\\Orc\\MirrorImage\\MirrorImageCaster.mdl", GetUnitX(caster), GetUnitY(caster)))
             endif
@@ -4910,9 +4981,27 @@ function DM_OnSpellCast takes nothing returns boolean
         if udg_Strain_Burrowed[pId] and abilId != 'A021' then
             call Strain_Unburrow(caster, pId)
         endif
+        if udg_Strain_MimicActive[pId] and abilId != 'A023' and abilId != 'A024' then
+            call Strain_BreakMimicry(caster, pId)
+            set udg_Strain_AmbushReady[pId] = false
+        endif
     endif
 
     set caster = null
+    return false
+endfunction
+
+function DM_OnUnitAttacked takes nothing returns boolean
+    local unit attacker = GetAttacker()
+    local integer pId = 0
+    if attacker != null and GetUnitTypeId(attacker) == 'H004' then
+        set pId = GetPlayerId(GetOwningPlayer(attacker))
+        if udg_Strain_MimicActive[pId] then
+            set udg_Strain_AmbushReady[pId] = true
+            call Strain_BreakMimicry(attacker, pId)
+        endif
+    endif
+    set attacker = null
     return false
 endfunction
 
@@ -4960,8 +5049,11 @@ function DM_OnDamaged takes nothing returns boolean
             set udg_Strain_DamageLock = true
 
             // Ambush Critical Strike from Mimicry
-            if udg_Strain_MimicActive[pId] then
-                call Strain_BreakMimicry(src, pId)
+            if udg_Strain_MimicActive[pId] or udg_Strain_AmbushReady[pId] then
+                if udg_Strain_MimicActive[pId] then
+                    call Strain_BreakMimicry(src, pId)
+                endif
+                set udg_Strain_AmbushReady[pId] = false
                 set eLv = GetUnitAbilityLevel(src, 'A023')
                 if eLv == 1 then
                     call UnitDamageTarget(src, tgt, dmg * 0.50, true, false, ATTACK_TYPE_HERO, DAMAGE_TYPE_NORMAL, WEAPON_TYPE_WHOKNOWS)
@@ -5149,6 +5241,7 @@ function DM_OnUnitDeath takes nothing returns boolean
         endif
         if udg_Strain_MimicActive[deadPId] then
             call Strain_BreakMimicry(dead, deadPId)
+            set udg_Strain_AmbushReady[deadPId] = false
         endif
         if udg_Strain_DigestFx[deadPId] != null then
             call DestroyEffect(udg_Strain_DigestFx[deadPId])
@@ -5643,6 +5736,7 @@ function AI_OnUnitTrainFinish takes nothing returns boolean
 endfunction
 
 function DM_InitTriggers takes nothing returns nothing
+    local trigger tAttack = CreateTrigger()
     local trigger tEffect = CreateTrigger()
     local trigger tCast = CreateTrigger()
     local trigger tDeath = CreateTrigger()
@@ -5697,6 +5791,7 @@ function DM_InitTriggers takes nothing returns nothing
         set udg_Strain_DigestIsHero[i] = false
         set udg_Strain_DigestFx[i] = null
         set udg_Strain_MimicActive[i] = false
+        set udg_Strain_AmbushReady[i] = false
         set udg_Strain_MimicType[i] = 0
         set udg_Strain_MimicOwner[i] = null
         set udg_Strain_MimicActor[i] = null
@@ -5740,6 +5835,9 @@ function DM_InitTriggers takes nothing returns nothing
     endloop
     call TriggerAddAction(tChat, function TM_OnChatCommand)
 
+    call TriggerRegisterAnyUnitEventBJ(tAttack, EVENT_PLAYER_UNIT_ATTACKED)
+    call TriggerAddCondition(tAttack, Condition(function DM_OnUnitAttacked))
+
     call TriggerRegisterAnyUnitEventBJ(tEffect, EVENT_PLAYER_UNIT_SPELL_EFFECT)
     call TriggerAddCondition(tEffect, Condition(function DM_OnSpellEffect))
 
@@ -5768,6 +5866,7 @@ function DM_InitTriggers takes nothing returns nothing
     call TimerStart(tmrStealth, 0.05, true, function DM_StealthLoop)
     call TimerStart(tmrStart, 1.00, false, function TM_OnStartTimer)
 
+    set tAttack = null
     set tEffect = null
     set tCast = null
     set tDeath = null
