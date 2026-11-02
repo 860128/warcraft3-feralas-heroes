@@ -3778,6 +3778,7 @@ function DM_CapTimerLoop takes nothing returns nothing
     local integer aLv = 0
     local real pct = 0.0
     local real drain = 0.0
+    local real curHP = 0.0
     local unit enumU = null
     local integer kLv = 0
     local player ko = null
@@ -3827,10 +3828,13 @@ function DM_CapTimerLoop takes nothing returns nothing
                         call GroupRemoveUnit(udg_EnumGroup, enumU)
                         if IsUnitEnemy(enumU, Player(pId)) and not IsUnitType(enumU, UNIT_TYPE_DEAD) and not IsUnitType(enumU, UNIT_TYPE_STRUCTURE) and GetUnitTypeId(enumU) != 'u000' then
                             set drain = GetUnitState(enumU, UNIT_STATE_MAX_LIFE) * pct
-                            if GetWidgetLife(enumU) > (drain + 1.0) then
-                                call SetWidgetLife(enumU, GetWidgetLife(enumU) - drain)
-                            else
-                                call UnitDamageTarget(dmgSrc, enumU, drain + 100.0, true, false, ATTACK_TYPE_HERO, DAMAGE_TYPE_UNIVERSAL, WEAPON_TYPE_WHOKNOWS)
+                            set curHP = GetWidgetLife(enumU)
+                            if curHP > 1.5 then
+                                if curHP - drain > 1.0 then
+                                    call SetWidgetLife(enumU, curHP - drain)
+                                else
+                                    call SetWidgetLife(enumU, 1.0)
+                                endif
                             endif
                         endif
                     endloop
@@ -3857,20 +3861,12 @@ function DM_CapTimerLoop takes nothing returns nothing
                     set pct = 0.02
                 endif
                 set drain = GetUnitState(u, UNIT_STATE_MAX_LIFE) * pct
-                if GetWidgetLife(u) > (drain + 1.0) then
-                    call SetWidgetLife(u, GetWidgetLife(u) - drain)
-                else
-                    set ko = udg_KarmaOwner[i]
-                    set dmgSrc = Ninja_GetTrueHero(ko)
-                    if dmgSrc == null or IsUnitType(dmgSrc, UNIT_TYPE_DEAD) then
-                        set dmgSrc = Ninja_PickLivingClone(GetPlayerId(ko))
-                    endif
-                    if dmgSrc == null then
-                        set dmgSrc = u
-                    endif
-                    call UnitDamageTarget(dmgSrc, u, drain + 100.0, true, false, ATTACK_TYPE_HERO, DAMAGE_TYPE_UNIVERSAL, WEAPON_TYPE_WHOKNOWS)
-                    if i < udg_KarmaCount and udg_KarmaUnit[i] != u then
-                        set i = i - 1
+                set curHP = GetWidgetLife(u)
+                if curHP > 1.5 then
+                    if curHP - drain > 1.0 then
+                        call SetWidgetLife(u, curHP - drain)
+                    else
+                        call SetWidgetLife(u, 1.0)
                     endif
                 endif
             endif
