@@ -49,6 +49,11 @@ globals
     player array udg_Strain_DigestOwner
     boolean array udg_Strain_DigestIsHero
     effect array udg_Strain_DigestFx
+    integer array udg_Strain_DigestFeedType // 1 = Melee (HP), 2 = Ranged No-Mana (Atk), 3 = Mana Unit (Mana)
+    integer array udg_Strain_DigestVictimLv
+    integer array udg_Strain_TotalBonusHP
+    integer array udg_Strain_TotalBonusAtk
+    integer array udg_Strain_TotalBonusMana
 
     boolean array udg_Strain_MimicActive
     integer array udg_Strain_MimicType
@@ -3021,13 +3026,7 @@ function Strain_Unburrow takes unit u, integer pId returns nothing
     call UnitRemoveAbility(u, 'A00V')
     call UnitRemoveBuffBJ('Binv', u)
     call SetUnitPathing(u, true)
-    if udg_Strain_GeneCat[pId] == 1 and udg_Strain_EvoTier[pId] >= 2 then
-        call SetUnitMoveSpeed(u, GetUnitDefaultMoveSpeed(u) + 65.0)
-    elseif udg_Strain_GeneCat[pId] == 3 and udg_Strain_EvoTier[pId] >= 2 then
-        call SetUnitMoveSpeed(u, GetUnitDefaultMoveSpeed(u) + 60.0)
-    else
-        call SetUnitMoveSpeed(u, GetUnitDefaultMoveSpeed(u))
-    endif
+    call SetUnitMoveSpeed(u, GetUnitDefaultMoveSpeed(u))
     call SetUnitVertexColor(u, 255, 255, 255, 255)
     call DestroyEffect(AddSpecialEffect("Abilities\\Spells\\Undead\\Impale\\ImpaleHitTarget.mdl", GetUnitX(u), GetUnitY(u)))
     call DestroyEffect(AddSpecialEffect("Abilities\\Spells\\Human\\Thunderclap\\ThunderClapCaster.mdl", GetUnitX(u), GetUnitY(u)))
@@ -3064,7 +3063,7 @@ function Strain_ClearCurrentGene takes unit u, integer pId returns nothing
         call SetUnitMoveSpeed(u, GetUnitDefaultMoveSpeed(u))
         call SetUnitScale(u, 1.25, 1.25, 1.25)
         call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\DispelMagic\\DispelMagicTarget.mdl", u, "origin"))
-        call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 3.0, "|cffffcc00[异种进化]|r 基因槽已清空，可吸收新种类猎物！")
+        call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 3.0, "|cffffcc00[异种进化]|r 已遗忘当前掠夺的英雄技能！")
     endif
     set udg_Strain_GeneCat[pId] = 0
     set udg_Strain_EvoTier[pId] = 0
@@ -3175,28 +3174,21 @@ function Strain_OnHeroDialogClick takes nothing returns nothing
 endfunction
 
 function Strain_ShowGeneDialog takes player p, integer pId returns nothing
-    local string msg = "【异种之源 - 基因掠夺控制台】"
+    local string msg = "【异种之源 - 进化控制台】"
     if p == null then
         return
     endif
-    if udg_Strain_GeneCat[pId] == 1 then
-        set msg = msg + " - 当前基因：盾卫反射系 (阶数: " + I2S(udg_Strain_EvoTier[pId]) + "/3)"
-    elseif udg_Strain_GeneCat[pId] == 2 then
-        set msg = msg + " - 当前基因：剧毒游侠系 (阶数: " + I2S(udg_Strain_EvoTier[pId]) + "/3)"
-    elseif udg_Strain_GeneCat[pId] == 3 then
-        set msg = msg + " - 当前基因：狂暴嗜血系 (阶数: " + I2S(udg_Strain_EvoTier[pId]) + "/3)"
-    elseif udg_Strain_GeneCat[pId] == 4 then
-        set msg = msg + " - 当前基因：巨兽雷霆系 (阶数: " + I2S(udg_Strain_EvoTier[pId]) + "/3)"
-    elseif udg_Strain_GeneCat[pId] == 5 then
-        set msg = msg + " - 当前基因：掠夺英雄技能 - " + GetObjectName(udg_Strain_StolenHeroAbil[pId]) + " (阶数: " + I2S(udg_Strain_EvoTier[pId]) + "/3)"
+    set msg = msg + "\n累计进化：+" + I2S(udg_Strain_TotalBonusHP[pId]) + "生命 / +" + I2S(udg_Strain_TotalBonusAtk[pId]) + "攻击 / +" + I2S(udg_Strain_TotalBonusMana[pId]) + "法力"
+    if udg_Strain_StolenHeroAbil[pId] != 0 then
+        set msg = msg + "\n当前掠夺英雄技能：" + GetObjectName(udg_Strain_StolenHeroAbil[pId]) + " (强化 " + I2S(udg_Strain_EvoTier[pId]) + " 阶)"
     else
-        set msg = msg + " - 当前基因槽：空（吞噬不同猎物可解锁对应基因）"
+        set msg = msg + "\n当前掠夺英雄技能：无（吞噬敌方英雄可掠夺技能）"
     endif
     call DialogDisplay(p, udg_Strain_GeneDialog, false)
     call DialogClear(udg_Strain_GeneDialog)
     call DialogSetMessage(udg_Strain_GeneDialog, msg)
-    set udg_Strain_BtnKeep = DialogAddButton(udg_Strain_GeneDialog, "[1] 保留当前基因（继续吞噬同类可叠层进化）", 49)
-    set udg_Strain_BtnDiscard = DialogAddButton(udg_Strain_GeneDialog, "[2] 舍弃当前基因（清空基因槽以吸收新种类猎物）", 50)
+    set udg_Strain_BtnKeep = DialogAddButton(udg_Strain_GeneDialog, "[1] 保留当前技能与属性 (确认)", 49)
+    set udg_Strain_BtnDiscard = DialogAddButton(udg_Strain_GeneDialog, "[2] 遗忘掠夺的英雄技能 (腾出技能槽)", 50)
     call DialogDisplay(p, udg_Strain_GeneDialog, true)
 endfunction
 
@@ -3244,9 +3236,10 @@ function Strain_OnGeneDialogClick takes nothing returns nothing
 endfunction
 
 function Strain_OnDigestComplete takes unit u, integer pId returns nothing
-    local integer cat = 0
-    local integer tier = 0
     local integer tgtType = 0
+    local integer bonusHP = 0
+    local integer bonusAtk = 0
+    local integer bonusMana = 0
     if u == null then
         return
     endif
@@ -3356,48 +3349,33 @@ function Strain_OnDigestComplete takes unit u, integer pId returns nothing
             call Strain_ApplyStolenHeroSkill(u, pId, udg_Strain_CandidateAbil0[pId])
         endif
     else
-        // Normal Unit / Creep Devoured
-        set cat = Strain_GetUnitArchetype(tgtType)
-        if udg_Strain_GeneCat[pId] == 0 or udg_Strain_GeneCat[pId] == cat then
-            set udg_Strain_GeneCat[pId] = cat
-            if udg_Strain_EvoTier[pId] < 3 then
-                set udg_Strain_EvoTier[pId] = udg_Strain_EvoTier[pId] + 1
+        // Non-Hero unit: Creep, Lane unit, Summon Devoured!
+        if udg_Strain_DigestFeedType[pId] == 1 then
+            // Case C: Melee Unit without Mana -> Permanent Max HP bonus
+            set bonusHP = 30 + 10 * udg_Strain_DigestVictimLv[pId]
+            call BlzSetUnitMaxHP(u, BlzGetUnitMaxHP(u) + bonusHP)
+            call SetWidgetLife(u, GetWidgetLife(u) + I2R(bonusHP))
+            set udg_Strain_TotalBonusHP[pId] = udg_Strain_TotalBonusHP[pId] + bonusHP
+            call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 4.0, "|cff00ff80[吞噬进化-近战猎物]|r 永久增加 " + I2S(bonusHP) + " 点最大生命值！（累计+" + I2S(udg_Strain_TotalBonusHP[pId]) + "生命）")
+        elseif udg_Strain_DigestFeedType[pId] == 2 then
+            // Case B: Ranged Unit without Mana -> Permanent Base Attack bonus (+1~2)
+            if udg_Strain_DigestVictimLv[pId] <= 1 then
+                set bonusAtk = 1
+            else
+                set bonusAtk = 2
             endif
-            set tier = udg_Strain_EvoTier[pId]
-
-            if cat == 1 then
-                // Cat 1: 盾卫系
-                if GetUnitAbilityLevel(u, 'A025') == 0 then
-                    call UnitAddAbility(u, 'A025')
-                endif
-                call SetUnitAbilityLevel(u, 'A025', tier)
-                if tier >= 2 then
-                    call SetUnitMoveSpeed(u, GetUnitDefaultMoveSpeed(u) + 65.0)
-                endif
-                call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\Defend\\DefendCaster.mdl", u, "origin"))
-            elseif cat == 2 then
-                // Cat 2: 剧毒系
-                if GetUnitAbilityLevel(u, 'A026') == 0 then
-                    call UnitAddAbility(u, 'A026')
-                endif
-                call SetUnitAbilityLevel(u, 'A026', tier)
-                call DestroyEffect(AddSpecialEffectTarget("Abilities\\Weapons\\PoisonSting\\PoisonStingTarget.mdl", u, "origin"))
-            elseif cat == 3 then
-                // Cat 3: 嗜血系
-                if tier >= 2 then
-                    call SetUnitScale(u, 1.45, 1.45, 1.45)
-                    call SetUnitMoveSpeed(u, GetUnitDefaultMoveSpeed(u) + 60.0)
-                endif
-                call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Orc\\Bloodlust\\BloodlustTarget.mdl", u, "origin"))
-            elseif cat == 4 then
-                // Cat 4: 雷霆系
-                call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Other\\Monsoon\\MonsoonBoltTarget.mdl", u, "origin"))
-            endif
-
-            call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 4.0, "|cff00ff00[异种进化]|r 猎物基因已吸收融合！当前阶数：" + I2S(tier) + " 阶")
+            call BlzSetUnitBaseDamage(u, BlzGetUnitBaseDamage(u, 0) + bonusAtk, 0)
+            set udg_Strain_TotalBonusAtk[pId] = udg_Strain_TotalBonusAtk[pId] + bonusAtk
+            call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 4.0, "|cffff6600[吞噬进化-远程猎物]|r 永久增加 " + I2S(bonusAtk) + " 点基础攻击力！（累计+" + I2S(udg_Strain_TotalBonusAtk[pId]) + "攻击）")
         else
-            call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 5.0, "|cffffcc00[基因冲突]|r 当前已激活其他种类基因！按R打开面板可随时舍弃当前基因以切换种类。")
+            // Case A: Magical Unit -> Permanent Max Mana bonus
+            set bonusMana = 25 + 5 * udg_Strain_DigestVictimLv[pId]
+            call BlzSetUnitMaxMana(u, BlzGetUnitMaxMana(u) + bonusMana)
+            call SetUnitState(u, UNIT_STATE_MANA, GetUnitState(u, UNIT_STATE_MANA) + I2R(bonusMana))
+            set udg_Strain_TotalBonusMana[pId] = udg_Strain_TotalBonusMana[pId] + bonusMana
+            call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 4.0, "|cff33ccff[吞噬进化-魔法猎物]|r 永久增加 " + I2S(bonusMana) + " 点最大法力值！（累计+" + I2S(udg_Strain_TotalBonusMana[pId]) + "法力）")
         endif
+        call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Items\\AIam\\AIamTarget.mdl", u, "origin"))
     endif
 endfunction
 
@@ -4850,6 +4828,18 @@ function DM_OnSpellEffect takes nothing returns boolean
             set udg_Strain_DigestType[pId] = GetUnitTypeId(ult)
             set udg_Strain_DigestOwner[pId] = GetOwningPlayer(ult)
             set udg_Strain_DigestIsHero[pId] = IsUnitType(ult, UNIT_TYPE_HERO) or IsHeroUnitId(GetUnitTypeId(ult))
+            set udg_Strain_DigestVictimLv[pId] = IMaxBJ(1, GetUnitLevel(ult))
+            if not udg_Strain_DigestIsHero[pId] then
+                if GetUnitState(ult, UNIT_STATE_MAX_MANA) > 0.5 then
+                    set udg_Strain_DigestFeedType[pId] = 3
+                elseif IsUnitType(ult, UNIT_TYPE_RANGED_ATTACKER) then
+                    set udg_Strain_DigestFeedType[pId] = 2
+                else
+                    set udg_Strain_DigestFeedType[pId] = 1
+                endif
+            else
+                set udg_Strain_DigestFeedType[pId] = 0
+            endif
             set udg_Strain_DigestTimer[pId] = 8.0 - 1.5 * I2R(GetUnitAbilityLevel(caster, 'A022'))
             call DestroyEffect(AddSpecialEffect("Abilities\\Spells\\Orc\\Devour\\DevourEffectArt.mdl", GetUnitX(ult), GetUnitY(ult)))
             call DestroyEffect(AddSpecialEffect("Objects\\Spawnmodels\\Human\\HumanLargeDeathExplode\\HumanLargeDeathExplode.mdl", GetUnitX(ult), GetUnitY(ult)))
@@ -5565,33 +5555,28 @@ function TM_SpawnSandboxTargets takes player p returns nothing
         set hy = GetStartLocationY(GetPlayerStartLocation(p))
     endif
 
-    // 1. Footman (hfoo) - Shield evolution
-    set targetU = CreateUnit(Player(PLAYER_NEUTRAL_AGGRESSIVE), 'hfoo', hx + 180.0, hy, 180.0)
+    // 1. Footman (hfoo) - Melee, no mana -> +HP
+    set targetU = CreateUnit(Player(PLAYER_NEUTRAL_AGGRESSIVE), 'hfoo', hx + 180.0, hy + 60.0, 180.0)
     call SetWidgetLife(targetU, GetUnitState(targetU, UNIT_STATE_MAX_LIFE) * 0.20)
     call PauseUnit(targetU, true)
 
-    // 2. Dryad (edry) - Poison evolution
-    set targetU = CreateUnit(Player(PLAYER_NEUTRAL_AGGRESSIVE), 'edry', hx + 180.0, hy + 90.0, 180.0)
+    // 2. Archer (earc) - Ranged attacker, no mana -> +Attack
+    set targetU = CreateUnit(Player(PLAYER_NEUTRAL_AGGRESSIVE), 'earc', hx + 180.0, hy + 180.0, 180.0)
     call SetWidgetLife(targetU, GetUnitState(targetU, UNIT_STATE_MAX_LIFE) * 0.20)
     call PauseUnit(targetU, true)
 
-    // 3. Shaman (oshm) - Bloodlust evolution
-    set targetU = CreateUnit(Player(PLAYER_NEUTRAL_AGGRESSIVE), 'oshm', hx + 180.0, hy - 90.0, 180.0)
+    // 3. Shaman (oshm) - Magical caster, has mana -> +Mana
+    set targetU = CreateUnit(Player(PLAYER_NEUTRAL_AGGRESSIVE), 'oshm', hx + 180.0, hy - 60.0, 180.0)
     call SetWidgetLife(targetU, GetUnitState(targetU, UNIT_STATE_MAX_LIFE) * 0.20)
     call PauseUnit(targetU, true)
 
-    // 4. Rock Golem (ngst) - Thunder bash evolution
-    set targetU = CreateUnit(Player(PLAYER_NEUTRAL_AGGRESSIVE), 'ngst', hx + 180.0, hy + 180.0, 180.0)
-    call SetWidgetLife(targetU, GetUnitState(targetU, UNIT_STATE_MAX_LIFE) * 0.20)
-    call PauseUnit(targetU, true)
-
-    // 5. Blademaster (Obla) - Hero 4-choice steal & +4 Agi
+    // 4. Blademaster (Obla) - Hero devour -> +4 Agi & 4-skill steal
     set targetU = CreateUnit(Player(PLAYER_NEUTRAL_AGGRESSIVE), 'Obla', hx + 180.0, hy - 180.0, 180.0)
     call SetWidgetLife(targetU, GetUnitState(targetU, UNIT_STATE_MAX_LIFE) * 0.20)
     call PauseUnit(targetU, true)
 
     set targetU = null
-    call DisplayTimedTextToPlayer(p, 0, 0, 8.0, "|cff00ff00[沙盒测试]|r 已生成5个20%残血测试靶子（步兵/小鹿/萨满/石头人/敌方英雄），可直接用W【捕食吞噬】测试进化！")
+    call DisplayTimedTextToPlayer(p, 0, 0, 8.0, "|cff00ff00[沙盒测试]|r 已生成4个20%残血测试靶子（步兵[近战+血]/弓手[远程+攻]/萨满[魔法+蓝]/剑圣[英雄]），可直接用W【捕食吞噬】测试进化！")
 endfunction
 
 function TM_OnChatCommand takes nothing returns nothing
@@ -5786,6 +5771,11 @@ function DM_InitTriggers takes nothing returns nothing
         set udg_Strain_Burrowed[i] = false
         set udg_Strain_BurrowTimer[i] = 0.0
         set udg_Strain_DigestTimer[i] = 0.0
+        set udg_Strain_DigestFeedType[i] = 0
+        set udg_Strain_DigestVictimLv[i] = 1
+        set udg_Strain_TotalBonusHP[i] = 0
+        set udg_Strain_TotalBonusAtk[i] = 0
+        set udg_Strain_TotalBonusMana[i] = 0
         set udg_Strain_DigestType[i] = 0
         set udg_Strain_DigestOwner[i] = null
         set udg_Strain_DigestIsHero[i] = false
