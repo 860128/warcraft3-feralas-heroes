@@ -105,6 +105,7 @@ globals
 
 
     // Ninja (魔音忍者) globals
+    boolean udg_Ninja_DeathLock = false
     unit array udg_Ninja_TrueHero
     group array udg_Ninja_CloneGroup
     boolean array udg_Ninja_AuraOn
@@ -2726,6 +2727,61 @@ function Ninja_GetTrueHero takes player p returns unit
     return null
 endfunction
 
+function Ninja_GetCloneCount takes integer pId returns integer
+    local group g = udg_Ninja_CloneGroup[pId]
+    local group tempG = null
+    local unit u = null
+    local integer count = 0
+
+    if g == null then
+        return 0
+    endif
+
+    set tempG = CreateGroup()
+    loop
+        set u = FirstOfGroup(g)
+        exitwhen u == null
+        call GroupRemoveUnit(g, u)
+        if u != null and not IsUnitType(u, UNIT_TYPE_DEAD) and GetWidgetLife(u) > 0.405 then
+            set count = count + 1
+            call GroupAddUnit(tempG, u)
+        endif
+    endloop
+
+    loop
+        set u = FirstOfGroup(tempG)
+        exitwhen u == null
+        call GroupRemoveUnit(tempG, u)
+        call GroupAddUnit(g, u)
+    endloop
+
+    call DestroyGroup(tempG)
+    set tempG = null
+    set g = null
+    return count
+endfunction
+
+function Ninja_IsAnyClone takes unit u returns boolean
+    local integer uId = 0
+    local integer p = 0
+    if u == null then
+        return false
+    endif
+    set uId = GetUnitTypeId(u)
+    if uId == 'u002' or uId == 'u001' or IsUnitInGroup(u, udg_FakeHeroGroup) or IsUnitIllusion(u) then
+        return true
+    endif
+    set p = 0
+    loop
+        exitwhen p > 7
+        if udg_Ninja_CloneGroup[p] != null and IsUnitInGroup(u, udg_Ninja_CloneGroup[p]) then
+            return true
+        endif
+        set p = p + 1
+    endloop
+    return false
+endfunction
+
 function Ninja_SpawnClone takes player p, real x, real y, real facing returns unit
     local integer pId = GetPlayerId(p)
     local unit trueHero = Ninja_GetTrueHero(p)
@@ -2734,6 +2790,8 @@ function Ninja_SpawnClone takes player p, real x, real y, real facing returns un
     local unit clone = null
     local integer itemSlot = 0
     local item itm = null
+    local integer maxClones = 3
+    local integer curClones = 0
 
     if trueHero != null then
         set lv = GetUnitAbilityLevel(trueHero, 'A011')
@@ -2741,12 +2799,24 @@ function Ninja_SpawnClone takes player p, real x, real y, real facing returns un
     if lv <= 0 and (GetPlayerController(p) == MAP_CONTROL_COMPUTER or trueHero == null) then
         set lv = 1
     endif
+
+    // Determine max clones based on A011 level: Lv1=3, Lv2=5, Lv3=7
     if lv <= 1 then
+        set maxClones = 3
         set dur = 120.0
     elseif lv == 2 then
+        set maxClones = 5
         set dur = 240.0
     else
+        set maxClones = 7
         set dur = 600.0
+    endif
+
+    // Enforce hard cap: no clone created if already at or above cap
+    set curClones = Ninja_GetCloneCount(pId)
+    if curClones >= maxClones then
+        set trueHero = null
+        return null
     endif
 
     set clone = CreateUnit(p, 'u002', x, y, facing)
@@ -5321,6 +5391,20 @@ function DM_OnSpellEffect takes nothing returns boolean
         endif
     elseif abil == 'A014' then
         set pId = GetPlayerId(GetOwningPlayer(caster))
+        // Cap u001 at most 1 alive per player
+        if udg_Ninja_CloneGroup[pId] != null then
+            call GroupClear(udg_EnumGroup)
+            call GroupAddGroup(udg_Ninja_CloneGroup[pId], udg_EnumGroup)
+            loop
+                set ult = FirstOfGroup(udg_EnumGroup)
+                exitwhen ult == null
+                call GroupRemoveUnit(udg_EnumGroup, ult)
+                if GetUnitTypeId(ult) == 'u001' and not IsUnitType(ult, UNIT_TYPE_DEAD) then
+                    call GroupRemoveUnit(udg_Ninja_CloneGroup[pId], ult)
+                    call RemoveUnit(ult)
+                endif
+            endloop
+        endif
         set ult = CreateUnit(GetOwningPlayer(caster), 'u001', GetUnitX(caster) + 70.0, GetUnitY(caster) + 70.0, GetUnitFacing(caster))
         call UnitAddType(ult, UNIT_TYPE_SUMMONED)
         call UnitApplyTimedLife(ult, 'BTLF', 180.0)
@@ -5688,10 +5772,7 @@ function DM_OnDamaged takes nothing returns boolean
             if GetEventDamage() >= (GetWidgetLife(tgt) - 1.0) then
                 set c = Ninja_PickLivingClone(pId)
                 if c != null then
-                    if GetUnitAbilityLevel(tgt, 'A013') > 0 and src != null then
-                        call Ninja_MarkKarma(src, GetOwningPlayer(tgt), GetUnitAbilityLevel(tgt, 'A013'))
-                    endif
-
+                    // Hero survived via clone swap! Do not mark killer with Karma
                     set oldX = GetUnitX(tgt)
                     set oldY = GetUnitY(tgt)
                     set nx = GetUnitX(c)
@@ -5756,6 +5837,7 @@ function DM_OnUnitDeath takes nothing returns boolean
     local real deadFacing = GetUnitFacing(dead)
     local boolean isFakeHero = IsUnitInGroup(dead, udg_FakeHeroGroup)
     local boolean isIllusion = IsUnitIllusion(dead)
+    local boolean isAnyClone = false
     local integer idx = -1
     local integer kIdx = -1
     local player ko = null
@@ -5768,6 +5850,17 @@ function DM_OnUnitDeath takes nothing returns boolean
     local real nx = 0.0
     local real ny = 0.0
     local real nhp = 0.0
+
+    // Anti-recursion lock
+    if udg_Ninja_DeathLock then
+        set dead = null
+        set killer = null
+        set deadOwner = null
+        return false
+    endif
+    set udg_Ninja_DeathLock = true
+
+    set isAnyClone = Ninja_IsAnyClone(dead)
 
     // 1. Dream Master Possession Return
     set idx = DM_FindCapIndex(dead)
@@ -5792,53 +5885,50 @@ function DM_OnUnitDeath takes nothing returns boolean
         endif
     endif
 
-    // 2. Ninja Karma Mark
-    if (deadType == 'H003' or deadType == 'u002' or deadType == 'u001') and killer != null and IsUnitEnemy(killer, deadOwner) then
-        set th = Ninja_GetTrueHero(deadOwner)
+    // 2. Ninja Karma Mark (ONLY TRUE HERO H003 marks killer; clones NEVER mark killer!)
+    if deadType == 'H003' and not isFakeHero and not isIllusion and not isAnyClone and killer != null and IsUnitEnemy(killer, deadOwner) then
         set eLv = GetUnitAbilityLevel(dead, 'A013')
-        if th != null and GetUnitAbilityLevel(th, 'A013') > eLv then
-            set eLv = GetUnitAbilityLevel(th, 'A013')
-        endif
         if eLv > 0 then
             call Ninja_MarkKarma(killer, deadOwner, eLv)
         endif
     endif
 
-    // 3. Ninja Karma Rebirth
+    // 3. Ninja Karma Rebirth (One mark triggers strictly ONE rebirth/spawn, then consumed)
     set kIdx = Ninja_FindKarmaIndex(dead)
     if kIdx >= 0 then
         set ko = udg_KarmaOwner[kIdx]
         set klv = udg_KarmaLevel[kIdx]
         call Ninja_RemoveKarmaIndex(kIdx)
 
-        set th = Ninja_GetTrueHero(ko)
-        set hasLivingNinja = false
-        if th != null and not IsUnitType(th, UNIT_TYPE_DEAD) and GetWidgetLife(th) > 0.405 then
-            set hasLivingNinja = true
-        elseif Ninja_PickLivingClone(GetPlayerId(ko)) != null then
-            set hasLivingNinja = true
-        endif
+        if ko != null then
+            set th = Ninja_GetTrueHero(ko)
+            set hasLivingNinja = false
+            if th != null and not IsUnitType(th, UNIT_TYPE_DEAD) and GetWidgetLife(th) > 0.405 then
+                set hasLivingNinja = true
+            elseif Ninja_PickLivingClone(GetPlayerId(ko)) != null then
+                set hasLivingNinja = true
+            endif
 
-        if not hasLivingNinja and th != null then
-            call ReviveHero(th, deadX, deadY, true)
-            call SetUnitFacing(th, deadFacing)
-            call SetWidgetLife(th, GetUnitState(th, UNIT_STATE_MAX_LIFE))
-            call SetUnitState(th, UNIT_STATE_MANA, GetUnitState(th, UNIT_STATE_MAX_MANA))
-            call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\NightElf\\Blink\\BlinkTarget.mdl", th, "origin"))
-            if GetLocalPlayer() == ko then
-                call SelectUnit(th, true)
+            if not hasLivingNinja and th != null then
+                call ReviveHero(th, deadX, deadY, true)
+                call SetUnitFacing(th, deadFacing)
+                call SetWidgetLife(th, GetUnitState(th, UNIT_STATE_MAX_LIFE))
+                call SetUnitState(th, UNIT_STATE_MANA, GetUnitState(th, UNIT_STATE_MAX_MANA))
+                call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\NightElf\\Blink\\BlinkTarget.mdl", th, "origin"))
+                if GetLocalPlayer() == ko then
+                    call SelectUnit(th, true)
+                endif
+            else
+                // Exactly 1 clone respawn, respects 3/5/7 hard cap
+                call Ninja_SpawnClone(ko, deadX, deadY, deadFacing)
             endif
-        else
-            call Ninja_SpawnClone(ko, deadX, deadY, deadFacing)
-            if klv >= 3 then
-                call Ninja_SpawnClone(ko, deadX + 45.0, deadY + 45.0, deadFacing)
-            endif
+            set th = null
+            set ko = null
         endif
-        set ko = null
     endif
 
-    // 4. Ninja Clone on Kill
-    if killer != null and not IsUnitType(dead, UNIT_TYPE_STRUCTURE) and deadType != 'u000' and deadType != 'u001' and deadType != 'u002' and deadType != 'H003' and not isFakeHero and not isIllusion and (GetUnitTypeId(killer) == 'H003' or GetUnitTypeId(killer) == 'u002' or GetUnitTypeId(killer) == 'u001') then
+    // 4. Ninja Clone on Kill (A011): Clones CANNOT be cloned; victims must not be any clone!
+    if killer != null and not IsUnitType(dead, UNIT_TYPE_STRUCTURE) and not isAnyClone and deadType != 'u000' and deadType != 'u001' and deadType != 'u002' and deadType != 'H003' and not isFakeHero and not isIllusion and (GetUnitTypeId(killer) == 'H003' or GetUnitTypeId(killer) == 'u002' or GetUnitTypeId(killer) == 'u001') then
         set kp = GetOwningPlayer(killer)
         set th = Ninja_GetTrueHero(kp)
         if GetUnitAbilityLevel(killer, 'A011') > 0 or (th != null and GetUnitAbilityLevel(th, 'A011') > 0) or GetPlayerController(kp) == MAP_CONTROL_COMPUTER or GetUnitTypeId(killer) == 'u001' then
@@ -5848,8 +5938,8 @@ function DM_OnUnitDeath takes nothing returns boolean
         set th = null
     endif
 
-    // 5. Ninja Clone Swap Fallback
-    if deadType == 'H003' and not isFakeHero and not isIllusion then
+    // 5. Ninja Clone Swap Fallback (True Hero death swap into living clone)
+    if deadType == 'H003' and not isFakeHero and not isIllusion and not isAnyClone then
         set c = Ninja_PickLivingClone(deadPId)
         if c != null then
             set nx = GetUnitX(c)
@@ -5857,6 +5947,7 @@ function DM_OnUnitDeath takes nothing returns boolean
             set nhp = GetWidgetLife(c)
             call GroupRemoveUnit(udg_Ninja_CloneGroup[deadPId], c)
             call GroupRemoveUnit(udg_FakeHeroGroup, c)
+            call SetUnitExploded(c, true)
             call RemoveUnit(c)
             set c = null
 
@@ -5869,22 +5960,21 @@ function DM_OnUnitDeath takes nothing returns boolean
         endif
     endif
 
-    // 6. Cleanup Fake Hero / Clone
-    if isFakeHero or deadType == 'u002' or deadType == 'u001' then
+    // 6. Cleanup Fake Hero / Clone (Explode cleanly, no unit spawned)
+    if isAnyClone or isFakeHero or deadType == 'u002' or deadType == 'u001' then
         if udg_Ninja_CloneGroup[deadPId] != null then
             call GroupRemoveUnit(udg_Ninja_CloneGroup[deadPId], dead)
         endif
         call GroupRemoveUnit(udg_FakeHeroGroup, dead)
-        if deadType == 'u002' then
-            call SetUnitOwner(dead, Player(PLAYER_NEUTRAL_PASSIVE), false)
-            call SetUnitExploded(dead, true)
-            call RemoveUnit(dead)
-        endif
+        call SetUnitOwner(dead, Player(PLAYER_NEUTRAL_PASSIVE), false)
+        call SetUnitExploded(dead, true)
+        call RemoveUnit(dead)
     endif
 
     set dead = null
     set killer = null
     set deadOwner = null
+    set udg_Ninja_DeathLock = false
     return false
 endfunction
 
