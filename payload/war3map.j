@@ -3182,6 +3182,57 @@ function Strain_DrainEnemyHero takes unit caster, unit victim returns nothing
     call DisplayTimedTextToPlayer(GetOwningPlayer(caster), 0, 0, 6.0, "|cffff3333[基因蚕食]|r 敌方英雄已被彻底削弱！当前状态：敏捷 " + I2S(GetHeroAgi(victim, false)) + " / 力量 " + I2S(GetHeroStr(victim, false)) + " / 智力 " + I2S(GetHeroInt(victim, false)) + " / 最大生命 " + I2S(BlzGetUnitMaxHP(victim)) + " / 最大法力 " + I2S(BlzGetUnitMaxMana(victim)))
 endfunction
 
+function Strain_GetAbilName takes integer abilId returns string
+    if abilId == 'ACbl' then
+        return "嗜血术"
+    elseif abilId == 'ACls' then
+        return "闪电护盾"
+    elseif abilId == 'ACpu' then
+        return "净化"
+    elseif abilId == 'ACct' then
+        return "致命一击"
+    elseif abilId == 'ACbh' then
+        return "重击"
+    elseif abilId == 'ACev' then
+        return "闪避"
+    elseif abilId == 'ACtb' then
+        return "投掷巨石"
+    elseif abilId == 'ACro' then
+        return "战吼咆哮"
+    elseif abilId == 'ACif' then
+        return "心灵之火"
+    elseif abilId == 'ACsw' then
+        return "减速"
+    elseif abilId == 'AChx' then
+        return "妖术"
+    elseif abilId == 'ACst' then
+        return "战争践踏"
+    elseif abilId == 'ACsh' then
+        return "震荡波"
+    elseif abilId == 'ACfl' then
+        return "叉状闪电"
+    elseif abilId == 'ACfn' then
+        return "霜冻新星"
+    elseif abilId == 'ACf2' then
+        return "霜冻护甲"
+    elseif abilId == 'ACen' then
+        return "诱捕"
+    elseif abilId == 'ACrj' then
+        return "生命恢复"
+    elseif abilId == 'ACcs' then
+        return "诅咒"
+    elseif abilId == 'ACav' then
+        return "统御光环"
+    elseif abilId == 'ACdv' then
+        return "专注光环"
+    elseif abilId == 'A025' then
+        return "异种甲壳进化"
+    elseif abilId == 'A026' then
+        return "异种剧毒"
+    endif
+    return GetObjectName(abilId)
+endfunction
+
 function Strain_LearnOrUpgradeStolenAbil takes unit u, integer pId, integer abilId returns nothing
     local string name = ""
     local player p = null
@@ -3189,7 +3240,7 @@ function Strain_LearnOrUpgradeStolenAbil takes unit u, integer pId, integer abil
         return
     endif
     set p = GetOwningPlayer(u)
-    set name = GetObjectName(abilId)
+    set name = Strain_GetAbilName(abilId)
 
     // Case 1: Already in Slot 1 -> Upgrade Tier
     if udg_Strain_StolenAbil1[pId] == abilId then
@@ -3241,8 +3292,8 @@ function Strain_LearnOrUpgradeStolenAbil takes unit u, integer pId, integer abil
         call DialogDisplay(p, udg_Strain_ReplaceDialog, false)
         call DialogClear(udg_Strain_ReplaceDialog)
         call DialogSetMessage(udg_Strain_ReplaceDialog, "两个基因槽位均已满，请选择要替换的技能槽：\n待融入新技能：" + name)
-        set udg_Strain_BtnRep1 = DialogAddButton(udg_Strain_ReplaceDialog, "[1] 替换【槽位1】: " + GetObjectName(udg_Strain_StolenAbil1[pId]) + " (阶数 " + I2S(udg_Strain_EvoTier1[pId]) + ")", 49)
-        set udg_Strain_BtnRep2 = DialogAddButton(udg_Strain_ReplaceDialog, "[2] 替换【槽位2】: " + GetObjectName(udg_Strain_StolenAbil2[pId]) + " (阶数 " + I2S(udg_Strain_EvoTier2[pId]) + ")", 50)
+        set udg_Strain_BtnRep1 = DialogAddButton(udg_Strain_ReplaceDialog, "[1] 替换【槽位1】: " + Strain_GetAbilName(udg_Strain_StolenAbil1[pId]) + " (阶数 " + I2S(udg_Strain_EvoTier1[pId]) + ")", 49)
+        set udg_Strain_BtnRep2 = DialogAddButton(udg_Strain_ReplaceDialog, "[2] 替换【槽位2】: " + Strain_GetAbilName(udg_Strain_StolenAbil2[pId]) + " (阶数 " + I2S(udg_Strain_EvoTier2[pId]) + ")", 50)
         set udg_Strain_BtnRepCancel = DialogAddButton(udg_Strain_ReplaceDialog, "[3] 不加入当前技能组（取消覆盖）", 51)
         call DialogDisplay(p, udg_Strain_ReplaceDialog, true)
     else
@@ -3299,7 +3350,7 @@ function Strain_OnReplaceDialogClick takes nothing returns nothing
             call UnitAddAbility(u, newAbil)
             call SetUnitAbilityLevel(u, newAbil, 1)
             call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Items\\AIam\\AIamTarget.mdl", u, "origin"))
-            call DisplayTimedTextToPlayer(p, 0, 0, 5.0, "|cff00ff00[槽位替换成功]|r 【槽位1】已替换为：" + GetObjectName(newAbil))
+            call DisplayTimedTextToPlayer(p, 0, 0, 5.0, "|cff00ff00[槽位替换成功]|r 【槽位1】已替换为：" + Strain_GetAbilName(newAbil))
         elseif b == udg_Strain_BtnRep2 then
             call UnitRemoveAbility(u, udg_Strain_StolenAbil2[pId])
             set udg_Strain_StolenAbil2[pId] = newAbil
@@ -3307,7 +3358,7 @@ function Strain_OnReplaceDialogClick takes nothing returns nothing
             call UnitAddAbility(u, newAbil)
             call SetUnitAbilityLevel(u, newAbil, 1)
             call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Items\\AIam\\AIamTarget.mdl", u, "origin"))
-            call DisplayTimedTextToPlayer(p, 0, 0, 5.0, "|cff00ff00[槽位替换成功]|r 【槽位2】已替换为：" + GetObjectName(newAbil))
+            call DisplayTimedTextToPlayer(p, 0, 0, 5.0, "|cff00ff00[槽位替换成功]|r 【槽位2】已替换为：" + Strain_GetAbilName(newAbil))
         elseif b == udg_Strain_BtnRepCancel then
             call DisplayTimedTextToPlayer(p, 0, 0, 4.0, "|cffffcc00[基因替换取消]|r 保留现有双技能组，未做替换。")
         endif
@@ -3332,16 +3383,16 @@ function Strain_ShowSkillChoiceDialog takes player p, integer pId, string title,
     set udg_Strain_HeroSkillBtn[3] = null
     set udg_Strain_HeroSkillBtn[4] = null
     if optCount >= 1 and udg_Strain_CandidateAbil0[pId] != 0 then
-        set udg_Strain_HeroSkillBtn[0] = DialogAddButton(udg_Strain_HeroDialog, "[1] " + GetObjectName(udg_Strain_CandidateAbil0[pId]), 49)
+        set udg_Strain_HeroSkillBtn[0] = DialogAddButton(udg_Strain_HeroDialog, "[1] " + Strain_GetAbilName(udg_Strain_CandidateAbil0[pId]), 49)
     endif
     if optCount >= 2 and udg_Strain_CandidateAbil1[pId] != 0 then
-        set udg_Strain_HeroSkillBtn[1] = DialogAddButton(udg_Strain_HeroDialog, "[2] " + GetObjectName(udg_Strain_CandidateAbil1[pId]), 50)
+        set udg_Strain_HeroSkillBtn[1] = DialogAddButton(udg_Strain_HeroDialog, "[2] " + Strain_GetAbilName(udg_Strain_CandidateAbil1[pId]), 50)
     endif
     if optCount >= 3 and udg_Strain_CandidateAbil2[pId] != 0 then
-        set udg_Strain_HeroSkillBtn[2] = DialogAddButton(udg_Strain_HeroDialog, "[3] " + GetObjectName(udg_Strain_CandidateAbil2[pId]), 51)
+        set udg_Strain_HeroSkillBtn[2] = DialogAddButton(udg_Strain_HeroDialog, "[3] " + Strain_GetAbilName(udg_Strain_CandidateAbil2[pId]), 51)
     endif
     if optCount >= 4 and udg_Strain_CandidateAbil3[pId] != 0 then
-        set udg_Strain_HeroSkillBtn[3] = DialogAddButton(udg_Strain_HeroDialog, "[4] " + GetObjectName(udg_Strain_CandidateAbil3[pId]), 52)
+        set udg_Strain_HeroSkillBtn[3] = DialogAddButton(udg_Strain_HeroDialog, "[4] " + Strain_GetAbilName(udg_Strain_CandidateAbil3[pId]), 52)
     endif
     set udg_Strain_HeroSkillBtn[4] = DialogAddButton(udg_Strain_HeroDialog, "[5] 不加入当前技能组（保留现有技能，不覆盖）", 53)
     call DialogDisplay(p, udg_Strain_HeroDialog, true)
@@ -3405,12 +3456,12 @@ function Strain_ShowGeneDialog takes player p, integer pId returns nothing
     endif
     set msg = msg + "\n累计进化：+" + I2S(udg_Strain_TotalBonusHP[pId]) + "生命 / +" + I2S(udg_Strain_TotalBonusAtk[pId]) + "攻击 / +" + I2S(udg_Strain_TotalBonusMana[pId]) + "法力"
     if udg_Strain_StolenAbil1[pId] != 0 then
-        set msg = msg + "\n【基因槽位 1】： " + GetObjectName(udg_Strain_StolenAbil1[pId]) + " (强化 " + I2S(udg_Strain_EvoTier1[pId]) + " 阶)"
+        set msg = msg + "\n【基因槽位 1】： " + Strain_GetAbilName(udg_Strain_StolenAbil1[pId]) + " (强化 " + I2S(udg_Strain_EvoTier1[pId]) + " 阶)"
     else
         set msg = msg + "\n【基因槽位 1】： [空闲]"
     endif
     if udg_Strain_StolenAbil2[pId] != 0 then
-        set msg = msg + "\n【基因槽位 2】： " + GetObjectName(udg_Strain_StolenAbil2[pId]) + " (强化 " + I2S(udg_Strain_EvoTier2[pId]) + " 阶)"
+        set msg = msg + "\n【基因槽位 2】： " + Strain_GetAbilName(udg_Strain_StolenAbil2[pId]) + " (强化 " + I2S(udg_Strain_EvoTier2[pId]) + " 阶)"
     else
         set msg = msg + "\n【基因槽位 2】： [空闲]"
     endif
@@ -3421,10 +3472,10 @@ function Strain_ShowGeneDialog takes player p, integer pId returns nothing
     set udg_Strain_BtnDiscard1 = null
     set udg_Strain_BtnDiscard2 = null
     if udg_Strain_StolenAbil1[pId] != 0 then
-        set udg_Strain_BtnDiscard1 = DialogAddButton(udg_Strain_GeneDialog, "[2] 遗忘【槽位1】技能：" + GetObjectName(udg_Strain_StolenAbil1[pId]), 50)
+        set udg_Strain_BtnDiscard1 = DialogAddButton(udg_Strain_GeneDialog, "[2] 遗忘【槽位1】技能：" + Strain_GetAbilName(udg_Strain_StolenAbil1[pId]), 50)
     endif
     if udg_Strain_StolenAbil2[pId] != 0 then
-        set udg_Strain_BtnDiscard2 = DialogAddButton(udg_Strain_GeneDialog, "[3] 遗忘【槽位2】技能：" + GetObjectName(udg_Strain_StolenAbil2[pId]), 51)
+        set udg_Strain_BtnDiscard2 = DialogAddButton(udg_Strain_GeneDialog, "[3] 遗忘【槽位2】技能：" + Strain_GetAbilName(udg_Strain_StolenAbil2[pId]), 51)
     endif
     call DialogDisplay(p, udg_Strain_GeneDialog, true)
 endfunction
@@ -3464,13 +3515,13 @@ function Strain_OnGeneDialogClick takes nothing returns nothing
     call DialogDisplay(p, udg_Strain_GeneDialog, false)
     if u != null and not IsUnitType(u, UNIT_TYPE_DEAD) then
         if b == udg_Strain_BtnDiscard1 and udg_Strain_StolenAbil1[pId] != 0 then
-            call DisplayTimedTextToPlayer(p, 0, 0, 4.0, "|cffffcc00[基因遗忘]|r 已遗忘【槽位1】技能：" + GetObjectName(udg_Strain_StolenAbil1[pId]) + "，腾出技能槽位 1！")
+            call DisplayTimedTextToPlayer(p, 0, 0, 4.0, "|cffffcc00[基因遗忘]|r 已遗忘【槽位1】技能：" + Strain_GetAbilName(udg_Strain_StolenAbil1[pId]) + "，腾出技能槽位 1！")
             call UnitRemoveAbility(u, udg_Strain_StolenAbil1[pId])
             call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\DispelMagic\\DispelMagicTarget.mdl", u, "origin"))
             set udg_Strain_StolenAbil1[pId] = 0
             set udg_Strain_EvoTier1[pId] = 0
         elseif b == udg_Strain_BtnDiscard2 and udg_Strain_StolenAbil2[pId] != 0 then
-            call DisplayTimedTextToPlayer(p, 0, 0, 4.0, "|cffffcc00[基因遗忘]|r 已遗忘【槽位2】技能：" + GetObjectName(udg_Strain_StolenAbil2[pId]) + "，腾出技能槽位 2！")
+            call DisplayTimedTextToPlayer(p, 0, 0, 4.0, "|cffffcc00[基因遗忘]|r 已遗忘【槽位2】技能：" + Strain_GetAbilName(udg_Strain_StolenAbil2[pId]) + "，腾出技能槽位 2！")
             call UnitRemoveAbility(u, udg_Strain_StolenAbil2[pId])
             call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\DispelMagic\\DispelMagicTarget.mdl", u, "origin"))
             set udg_Strain_StolenAbil2[pId] = 0
@@ -3482,57 +3533,140 @@ function Strain_OnGeneDialogClick takes nothing returns nothing
     set u = null
 endfunction
 
-function Strain_PopulateUnitSkills takes integer uId, integer pId returns integer
+function Strain_AddCandidateAbil takes integer pId, integer abilId returns nothing
+    local integer count = udg_Strain_CandidateCount[pId]
+    if abilId == 0 or count >= 4 then
+        return
+    endif
+    if count >= 1 and udg_Strain_CandidateAbil0[pId] == abilId then
+        return
+    endif
+    if count >= 2 and udg_Strain_CandidateAbil1[pId] == abilId then
+        return
+    endif
+    if count >= 3 and udg_Strain_CandidateAbil2[pId] == abilId then
+        return
+    endif
+    if count >= 4 and udg_Strain_CandidateAbil3[pId] == abilId then
+        return
+    endif
+    if count == 0 then
+        set udg_Strain_CandidateAbil0[pId] = abilId
+    elseif count == 1 then
+        set udg_Strain_CandidateAbil1[pId] = abilId
+    elseif count == 2 then
+        set udg_Strain_CandidateAbil2[pId] = abilId
+    elseif count == 3 then
+        set udg_Strain_CandidateAbil3[pId] = abilId
+    endif
+    set udg_Strain_CandidateCount[pId] = count + 1
+endfunction
+
+function Strain_CaptureRealUnitSkills takes integer pId, unit tgt returns nothing
+    local integer uId = 0
     set udg_Strain_CandidateAbil0[pId] = 0
     set udg_Strain_CandidateAbil1[pId] = 0
     set udg_Strain_CandidateAbil2[pId] = 0
     set udg_Strain_CandidateAbil3[pId] = 0
+    set udg_Strain_CandidateCount[pId] = 0
 
-    // 1. Shaman / Ogre Magi / Furbolg / Caster Creeps
-    if uId == 'oshm' or uId == 'nomg' or uId == 'nfrl' or uId == 'nfrb' or uId == 'nwlt' or uId == 'nwlg' or uId == 'eorc' or uId == 'ospw' then
-        set udg_Strain_CandidateAbil0[pId] = 'ACbl'
-        set udg_Strain_CandidateAbil1[pId] = 'ACls'
-        set udg_Strain_CandidateAbil2[pId] = 'ACpu'
-        return 3
+    if tgt == null then
+        return
+    endif
+    set uId = GetUnitTypeId(tgt)
+
+    // Check actual abilities on target unit & standard caster mappings
+    if GetUnitAbilityLevel(tgt, 'Adef') > 0 or uId == 'hfoo' or uId == 'hcth' then
+        call Strain_AddCandidateAbil(pId, 'A025')
     endif
 
-    // 2. Heavy Creeps / Golem / Giant
-    if uId == 'ngst' or uId == 'nggr' or uId == 'ngnv' or uId == 'ngns' then
-        set udg_Strain_CandidateAbil0[pId] = 'ACtb'
-        set udg_Strain_CandidateAbil1[pId] = 'ACro'
-        return 2
+    if GetUnitAbilityLevel(tgt, 'Aspo') > 0 or GetUnitAbilityLevel(tgt, 'Apsn') > 0 or GetUnitAbilityLevel(tgt, 'A026') > 0 or uId == 'edry' or uId == 'nspr' or uId == 'nspg' or uId == 'nass' or uId == 'nmrl' or uId == 'ngna' then
+        call Strain_AddCandidateAbil(pId, 'A026')
     endif
 
-    // 3. Human Priest / Sorceress / Witch Doctor
-    if uId == 'hmpr' or uId == 'hsor' or uId == 'odoc' then
-        set udg_Strain_CandidateAbil0[pId] = 'ACif'
-        set udg_Strain_CandidateAbil1[pId] = 'ACsw'
-        set udg_Strain_CandidateAbil2[pId] = 'AChx'
-        return 3
+    if GetUnitAbilityLevel(tgt, 'Ablo') > 0 or GetUnitAbilityLevel(tgt, 'ACbl') > 0 or uId == 'oshm' or uId == 'nomg' then
+        call Strain_AddCandidateAbil(pId, 'ACbl')
     endif
 
-    // 4. Dryad / Archer / Ranged Poison Creeps
-    if uId == 'edry' or uId == 'earc' or uId == 'hrif' or uId == 'ohun' or uId == 'ucry' or uId == 'nspr' or uId == 'nspg' or uId == 'nass' or uId == 'nmrl' or uId == 'ngna' or udg_Strain_DigestFeedType[pId] == 2 then
-        set udg_Strain_CandidateAbil0[pId] = 'A026'
-        set udg_Strain_CandidateAbil1[pId] = 'A017'
-        return 2
+    if GetUnitAbilityLevel(tgt, 'Alsh') > 0 or GetUnitAbilityLevel(tgt, 'ACls') > 0 or uId == 'oshm' then
+        call Strain_AddCandidateAbil(pId, 'ACls')
     endif
 
-    // 5. Footman / Melee Shield units
-    if uId == 'hfoo' or uId == 'hkni' or uId == 'hmil' or uId == 'ogru' or uId == 'otau' or uId == 'ugho' or uId == 'uabo' or uId == 'esen' or uId == 'emtg' or uId == 'nogr' or uId == 'nftr' or uId == 'nftb' or udg_Strain_DigestFeedType[pId] == 1 then
-        set udg_Strain_CandidateAbil0[pId] = 'A025'
-        return 1
+    if GetUnitAbilityLevel(tgt, 'Apgr') > 0 or GetUnitAbilityLevel(tgt, 'Apg2') > 0 or GetUnitAbilityLevel(tgt, 'ACpu') > 0 or uId == 'oshm' then
+        call Strain_AddCandidateAbil(pId, 'ACpu')
     endif
 
-    // 6. Generic magical units
-    if udg_Strain_DigestFeedType[pId] == 3 then
-        set udg_Strain_CandidateAbil0[pId] = 'ACif'
-        set udg_Strain_CandidateAbil1[pId] = 'ACsw'
-        set udg_Strain_CandidateAbil2[pId] = 'AChx'
-        return 3
+    if GetUnitAbilityLevel(tgt, 'AOcr') > 0 or GetUnitAbilityLevel(tgt, 'ACct') > 0 or GetUnitAbilityLevel(tgt, 'A017') > 0 then
+        call Strain_AddCandidateAbil(pId, 'ACct')
     endif
 
-    return 0
+    if GetUnitAbilityLevel(tgt, 'Abas') > 0 or GetUnitAbilityLevel(tgt, 'ACbh') > 0 or GetUnitAbilityLevel(tgt, 'AHbh') > 0 then
+        call Strain_AddCandidateAbil(pId, 'ACbh')
+    endif
+
+    if GetUnitAbilityLevel(tgt, 'Aevs') > 0 or GetUnitAbilityLevel(tgt, 'ACev') > 0 or GetUnitAbilityLevel(tgt, 'AEev') > 0 then
+        call Strain_AddCandidateAbil(pId, 'ACev')
+    endif
+
+    if GetUnitAbilityLevel(tgt, 'Atbb') > 0 or GetUnitAbilityLevel(tgt, 'ACtb') > 0 or uId == 'ngst' or uId == 'nggr' or uId == 'ngnv' or uId == 'ngns' then
+        call Strain_AddCandidateAbil(pId, 'ACtb')
+    endif
+
+    if GetUnitAbilityLevel(tgt, 'Aroa') > 0 or GetUnitAbilityLevel(tgt, 'ACro') > 0 or uId == 'nfrb' or uId == 'nfrl' then
+        call Strain_AddCandidateAbil(pId, 'ACro')
+    endif
+
+    if GetUnitAbilityLevel(tgt, 'Ainf') > 0 or GetUnitAbilityLevel(tgt, 'ACif') > 0 or GetUnitAbilityLevel(tgt, 'Ahea') > 0 or uId == 'hmpr' then
+        call Strain_AddCandidateAbil(pId, 'ACif')
+    endif
+
+    if GetUnitAbilityLevel(tgt, 'Aslo') > 0 or GetUnitAbilityLevel(tgt, 'ACsw') > 0 or uId == 'hsor' then
+        call Strain_AddCandidateAbil(pId, 'ACsw')
+    endif
+
+    if GetUnitAbilityLevel(tgt, 'Aply') > 0 or GetUnitAbilityLevel(tgt, 'AChx') > 0 or GetUnitAbilityLevel(tgt, 'AOhx') > 0 or uId == 'hsor' or uId == 'odoc' then
+        call Strain_AddCandidateAbil(pId, 'AChx')
+    endif
+
+    if GetUnitAbilityLevel(tgt, 'Astp') > 0 or GetUnitAbilityLevel(tgt, 'ACst') > 0 or GetUnitAbilityLevel(tgt, 'AOws') > 0 then
+        call Strain_AddCandidateAbil(pId, 'ACst')
+    endif
+
+    if GetUnitAbilityLevel(tgt, 'Ashw') > 0 or GetUnitAbilityLevel(tgt, 'ACsh') > 0 or GetUnitAbilityLevel(tgt, 'AOsh') > 0 then
+        call Strain_AddCandidateAbil(pId, 'ACsh')
+    endif
+
+    if GetUnitAbilityLevel(tgt, 'Aflk') > 0 or GetUnitAbilityLevel(tgt, 'ACfl') > 0 then
+        call Strain_AddCandidateAbil(pId, 'ACfl')
+    endif
+
+    if GetUnitAbilityLevel(tgt, 'Afno') > 0 or GetUnitAbilityLevel(tgt, 'ACfn') > 0 or GetUnitAbilityLevel(tgt, 'AUfn') > 0 then
+        call Strain_AddCandidateAbil(pId, 'ACfn')
+    endif
+
+    if GetUnitAbilityLevel(tgt, 'Afae') > 0 or GetUnitAbilityLevel(tgt, 'ACf2') > 0 or GetUnitAbilityLevel(tgt, 'AUfu') > 0 then
+        call Strain_AddCandidateAbil(pId, 'ACf2')
+    endif
+
+    if GetUnitAbilityLevel(tgt, 'Aens') > 0 or GetUnitAbilityLevel(tgt, 'ACen') > 0 or uId == 'orai' then
+        call Strain_AddCandidateAbil(pId, 'ACen')
+    endif
+
+    if GetUnitAbilityLevel(tgt, 'Arej') > 0 or GetUnitAbilityLevel(tgt, 'ACrj') > 0 or uId == 'edoc' then
+        call Strain_AddCandidateAbil(pId, 'ACrj')
+    endif
+
+    if GetUnitAbilityLevel(tgt, 'Acrs') > 0 or GetUnitAbilityLevel(tgt, 'ACcs') > 0 or uId == 'uban' or uId == 'unec' then
+        call Strain_AddCandidateAbil(pId, 'ACcs')
+    endif
+
+    if GetUnitAbilityLevel(tgt, 'Acmd') > 0 or GetUnitAbilityLevel(tgt, 'ACav') > 0 then
+        call Strain_AddCandidateAbil(pId, 'ACav')
+    endif
+
+    if GetUnitAbilityLevel(tgt, 'Aamk') > 0 or GetUnitAbilityLevel(tgt, 'ACdv') > 0 or GetUnitAbilityLevel(tgt, 'AHad') > 0 then
+        call Strain_AddCandidateAbil(pId, 'ACdv')
+    endif
 endfunction
 
 function Strain_OnDigestComplete takes unit u, integer pId returns nothing
@@ -3674,14 +3808,15 @@ function Strain_OnDigestComplete takes unit u, integer pId returns nothing
         endif
         call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Items\\AIam\\AIamTarget.mdl", u, "origin"))
 
-        // Also check if unit has selectable skills
-        set uChoiceCount = Strain_PopulateUnitSkills(tgtType, pId)
-        if uChoiceCount > 0 then
+        // Also check if unit has selectable skills (captured when swallowed)
+        if udg_Strain_CandidateCount[pId] > 0 then
             if GetPlayerController(GetOwningPlayer(u)) == MAP_CONTROL_USER then
-                call Strain_ShowSkillChoiceDialog(GetOwningPlayer(u), pId, "【基因掠夺 - 猎物技能库】请选择融入的技能：", uChoiceCount)
+                call Strain_ShowSkillChoiceDialog(GetOwningPlayer(u), pId, "【基因掠夺 - 猎物技能库】请选择融入的技能：", udg_Strain_CandidateCount[pId])
             else
                 call Strain_LearnOrUpgradeStolenAbil(u, pId, udg_Strain_CandidateAbil0[pId])
             endif
+        else
+            call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 4.0, "|cffaaaaaa（该猎物无特殊技能基因，已吸收纯粹肉体属性）|r")
         endif
     endif
 endfunction
@@ -4692,12 +4827,12 @@ function AI_TacticalLoop takes nothing returns nothing
                                     call GroupRemoveUnit(udg_EnumGroup, enumU)
                                     if IsUnitEnemy(enumU, Player(i)) and not IsUnitType(enumU, UNIT_TYPE_DEAD) and not IsUnitType(enumU, UNIT_TYPE_STRUCTURE) and GetUnitTypeId(enumU) != 'u000' and not IsUnitInGroup(enumU, udg_FakeHeroGroup) then
                                         if IsUnitType(enumU, UNIT_TYPE_HERO) or IsHeroUnitId(GetUnitTypeId(enumU)) then
-                                            if GetWidgetLife(enumU) <= (GetUnitState(enumU, UNIT_STATE_MAX_LIFE) * 0.28) then
+                                            if GetWidgetLife(enumU) <= (GetUnitState(h, UNIT_STATE_MAX_LIFE) * 0.10) or GetWidgetLife(enumU) <= (GetUnitState(enumU, UNIT_STATE_MAX_LIFE) * 0.28) then
                                                 set bestEnemy = enumU
                                                 exitwhen true
                                             endif
                                         else
-                                            if GetWidgetLife(enumU) <= (GetUnitState(enumU, UNIT_STATE_MAX_LIFE) * 0.35) then
+                                            if GetWidgetLife(enumU) <= (GetUnitState(h, UNIT_STATE_MAX_LIFE) * 0.10) or GetWidgetLife(enumU) <= (GetUnitState(enumU, UNIT_STATE_MAX_LIFE) * 0.35) then
                                                 set bestEnemy = enumU
                                             endif
                                         endif
@@ -4732,7 +4867,7 @@ function AI_TacticalLoop takes nothing returns nothing
                                         call IssueImmediateOrder(h, "windwalk")
                                     elseif abil == 'AHtb' or abil == 'ACtb' then
                                         call IssueTargetOrder(h, "thunderbolt", nearestEnemy)
-                                    elseif abil == 'AHtc' then
+                                    elseif abil == 'AHtc' or abil == 'ACst' then
                                         call IssueImmediateOrder(h, "stomp")
                                     elseif abil == 'AOcl' then
                                         call IssueTargetOrder(h, "chainlightning", nearestEnemy)
@@ -4758,6 +4893,20 @@ function AI_TacticalLoop takes nothing returns nothing
                                         call IssueTargetOrder(h, "slow", nearestEnemy)
                                     elseif abil == 'AChx' then
                                         call IssueTargetOrder(h, "hex", nearestEnemy)
+                                    elseif abil == 'ACsh' then
+                                        call IssuePointOrder(h, "shockwave", GetUnitX(nearestEnemy), GetUnitY(nearestEnemy))
+                                    elseif abil == 'ACfl' then
+                                        call IssueTargetOrder(h, "forkedlightning", nearestEnemy)
+                                    elseif abil == 'ACfn' then
+                                        call IssueTargetOrder(h, "frostnova", nearestEnemy)
+                                    elseif abil == 'ACf2' then
+                                        call IssueTargetOrder(h, "frostarmor", h)
+                                    elseif abil == 'ACen' then
+                                        call IssueTargetOrder(h, "ensnare", nearestEnemy)
+                                    elseif abil == 'ACrj' then
+                                        call IssueTargetOrder(h, "rejuvenation", h)
+                                    elseif abil == 'ACcs' then
+                                        call IssueTargetOrder(h, "curse", nearestEnemy)
                                     endif
                                     set udg_AI_CastCD_R[i] = 8.0
                                 endif
@@ -5189,6 +5338,7 @@ function DM_OnSpellEffect takes nothing returns boolean
                 else
                     set udg_Strain_DigestFeedType[pId] = 1
                 endif
+                call Strain_CaptureRealUnitSkills(pId, ult)
             else
                 set udg_Strain_DigestFeedType[pId] = 0
                 // Execute cascading attribute and HP/Mana drain BEFORE killing target hero!
@@ -5300,6 +5450,7 @@ function DM_OnSpellCast takes nothing returns boolean
     local unit tgt = null
     local real maxHP = 0.0
     local real curHP = 0.0
+    local real casterMaxHP = 0.0
     local boolean isHero = false
 
     if hIdx >= 0 and udg_DM_InStealth[hIdx] then
@@ -5315,13 +5466,16 @@ function DM_OnSpellCast takes nothing returns boolean
             call IssueImmediateOrder(caster, "stop")
             call DisplayTimedTextToPlayer(GetOwningPlayer(caster), 0, 0, 3.0, "|cffffcc00[捕食吞噬]|r 正在消化猎物中，请等待消化完成！")
         elseif tgt != null then
+            set casterMaxHP = GetUnitState(caster, UNIT_STATE_MAX_LIFE)
             set maxHP = GetUnitState(tgt, UNIT_STATE_MAX_LIFE)
             set curHP = GetWidgetLife(tgt)
             set isHero = IsUnitType(tgt, UNIT_TYPE_HERO) or IsHeroUnitId(GetUnitTypeId(tgt))
-            if (isHero and curHP > (maxHP * 0.28)) or (not isHero and curHP > (maxHP * 0.35)) then
-                call IssueImmediateOrder(caster, "stop")
-                if GetPlayerController(GetOwningPlayer(caster)) == MAP_CONTROL_USER then
-                    call DisplayTimedTextToPlayer(GetOwningPlayer(caster), 0, 0, 3.0, "|cffffcc00[捕食吞噬]|r 目标生命值过高（普通单位需低于35%，英雄需低于28%）！")
+            if curHP > (casterMaxHP * 0.10) then
+                if (isHero and curHP > (maxHP * 0.28)) or (not isHero and curHP > (maxHP * 0.35)) then
+                    call IssueImmediateOrder(caster, "stop")
+                    if GetPlayerController(GetOwningPlayer(caster)) == MAP_CONTROL_USER then
+                        call DisplayTimedTextToPlayer(GetOwningPlayer(caster), 0, 0, 3.0, "|cffffcc00[捕食吞噬]|r 目标生命值过高（需低于自身上限10%[" + I2S(R2I(casterMaxHP * 0.10)) + "]，或普通单位<35%/英雄<28%）！")
+                    endif
                 endif
             endif
         endif
@@ -5930,27 +6084,37 @@ function TM_SpawnSandboxTargets takes player p returns nothing
         call UnitResetCooldown(udg_Strain_Hero[pId])
     endif
 
-    // 1. Footman (hfoo) - Melee, no mana -> +HP & Spiked Carapace
-    set targetU = CreateUnit(Player(PLAYER_NEUTRAL_AGGRESSIVE), 'hfoo', hx + 180.0, hy + 60.0, 180.0)
+    // 1. Footman (hfoo) - Melee, Defend -> A025
+    set targetU = CreateUnit(Player(PLAYER_NEUTRAL_AGGRESSIVE), 'hfoo', hx + 180.0, hy + 120.0, 180.0)
+    call UnitAddAbility(targetU, 'Adef')
     call SetWidgetLife(targetU, GetUnitState(targetU, UNIT_STATE_MAX_LIFE) * 0.20)
     call PauseUnit(targetU, true)
 
-    // 2. Archer (earc) - Ranged attacker, no mana -> +Attack & Slow Poison / Crit
-    set targetU = CreateUnit(Player(PLAYER_NEUTRAL_AGGRESSIVE), 'earc', hx + 180.0, hy + 180.0, 180.0)
+    // 2. Grunt (ogru) - White-meat creep, NO skills -> +HP only, no dialog
+    set targetU = CreateUnit(Player(PLAYER_NEUTRAL_AGGRESSIVE), 'ogru', hx + 180.0, hy + 60.0, 180.0)
     call SetWidgetLife(targetU, GetUnitState(targetU, UNIT_STATE_MAX_LIFE) * 0.20)
     call PauseUnit(targetU, true)
 
-    // 3. Shaman (oshm) - Magical caster, has mana -> +Mana & Bloodlust / Lightning Shield / Purge
+    // 3. Dryad (edry) - Slow Poison -> A026
+    set targetU = CreateUnit(Player(PLAYER_NEUTRAL_AGGRESSIVE), 'edry', hx + 180.0, hy, 180.0)
+    call UnitAddAbility(targetU, 'Aspo')
+    call SetWidgetLife(targetU, GetUnitState(targetU, UNIT_STATE_MAX_LIFE) * 0.20)
+    call PauseUnit(targetU, true)
+
+    // 4. Shaman (oshm) - Magical caster -> Bloodlust (ACbl) / Lightning Shield (ACls) / Purge (ACpu)
     set targetU = CreateUnit(Player(PLAYER_NEUTRAL_AGGRESSIVE), 'oshm', hx + 180.0, hy - 60.0, 180.0)
+    call UnitAddAbility(targetU, 'Ablo')
+    call UnitAddAbility(targetU, 'Alsh')
+    call UnitAddAbility(targetU, 'Apgr')
     call SetWidgetLife(targetU, GetUnitState(targetU, UNIT_STATE_MAX_LIFE) * 0.20)
     call PauseUnit(targetU, true)
 
-    // 4. Blademaster (Obla) - Reusable Hero: preserves drained stats across devours!
+    // 5. Blademaster (Obla) - Reusable Hero: preserves drained stats across devours!
     if udg_Test_DummyHero != null then
         if IsUnitType(udg_Test_DummyHero, UNIT_TYPE_DEAD) or GetWidgetLife(udg_Test_DummyHero) <= 0.405 then
-            call ReviveHero(udg_Test_DummyHero, hx + 180.0, hy - 180.0, false)
+            call ReviveHero(udg_Test_DummyHero, hx + 180.0, hy - 120.0, false)
         else
-            call SetUnitPosition(udg_Test_DummyHero, hx + 180.0, hy - 180.0)
+            call SetUnitPosition(udg_Test_DummyHero, hx + 180.0, hy - 120.0)
         endif
         set maxHP = GetUnitState(udg_Test_DummyHero, UNIT_STATE_MAX_LIFE)
         if maxHP > 1.0 then
@@ -5960,13 +6124,13 @@ function TM_SpawnSandboxTargets takes player p returns nothing
         endif
         call PauseUnit(udg_Test_DummyHero, true)
     else
-        set udg_Test_DummyHero = CreateUnit(Player(PLAYER_NEUTRAL_AGGRESSIVE), 'Obla', hx + 180.0, hy - 180.0, 180.0)
+        set udg_Test_DummyHero = CreateUnit(Player(PLAYER_NEUTRAL_AGGRESSIVE), 'Obla', hx + 180.0, hy - 120.0, 180.0)
         call SetWidgetLife(udg_Test_DummyHero, GetUnitState(udg_Test_DummyHero, UNIT_STATE_MAX_LIFE) * 0.20)
         call PauseUnit(udg_Test_DummyHero, true)
     endif
 
     set targetU = null
-    call DisplayTimedTextToPlayer(p, 0, 0, 8.0, "|cff00ff00[沙盒测试]|r 已生成4个20%残血测试靶子（步兵[近战+血]/弓手[远程+攻]/萨满[魔法+蓝]/剑圣[英雄]），W吞噬已就绪，剑圣保留历史蚕食属性！")
+    call DisplayTimedTextToPlayer(p, 0, 0, 8.0, "|cff00ff00[沙盒测试]|r 已生成5个测试靶子（步兵[防御->异种甲壳]/兽人步兵[纯白肉无技能]/树妖[慢毒->异种剧毒]/萨满[嗜血/电盾/净化]/剑圣[英雄]），W吞噬已就绪！")
 endfunction
 
 function TM_OnChatCommand takes nothing returns nothing
