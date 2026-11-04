@@ -4943,6 +4943,9 @@ function DM_CapTimerLoop takes nothing returns nothing
     local unit enumU = null
     local integer kLv = 0
     local player ko = null
+    local group auraTargets = null
+    local group auraSources = null
+    local unit srcU = null
 
     // 1. Process Dream Master possession duration
     loop
@@ -4965,41 +4968,74 @@ function DM_CapTimerLoop takes nothing returns nothing
         set i = i + 1
     endloop
 
-    // 2. Process Ninja Aura (A012)
+    // 2. Process Ninja Aura (A012) - 900.0 Radius around body and all living clones, deduplicated per cycle
     set pId = 0
     loop
         exitwhen pId > 7
         set th = udg_Ninja_TrueHero[pId]
         if th != null and udg_Ninja_AuraOn[pId] then
-            set dmgSrc = null
-            if not IsUnitType(th, UNIT_TYPE_DEAD) then
-                set dmgSrc = th
-            else
-                set dmgSrc = Ninja_PickLivingClone(pId)
-            endif
-            if dmgSrc != null then
-                set aLv = GetUnitAbilityLevel(th, 'A012')
-                if aLv > 0 then
-                    set pct = 0.01 * I2R(aLv)
+            set aLv = GetUnitAbilityLevel(th, 'A012')
+            if aLv > 0 then
+                set pct = 0.01 * I2R(aLv)
+                set auraTargets = CreateGroup()
+                set auraSources = CreateGroup()
+
+                // Add true hero if alive
+                if not IsUnitType(th, UNIT_TYPE_DEAD) and GetWidgetLife(th) > 0.405 then
+                    call GroupAddUnit(auraSources, th)
+                endif
+
+                // Add all living clones (u002, u001) from CloneGroup
+                if udg_Ninja_CloneGroup[pId] != null then
                     call GroupClear(udg_EnumGroup)
-                    call GroupEnumUnitsInRect(udg_EnumGroup, bj_mapInitialPlayableArea, null)
+                    call GroupAddGroup(udg_Ninja_CloneGroup[pId], udg_EnumGroup)
+                    loop
+                        set srcU = FirstOfGroup(udg_EnumGroup)
+                        exitwhen srcU == null
+                        call GroupRemoveUnit(udg_EnumGroup, srcU)
+                        if not IsUnitType(srcU, UNIT_TYPE_DEAD) and GetWidgetLife(srcU) > 0.405 then
+                            call GroupAddUnit(auraSources, srcU)
+                        endif
+                    endloop
+                endif
+
+                // Collect 900.0 range enemies around every living aura source (GroupAddUnit automatically deduplicates)
+                loop
+                    set srcU = FirstOfGroup(auraSources)
+                    exitwhen srcU == null
+                    call GroupRemoveUnit(auraSources, srcU)
+                    call GroupClear(udg_EnumGroup)
+                    call GroupEnumUnitsInRange(udg_EnumGroup, GetUnitX(srcU), GetUnitY(srcU), 900.0, null)
                     loop
                         set enumU = FirstOfGroup(udg_EnumGroup)
                         exitwhen enumU == null
                         call GroupRemoveUnit(udg_EnumGroup, enumU)
                         if IsUnitEnemy(enumU, Player(pId)) and not IsUnitType(enumU, UNIT_TYPE_DEAD) and not IsUnitType(enumU, UNIT_TYPE_STRUCTURE) and GetUnitTypeId(enumU) != 'u000' then
-                            set drain = GetUnitState(enumU, UNIT_STATE_MAX_LIFE) * pct
-                            set curHP = GetWidgetLife(enumU)
-                            if curHP > 1.5 then
-                                if curHP - drain > 1.0 then
-                                    call SetWidgetLife(enumU, curHP - drain)
-                                else
-                                    call SetWidgetLife(enumU, 1.0)
-                                endif
-                            endif
+                            call GroupAddUnit(auraTargets, enumU)
                         endif
                     endloop
-                endif
+                endloop
+
+                // Apply aura drain once per target in auraTargets
+                loop
+                    set enumU = FirstOfGroup(auraTargets)
+                    exitwhen enumU == null
+                    call GroupRemoveUnit(auraTargets, enumU)
+                    set drain = GetUnitState(enumU, UNIT_STATE_MAX_LIFE) * pct
+                    set curHP = GetWidgetLife(enumU)
+                    if curHP > 1.5 then
+                        if curHP - drain > 1.0 then
+                            call SetWidgetLife(enumU, curHP - drain)
+                        else
+                            call SetWidgetLife(enumU, 1.0)
+                        endif
+                    endif
+                endloop
+
+                call DestroyGroup(auraTargets)
+                call DestroyGroup(auraSources)
+                set auraTargets = null
+                set auraSources = null
             endif
         endif
         set pId = pId + 1
