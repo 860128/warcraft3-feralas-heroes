@@ -157,6 +157,12 @@ globals
     group udg_AI_ArmyGroup = null
     group udg_AI_CombatGroup = null
     unit array udg_AI_LockedTarget
+
+    // Human Player Invulnerable Refuge System (测试酒馆·无敌避难所)
+    unit array udg_RefugeBuilding
+    integer udg_RefugeDeadCount = 0
+    unit array udg_RefugeDeadUnit
+    real array udg_RefugeDeadTime
 endglobals
 
 function InitGlobals takes nothing returns nothing
@@ -4411,6 +4417,291 @@ function AI_SpawnCustomHeroForPlayer takes integer pId, real x, real y, real fac
     return h
 endfunction
 
+//***************************************************************************
+//*
+//*  Human Player Invulnerable Refuge System (测试酒馆·无敌避难所)
+//*
+//***************************************************************************
+
+function Refuge_IsInvulnerable takes unit u returns boolean
+    if u == null then
+        return false
+    endif
+    return GetUnitAbilityLevel(u, 'Avul') > 0 or BlzIsUnitInvulnerable(u) or GetUnitTypeId(u) == 'n003'
+endfunction
+
+function Refuge_InitForPlayer takes player p returns nothing
+    local integer pId = GetPlayerId(p)
+    local real startX = GetStartLocationX(GetPlayerStartLocation(p))
+    local real startY = GetStartLocationY(GetPlayerStartLocation(p))
+    local real minX = GetRectMinX(bj_mapInitialPlayableArea) + 600.0
+    local real maxX = GetRectMaxX(bj_mapInitialPlayableArea) - 600.0
+    local real minY = GetRectMinY(bj_mapInitialPlayableArea) + 600.0
+    local real maxY = GetRectMaxY(bj_mapInitialPlayableArea) - 600.0
+    local real bestX = minX
+    local real bestY = minY
+    local real minD = 9999999999.0
+    local real dx = 0.0
+    local real dy = 0.0
+    local real d = 0.0
+    local real searchR = 0.0
+    local real searchAngle = 0.0
+    local real testX = minX
+    local real testY = minY
+    local boolean found = false
+    local unit u = null
+
+    // Check corner 0 (Bottom-Left)
+    set dx = startX - minX
+    set dy = startY - minY
+    set d = dx * dx + dy * dy
+    if d < minD then
+        set minD = d
+        set bestX = minX
+        set bestY = minY
+    endif
+
+    // Check corner 1 (Top-Left)
+    set dx = startX - minX
+    set dy = startY - maxY
+    set d = dx * dx + dy * dy
+    if d < minD then
+        set minD = d
+        set bestX = minX
+        set bestY = maxY
+    endif
+
+    // Check corner 2 (Bottom-Right)
+    set dx = startX - maxX
+    set dy = startY - minY
+    set d = dx * dx + dy * dy
+    if d < minD then
+        set minD = d
+        set bestX = maxX
+        set bestY = minY
+    endif
+
+    // Check corner 3 (Top-Right)
+    set dx = startX - maxX
+    set dy = startY - maxY
+    set d = dx * dx + dy * dy
+    if d < minD then
+        set minD = d
+        set bestX = maxX
+        set bestY = maxY
+    endif
+
+    // Spiral search around closest corner for buildable & walkable point
+    set testX = bestX
+    set testY = bestY
+    set searchR = 0.0
+    set searchAngle = 0.0
+    loop
+        exitwhen searchR > 1500.0 or found
+        set testX = bestX + searchR * Cos(searchAngle)
+        set testY = bestY + searchR * Sin(searchAngle)
+        if testX >= minX - 300.0 and testX <= maxX + 300.0 and testY >= minY - 300.0 and testY <= maxY + 300.0 then
+            if not IsTerrainPathable(testX, testY, PATHING_TYPE_BUILDABILITY) and not IsTerrainPathable(testX, testY, PATHING_TYPE_WALKABILITY) then
+                set found = true
+            endif
+        endif
+        if not found then
+            set searchAngle = searchAngle + 0.5
+            set searchR = searchR + 5.093
+        endif
+    endloop
+
+    if not found then
+        set testX = startX + 800.0
+        set testY = startY + 800.0
+    endif
+
+    set u = CreateUnit(p, 'n003', testX, testY, 270.0)
+    call SetUnitInvulnerable(u, true)
+    set udg_RefugeBuilding[pId] = u
+
+    if GetLocalPlayer() == p then
+        call PingMinimapEx(testX, testY, 8.0, 0, 255, 0, true)
+    endif
+    call DisplayTimedTextToPlayer(p, 0, 0, 10.0, "|cff00ff00[测试避难所]|r 已在地图角落生成无敌避难所：主基地被摧毁也不会判负，阵亡英雄可在此复活。输入 |-refuge|r 可迁至英雄身旁。")
+
+    set u = null
+    set p = null
+endfunction
+
+function Refuge_OnStartTimer takes nothing returns nothing
+    local timer t = GetExpiredTimer()
+    local integer i = 0
+    call PauseTimer(t)
+    call DestroyTimer(t)
+    set t = null
+
+    set i = 0
+    loop
+        exitwhen i > 7
+        if GetPlayerSlotState(Player(i)) == PLAYER_SLOT_STATE_PLAYING and GetPlayerController(Player(i)) == MAP_CONTROL_USER then
+            call Refuge_InitForPlayer(Player(i))
+        endif
+        set i = i + 1
+    endloop
+endfunction
+
+function Refuge_OnHeroDeath takes unit h returns nothing
+    local player p = GetOwningPlayer(h)
+    local integer pId = GetPlayerId(p)
+    local integer i = 0
+    local boolean alreadyInList = false
+
+    if GetPlayerController(p) == MAP_CONTROL_USER and udg_RefugeBuilding[pId] != null then
+        // Check if hero already in death list
+        set i = 0
+        loop
+            exitwhen i >= udg_RefugeDeadCount
+            if udg_RefugeDeadUnit[i] == h then
+                set alreadyInList = true
+            endif
+            set i = i + 1
+        endloop
+
+        if not alreadyInList then
+            set udg_RefugeDeadUnit[udg_RefugeDeadCount] = h
+            set udg_RefugeDeadTime[udg_RefugeDeadCount] = 0.0
+            set udg_RefugeDeadCount = udg_RefugeDeadCount + 1
+            call DisplayTimedTextToPlayer(p, 0, 0, 6.0, "|cff00ff00[避难所]|r 英雄阵亡，避难所将在15秒后免费自动复活英雄（也可在避难所立即购买复活）。")
+        endif
+    endif
+
+    set p = null
+endfunction
+
+function Refuge_Relocate takes player p returns nothing
+    local integer pId = GetPlayerId(p)
+    local unit heroU = null
+    local group g = null
+    local unit u = null
+    local real tx = 0.0
+    local real ty = 0.0
+    local real searchR = 250.0
+    local real searchAngle = 0.0
+    local real px = 0.0
+    local real py = 0.0
+    local boolean found = false
+    local unit ref = null
+
+    // 1. Locate living hero
+    if udg_Strain_Hero[pId] != null and not IsUnitType(udg_Strain_Hero[pId], UNIT_TYPE_DEAD) and GetWidgetLife(udg_Strain_Hero[pId]) > 0.405 then
+        set heroU = udg_Strain_Hero[pId]
+    elseif udg_Ninja_TrueHero[pId] != null and not IsUnitType(udg_Ninja_TrueHero[pId], UNIT_TYPE_DEAD) and GetWidgetLife(udg_Ninja_TrueHero[pId]) > 0.405 then
+        set heroU = udg_Ninja_TrueHero[pId]
+    elseif udg_AI_CustomHero[pId] != null and not IsUnitType(udg_AI_CustomHero[pId], UNIT_TYPE_DEAD) and GetWidgetLife(udg_AI_CustomHero[pId]) > 0.405 then
+        set heroU = udg_AI_CustomHero[pId]
+    else
+        set g = CreateGroup()
+        call GroupEnumUnitsOfPlayer(g, p, null)
+        loop
+            set u = FirstOfGroup(g)
+            exitwhen u == null or heroU != null
+            call GroupRemoveUnit(g, u)
+            if IsUnitType(u, UNIT_TYPE_HERO) and not IsUnitType(u, UNIT_TYPE_DEAD) and GetWidgetLife(u) > 0.405 and not IsUnitIllusion(u) and not IsUnitInGroup(u, udg_FakeHeroGroup) then
+                set heroU = u
+            endif
+        endloop
+        call DestroyGroup(g)
+        set g = null
+        set u = null
+    endif
+
+    if heroU != null then
+        set tx = GetUnitX(heroU)
+        set ty = GetUnitY(heroU)
+    else
+        set tx = GetStartLocationX(GetPlayerStartLocation(p))
+        set ty = GetStartLocationY(GetPlayerStartLocation(p))
+    endif
+
+    // 2. Spiral search nearby buildable & walkable point
+    set px = tx
+    set py = ty
+    loop
+        exitwhen searchR > 800.0 or found
+        set px = tx + searchR * Cos(searchAngle)
+        set py = ty + searchR * Sin(searchAngle)
+        if not IsTerrainPathable(px, py, PATHING_TYPE_BUILDABILITY) and not IsTerrainPathable(px, py, PATHING_TYPE_WALKABILITY) then
+            set found = true
+        else
+            set searchAngle = searchAngle + 0.6
+            set searchR = searchR + 8.0
+        endif
+    endloop
+
+    if not found then
+        set px = tx + 200.0
+        set py = ty + 200.0
+    endif
+
+    // 3. Move or Recreate Refuge
+    set ref = udg_RefugeBuilding[pId]
+    if ref != null and not IsUnitType(ref, UNIT_TYPE_DEAD) and GetWidgetLife(ref) > 0.405 then
+        call SetUnitPosition(ref, px, py)
+    else
+        set ref = CreateUnit(p, 'n003', px, py, 270.0)
+        call SetUnitInvulnerable(ref, true)
+        set udg_RefugeBuilding[pId] = ref
+    endif
+
+    if GetLocalPlayer() == p then
+        call PingMinimapEx(px, py, 4.0, 0, 255, 0, false)
+    endif
+    call DisplayTimedTextToPlayer(p, 0, 0, 6.0, "|cff00ff00[测试避难所]|r 避难所已成功迁移至当前位置！")
+
+    set ref = null
+    set heroU = null
+    set p = null
+endfunction
+
+function Refuge_ProcessRevives takes nothing returns nothing
+    local integer i = 0
+    local unit u = null
+    local integer pId = 0
+    local unit ref = null
+
+    loop
+        exitwhen i >= udg_RefugeDeadCount
+        set u = udg_RefugeDeadUnit[i]
+        if u == null or not IsUnitType(u, UNIT_TYPE_DEAD) or GetWidgetLife(u) > 0.405 then
+            // Already alive or invalid: remove from death queue
+            set udg_RefugeDeadCount = udg_RefugeDeadCount - 1
+            set udg_RefugeDeadUnit[i] = udg_RefugeDeadUnit[udg_RefugeDeadCount]
+            set udg_RefugeDeadTime[i] = udg_RefugeDeadTime[udg_RefugeDeadCount]
+            set udg_RefugeDeadUnit[udg_RefugeDeadCount] = null
+            set i = i - 1
+        else
+            set udg_RefugeDeadTime[i] = udg_RefugeDeadTime[i] + 1.0
+            if udg_RefugeDeadTime[i] >= 15.0 then
+                set pId = GetPlayerId(GetOwningPlayer(u))
+                set ref = udg_RefugeBuilding[pId]
+                if ref != null and not IsUnitType(ref, UNIT_TYPE_DEAD) and GetWidgetLife(ref) > 0.405 then
+                    call ReviveHero(u, GetUnitX(ref), GetUnitY(ref) - 150.0, true)
+                    call DestroyEffect(AddSpecialEffect("Abilities\\Spells\\Human\\Resurrect\\ResurrectTarget.mdl", GetUnitX(ref), GetUnitY(ref) - 150.0))
+                    call DisplayTimedTextToPlayer(Player(pId), 0, 0, 6.0, "|cff00ff00[避难所复活]|r 你的英雄已在无敌避难所免费自动复活！")
+                else
+                    call ReviveHero(u, GetStartLocationX(GetPlayerStartLocation(Player(pId))), GetStartLocationY(GetPlayerStartLocation(Player(pId))), true)
+                    call DisplayTimedTextToPlayer(Player(pId), 0, 0, 6.0, "|cff00ff00[避难所复活]|r 你的英雄已在出生点复活！")
+                endif
+                set ref = null
+
+                set udg_RefugeDeadCount = udg_RefugeDeadCount - 1
+                set udg_RefugeDeadUnit[i] = udg_RefugeDeadUnit[udg_RefugeDeadCount]
+                set udg_RefugeDeadTime[i] = udg_RefugeDeadTime[udg_RefugeDeadCount]
+                set udg_RefugeDeadUnit[udg_RefugeDeadCount] = null
+                set i = i - 1
+            endif
+        endif
+        set u = null
+        set i = i + 1
+    endloop
+endfunction
+
 function AI_HasEnemyInRange takes player p, real x, real y, real radius returns boolean
     local unit enumU = null
     call GroupClear(udg_EnumGroup)
@@ -4419,7 +4710,7 @@ function AI_HasEnemyInRange takes player p, real x, real y, real radius returns 
         set enumU = FirstOfGroup(udg_EnumGroup)
         exitwhen enumU == null
         call GroupRemoveUnit(udg_EnumGroup, enumU)
-        if IsUnitEnemy(enumU, p) and not IsUnitType(enumU, UNIT_TYPE_DEAD) and GetWidgetLife(enumU) > 0.405 and GetUnitTypeId(enumU) != 'u000' and not IsUnitInvisible(enumU, p) then
+        if IsUnitEnemy(enumU, p) and not IsUnitType(enumU, UNIT_TYPE_DEAD) and GetWidgetLife(enumU) > 0.405 and GetUnitTypeId(enumU) != 'u000' and not IsUnitInvisible(enumU, p) and not Refuge_IsInvulnerable(enumU) then
             call GroupClear(udg_EnumGroup)
             set enumU = null
             return true
@@ -4454,7 +4745,7 @@ function AI_FindStrategicTarget takes integer pId, real hx, real hy returns noth
 
     // 1. Check if existing locked target is still alive and an enemy
     if udg_AI_LockedTarget[pId] != null then
-        if not IsUnitType(udg_AI_LockedTarget[pId], UNIT_TYPE_DEAD) and GetWidgetLife(udg_AI_LockedTarget[pId]) > 0.405 and IsUnitEnemy(udg_AI_LockedTarget[pId], p) then
+        if not IsUnitType(udg_AI_LockedTarget[pId], UNIT_TYPE_DEAD) and GetWidgetLife(udg_AI_LockedTarget[pId]) > 0.405 and IsUnitEnemy(udg_AI_LockedTarget[pId], p) and not Refuge_IsInvulnerable(udg_AI_LockedTarget[pId]) then
             set udg_AI_TargetFound = true
             set udg_AI_TargetX = GetUnitX(udg_AI_LockedTarget[pId])
             set udg_AI_TargetY = GetUnitY(udg_AI_LockedTarget[pId])
@@ -4473,7 +4764,7 @@ function AI_FindStrategicTarget takes integer pId, real hx, real hy returns noth
         set enumU = FirstOfGroup(udg_EnumGroup)
         exitwhen enumU == null
         call GroupRemoveUnit(udg_EnumGroup, enumU)
-        if IsUnitEnemy(enumU, p) and not IsUnitType(enumU, UNIT_TYPE_DEAD) and GetWidgetLife(enumU) > 0.405 and GetUnitTypeId(enumU) != 'u000' and not IsUnitInvisible(enumU, p) then
+        if IsUnitEnemy(enumU, p) and not IsUnitType(enumU, UNIT_TYPE_DEAD) and GetWidgetLife(enumU) > 0.405 and GetUnitTypeId(enumU) != 'u000' and not IsUnitInvisible(enumU, p) and not Refuge_IsInvulnerable(enumU) then
             set dx = GetUnitX(enumU) - hx
             set dy = GetUnitY(enumU) - hy
             set d = dx * dx + dy * dy
@@ -4775,7 +5066,7 @@ function AI_TacticalLoop takes nothing returns nothing
                         set enumU = FirstOfGroup(udg_EnumGroup)
                         exitwhen enumU == null
                         call GroupRemoveUnit(udg_EnumGroup, enumU)
-                        if IsUnitEnemy(enumU, Player(i)) and not IsUnitType(enumU, UNIT_TYPE_DEAD) and not IsUnitType(enumU, UNIT_TYPE_STRUCTURE) and GetUnitTypeId(enumU) != 'u000' and not IsUnitInGroup(enumU, udg_FakeHeroGroup) then
+                        if IsUnitEnemy(enumU, Player(i)) and not IsUnitType(enumU, UNIT_TYPE_DEAD) and not IsUnitType(enumU, UNIT_TYPE_STRUCTURE) and GetUnitTypeId(enumU) != 'u000' and not IsUnitInGroup(enumU, udg_FakeHeroGroup) and not Refuge_IsInvulnerable(enumU) then
                             set enemyCount = enemyCount + 1
                             set dx = GetUnitX(enumU) - hx
                             set dy = GetUnitY(enumU) - hy
@@ -4895,7 +5186,7 @@ function AI_TacticalLoop takes nothing returns nothing
                                     set enumU = FirstOfGroup(udg_EnumGroup)
                                     exitwhen enumU == null
                                     call GroupRemoveUnit(udg_EnumGroup, enumU)
-                                    if IsUnitEnemy(enumU, Player(i)) and not IsUnitType(enumU, UNIT_TYPE_DEAD) and not IsUnitType(enumU, UNIT_TYPE_STRUCTURE) and GetUnitTypeId(enumU) != 'u000' and not IsUnitInGroup(enumU, udg_FakeHeroGroup) then
+                                    if IsUnitEnemy(enumU, Player(i)) and not IsUnitType(enumU, UNIT_TYPE_DEAD) and not IsUnitType(enumU, UNIT_TYPE_STRUCTURE) and GetUnitTypeId(enumU) != 'u000' and not IsUnitInGroup(enumU, udg_FakeHeroGroup) and not Refuge_IsInvulnerable(enumU) then
                                         if IsUnitType(enumU, UNIT_TYPE_HERO) or IsHeroUnitId(GetUnitTypeId(enumU)) then
                                             if GetWidgetLife(enumU) <= (GetUnitState(h, UNIT_STATE_MAX_LIFE) * 0.10) or GetWidgetLife(enumU) <= (GetUnitState(enumU, UNIT_STATE_MAX_LIFE) * 0.28) then
                                                 set bestEnemy = enumU
@@ -5193,6 +5484,9 @@ function DM_CapTimerLoop takes nothing returns nothing
         set u = null
         set i = i + 1
     endloop
+
+    // 3.8. Process Human Player Refuge Dead Hero Auto-Revival
+    call Refuge_ProcessRevives()
 
     // 4. Custom Hero AI Tactical Loop
     call AI_TacticalLoop()
@@ -5971,6 +6265,13 @@ function DM_OnUnitDeath takes nothing returns boolean
         call RemoveUnit(dead)
     endif
 
+    // 7. Human Player Refuge Auto-Revive Registration
+    if IsUnitType(dead, UNIT_TYPE_HERO) and not isFakeHero and not isIllusion and not isAnyClone and deadType != 'u001' and deadType != 'u002' then
+        if IsUnitType(dead, UNIT_TYPE_DEAD) or GetWidgetLife(dead) <= 0.405 then
+            call Refuge_OnHeroDeath(dead)
+        endif
+    endif
+
     set dead = null
     set killer = null
     set deadOwner = null
@@ -6315,6 +6616,8 @@ function TM_OnChatCommand takes nothing returns nothing
         call TM_ApplyAIConfig()
     elseif s == "-spawn" then
         call TM_SpawnSandboxTargets(p)
+    elseif s == "-refuge" then
+        call Refuge_Relocate(p)
     endif
 
     set p = null
@@ -6419,6 +6722,7 @@ function DM_InitTriggers takes nothing returns nothing
     local timer tmrCap = CreateTimer()
     local timer tmrStealth = CreateTimer()
     local timer tmrStart = CreateTimer()
+    local timer tmrRefuge = CreateTimer()
     local integer i = 0
 
     set udg_EnumGroup = CreateGroup()
@@ -6546,6 +6850,7 @@ function DM_InitTriggers takes nothing returns nothing
     call TimerStart(tmrCap, 1.0, true, function DM_CapTimerLoop)
     call TimerStart(tmrStealth, 0.05, true, function DM_StealthLoop)
     call TimerStart(tmrStart, 1.00, false, function TM_OnStartTimer)
+    call TimerStart(tmrRefuge, 1.50, false, function Refuge_OnStartTimer)
 
     set tAttack = null
     set tEffect = null
@@ -6565,6 +6870,7 @@ function DM_InitTriggers takes nothing returns nothing
     set tmrCap = null
     set tmrStealth = null
     set tmrStart = null
+    set tmrRefuge = null
 endfunction
 
 
