@@ -96,6 +96,7 @@ globals
     integer array udg_Strain_CrippledHP
     integer array udg_Strain_CrippledMana
     integer udg_Strain_CrippledCount = 0
+    integer array udg_Strain_DigestSkillLv
 
     unit udg_Test_DummyHero = null
 
@@ -3189,6 +3190,13 @@ function Strain_DrainEnemyHero takes unit caster, unit victim returns nothing
     local integer curMaxMana = 0
     local integer drainHP = 0
     local integer drainMana = 0
+    local integer gainAgi = 0
+    local integer gainStr = 0
+    local integer gainInt = 0
+    local integer totalDrainHP = 0
+    local integer totalDrainMana = 0
+    local boolean drainedSomething = false
+    local string gainMsg = ""
     local integer idx = 0
     local integer cIdx = -1
 
@@ -3197,12 +3205,8 @@ function Strain_DrainEnemyHero takes unit caster, unit victim returns nothing
     endif
     set pId = GetPlayerId(GetOwningPlayer(caster))
 
-    // 1. Caster permanently gains +4 Agility
-    call SetHeroAgi(caster, GetHeroAgi(caster, false) + 4, true)
-    call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Items\\AIam\\AIamTarget.mdl", caster, "origin"))
-    call DisplayTimedTextToPlayer(GetOwningPlayer(caster), 0, 0, 4.0, "|cff00ff00[顶端掠食]|r 成功吞噬敌方英雄，永久夺取 +4 点敏捷！")
-
-    // 2. Cascading drain: Agi -> Str -> Int -> Max HP/Mana down to 1
+    // 1. Cascading drain 4 points: Agi -> Str -> Int -> Max HP/Mana down to 1
+    // Mirror Gain: whatever is drained from enemy is permanently added to H004
     loop
         exitwhen k > 4
         set vAgi = GetHeroAgi(victim, false)
@@ -3210,31 +3214,49 @@ function Strain_DrainEnemyHero takes unit caster, unit victim returns nothing
         set vInt = GetHeroInt(victim, false)
         if vAgi > 1 then
             call SetHeroAgi(victim, vAgi - 1, true)
+            call SetHeroAgi(caster, GetHeroAgi(caster, false) + 1, true)
+            set gainAgi = gainAgi + 1
         elseif vStr > 1 then
             call SetHeroStr(victim, vStr - 1, true)
+            call SetHeroStr(caster, GetHeroStr(caster, false) + 1, true)
+            set gainStr = gainStr + 1
         elseif vInt > 1 then
             call SetHeroInt(victim, vInt - 1, true)
+            call SetHeroInt(caster, GetHeroInt(caster, false) + 1, true)
+            set gainInt = gainInt + 1
         else
             // All 3 attributes are 1! Drain HP & Mana down to 1
             set curMaxHP = BlzGetUnitMaxHP(victim)
+            set curMaxMana = BlzGetUnitMaxMana(victim)
+            set drainedSomething = false
+
             if curMaxHP > 1 then
                 set drainHP = IMinBJ(curMaxHP - 1, 150)
                 call BlzSetUnitMaxHP(victim, curMaxHP - drainHP)
                 call BlzSetUnitMaxHP(caster, BlzGetUnitMaxHP(caster) + drainHP)
                 set udg_Strain_TotalBonusHP[pId] = udg_Strain_TotalBonusHP[pId] + drainHP
+                set totalDrainHP = totalDrainHP + drainHP
+                set drainedSomething = true
             endif
-            set curMaxMana = BlzGetUnitMaxMana(victim)
             if curMaxMana > 1 then
                 set drainMana = IMinBJ(curMaxMana - 1, 150)
                 call BlzSetUnitMaxMana(victim, curMaxMana - drainMana)
                 call BlzSetUnitMaxMana(caster, BlzGetUnitMaxMana(caster) + drainMana)
                 set udg_Strain_TotalBonusMana[pId] = udg_Strain_TotalBonusMana[pId] + drainMana
+                set totalDrainMana = totalDrainMana + drainMana
+                set drainedSomething = true
+            endif
+
+            // Fallback: if enemy is already completely drained (all 1), give +1 Agi guarantee
+            if not drainedSomething then
+                call SetHeroAgi(caster, GetHeroAgi(caster, false) + 1, true)
+                set gainAgi = gainAgi + 1
             endif
         endif
         set k = k + 1
     endloop
 
-    // 3. Track crippled hero so revive at Altar enforces Max HP / Mana clamp
+    // 2. Track crippled hero so revive at Altar enforces Max HP / Mana clamp
     set idx = 0
     loop
         exitwhen idx >= udg_Strain_CrippledCount
@@ -3254,8 +3276,29 @@ function Strain_DrainEnemyHero takes unit caster, unit victim returns nothing
         set udg_Strain_CrippledMana[cIdx] = BlzGetUnitMaxMana(victim)
     endif
 
-    // 4. Detailed visual feedback
-    call DisplayTimedTextToPlayer(GetOwningPlayer(caster), 0, 0, 6.0, "|cffff3333[基因蚕食]|r 敌方英雄已被彻底削弱！当前状态：敏捷 " + I2S(GetHeroAgi(victim, false)) + " / 力量 " + I2S(GetHeroStr(victim, false)) + " / 智力 " + I2S(GetHeroInt(victim, false)) + " / 最大生命 " + I2S(BlzGetUnitMaxHP(victim)) + " / 最大法力 " + I2S(BlzGetUnitMaxMana(victim)))
+    // 3. Visual effect
+    call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Items\\AIam\\AIamTarget.mdl", caster, "origin"))
+
+    // 4. Construct detailed feedback message listing each gained stat
+    set gainMsg = ""
+    if gainAgi > 0 then
+        set gainMsg = gainMsg + " 敏捷+" + I2S(gainAgi)
+    endif
+    if gainStr > 0 then
+        set gainMsg = gainMsg + " 力量+" + I2S(gainStr)
+    endif
+    if gainInt > 0 then
+        set gainMsg = gainMsg + " 智力+" + I2S(gainInt)
+    endif
+    if totalDrainHP > 0 then
+        set gainMsg = gainMsg + " 生命+" + I2S(totalDrainHP)
+    endif
+    if totalDrainMana > 0 then
+        set gainMsg = gainMsg + " 法力+" + I2S(totalDrainMana)
+    endif
+
+    call DisplayTimedTextToPlayer(GetOwningPlayer(caster), 0, 0, 5.0, "|cff00ff00[顶端掠食-镜像获得]|r 成功蚕食敌方英雄，永久夺取：" + gainMsg + "！")
+    call DisplayTimedTextToPlayer(GetOwningPlayer(caster), 0, 0, 5.0, "|cffff3333[目标残废状态]|r 敌方当前：" + I2S(GetHeroAgi(victim, false)) + "敏 / " + I2S(GetHeroStr(victim, false)) + "力 / " + I2S(GetHeroInt(victim, false)) + "智 / " + I2S(BlzGetUnitMaxHP(victim)) + "血 / " + I2S(BlzGetUnitMaxMana(victim)) + "蓝")
 endfunction
 
 function Strain_GetAbilName takes integer abilId returns string
@@ -3751,10 +3794,21 @@ function Strain_OnDigestComplete takes unit u, integer pId returns nothing
     local integer bonusAtk = 0
     local integer bonusMana = 0
     local integer uChoiceCount = 0
+    local integer wLv = 1
+    local real mult = 1.0
+    local string multStr = "1.0倍"
     if u == null then
         return
     endif
     set tgtType = udg_Strain_DigestType[pId]
+    set wLv = udg_Strain_DigestSkillLv[pId]
+    if wLv == 2 then
+        set mult = 1.25
+        set multStr = "1.25倍"
+    elseif wLv >= 3 then
+        set mult = 1.50
+        set multStr = "1.5倍"
+    endif
 
     if udg_Strain_DigestIsHero[pId] then
         // Apex Harvest: Hero Devoured! (Agi drain & crippling was already done when A022 cast)
@@ -3859,28 +3913,31 @@ function Strain_OnDigestComplete takes unit u, integer pId returns nothing
         // Non-Hero unit: Creep, Lane unit, Summon Devoured!
         if udg_Strain_DigestFeedType[pId] == 1 then
             // Case C: Melee Unit without Mana -> Permanent Max HP bonus
-            set bonusHP = 30 + 10 * udg_Strain_DigestVictimLv[pId]
+            set bonusHP = R2I(I2R(30 + 10 * udg_Strain_DigestVictimLv[pId]) * mult + 0.5)
             call BlzSetUnitMaxHP(u, BlzGetUnitMaxHP(u) + bonusHP)
             call SetWidgetLife(u, GetWidgetLife(u) + I2R(bonusHP))
             set udg_Strain_TotalBonusHP[pId] = udg_Strain_TotalBonusHP[pId] + bonusHP
-            call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 4.0, "|cff00ff80[吞噬进化-近战猎物]|r 永久增加 " + I2S(bonusHP) + " 点最大生命值！（累计+" + I2S(udg_Strain_TotalBonusHP[pId]) + "生命）")
+            call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 4.0, "|cff00ff80[吞噬进化-近战猎物]|r 永久增加 " + I2S(bonusHP) + " 点最大生命值！（" + multStr + "收益，累计+" + I2S(udg_Strain_TotalBonusHP[pId]) + "生命）")
         elseif udg_Strain_DigestFeedType[pId] == 2 then
             // Case B: Ranged Unit without Mana -> Permanent Base Attack bonus (+1~2)
             if udg_Strain_DigestVictimLv[pId] <= 1 then
-                set bonusAtk = 1
+                set bonusAtk = R2I(1.0 * mult + 0.5)
             else
-                set bonusAtk = 2
+                set bonusAtk = R2I(2.0 * mult + 0.5)
+            endif
+            if bonusAtk < 1 then
+                set bonusAtk = 1
             endif
             call BlzSetUnitBaseDamage(u, BlzGetUnitBaseDamage(u, 0) + bonusAtk, 0)
             set udg_Strain_TotalBonusAtk[pId] = udg_Strain_TotalBonusAtk[pId] + bonusAtk
-            call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 4.0, "|cffff6600[吞噬进化-远程猎物]|r 永久增加 " + I2S(bonusAtk) + " 点基础攻击力！（累计+" + I2S(udg_Strain_TotalBonusAtk[pId]) + "攻击）")
+            call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 4.0, "|cffff6600[吞噬进化-远程猎物]|r 永久增加 " + I2S(bonusAtk) + " 点基础攻击力！（" + multStr + "收益，累计+" + I2S(udg_Strain_TotalBonusAtk[pId]) + "攻击）")
         else
             // Case A: Magical Unit -> Permanent Max Mana bonus
-            set bonusMana = 25 + 5 * udg_Strain_DigestVictimLv[pId]
+            set bonusMana = R2I(I2R(25 + 5 * udg_Strain_DigestVictimLv[pId]) * mult + 0.5)
             call BlzSetUnitMaxMana(u, BlzGetUnitMaxMana(u) + bonusMana)
             call SetUnitState(u, UNIT_STATE_MANA, GetUnitState(u, UNIT_STATE_MANA) + I2R(bonusMana))
             set udg_Strain_TotalBonusMana[pId] = udg_Strain_TotalBonusMana[pId] + bonusMana
-            call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 4.0, "|cff33ccff[吞噬进化-魔法猎物]|r 永久增加 " + I2S(bonusMana) + " 点最大法力值！（累计+" + I2S(udg_Strain_TotalBonusMana[pId]) + "法力）")
+            call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 4.0, "|cff33ccff[吞噬进化-魔法猎物]|r 永久增加 " + I2S(bonusMana) + " 点最大法力值！（" + multStr + "收益，累计+" + I2S(udg_Strain_TotalBonusMana[pId]) + "法力）")
         endif
         call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Items\\AIam\\AIamTarget.mdl", u, "origin"))
 
@@ -4147,6 +4204,10 @@ function AI_ForceLearnSkill takes unit h, integer abilId, integer maxLv, boolean
     local group g = null
     local unit u = null
 
+    if GetPlayerController(GetOwningPlayer(h)) != MAP_CONTROL_COMPUTER then
+        return false
+    endif
+
     if pts <= 0 then
         return false
     endif
@@ -4353,7 +4414,7 @@ function AI_AutoLearnSkills takes unit h returns nothing
     local integer uId = 0
     local boolean learned = false
 
-    if h == null or IsUnitType(h, UNIT_TYPE_DEAD) then
+    if h == null or IsUnitType(h, UNIT_TYPE_DEAD) or GetPlayerController(GetOwningPlayer(h)) != MAP_CONTROL_COMPUTER then
         return
     endif
     set uId = GetUnitTypeId(h)
@@ -5201,7 +5262,7 @@ function AI_TacticalLoop takes nothing returns nothing
                                 endloop
                                 if bestEnemy != null then
                                     call IssueTargetOrder(h, "devour", bestEnemy)
-                                    set udg_AI_CastCD_W[i] = 8.0
+                                    set udg_AI_CastCD_W[i] = 25.0 - 5.0 * I2R(GetUnitAbilityLevel(h, 'A022'))
                                 endif
                             endif
 
@@ -5739,6 +5800,7 @@ function DM_OnSpellEffect takes nothing returns boolean
         set pId = GetPlayerId(GetOwningPlayer(caster))
         set ult = GetSpellTargetUnit()
         set udg_Strain_Hero[pId] = caster
+        set udg_Strain_DigestSkillLv[pId] = IMaxBJ(1, GetUnitAbilityLevel(caster, 'A022'))
         if ult != null then
             set udg_Strain_DigestType[pId] = GetUnitTypeId(ult)
             set udg_Strain_DigestOwner[pId] = GetOwningPlayer(ult)
@@ -6650,7 +6712,9 @@ endfunction
 function AI_OnHeroLevel takes nothing returns boolean
     local unit h = GetLevelingUnit()
     if h != null and (GetUnitTypeId(h) == 'H002' or GetUnitTypeId(h) == 'H003' or GetUnitTypeId(h) == 'H004') then
-        call AI_AutoLearnSkills(h)
+        if GetPlayerController(GetOwningPlayer(h)) == MAP_CONTROL_COMPUTER then
+            call AI_AutoLearnSkills(h)
+        endif
     endif
     set h = null
     return false
@@ -6758,6 +6822,7 @@ function DM_InitTriggers takes nothing returns nothing
         set udg_Strain_DigestTimer[i] = 0.0
         set udg_Strain_DigestFeedType[i] = 0
         set udg_Strain_DigestVictimLv[i] = 1
+        set udg_Strain_DigestSkillLv[i] = 1
         set udg_Strain_TotalBonusHP[i] = 0
         set udg_Strain_TotalBonusAtk[i] = 0
         set udg_Strain_TotalBonusMana[i] = 0
