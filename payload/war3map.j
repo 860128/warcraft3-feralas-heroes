@@ -164,6 +164,23 @@ globals
     integer udg_RefugeDeadCount = 0
     unit array udg_RefugeDeadUnit
     real array udg_RefugeDeadTime
+
+    // Hero #4: The Wild Avatar (万灵化身 H005) Globals
+    unit array udg_Wild_Hero
+    boolean array udg_Wild_IsMorphed
+    integer array udg_Wild_CurrentForm
+    integer array udg_Wild_CurrentFormType
+    integer array udg_Wild_CurrentFormLevel
+    integer array udg_Wild_CurrentAbil
+    real array udg_Wild_StoredManaRatio
+    real array udg_Wild_MorphCD
+    dialog udg_Wild_MorphDialog = null
+    button array udg_Wild_MorphBtn
+    button udg_Wild_MorphBtnCancel = null
+    integer array udg_Wild_PromptPlayerMenu
+    group udg_Wild_ArmyGroup = null
+    timer udg_Wild_ArmyTimer = null
+    button udg_TM_BtnMode4All = null
 endglobals
 
 function InitGlobals takes nothing returns nothing
@@ -4151,6 +4168,723 @@ function DM_StealthLoop takes nothing returns nothing
     endloop
 endfunction
 
+//===========================================================================
+// Hero #4: The Wild Avatar (万灵化身 H005) System
+//===========================================================================
+
+function Wild_GetFormUnitTypeId takes integer cat, integer lvl returns integer
+    if cat == 1 then
+        // Category 1: Q 狂野巨力 (Melee / Strength)
+        if lvl == 1 then
+            return 'nkob' // 狗头人苦工
+        elseif lvl == 2 then
+            return 'ngnb' // 豺狼人蛮兵
+        elseif lvl == 3 then
+            return 'nogr' // 食人魔战士
+        elseif lvl == 4 then
+            return 'ncer' // 半人马奔行者
+        elseif lvl == 5 then
+            return 'nfrb' // 熊怪勇士
+        elseif lvl == 6 then
+            return 'nhyd' // 多头九头蛇
+        elseif lvl == 7 then
+            return 'nfrg' // 熊怪巨熊酋长
+        elseif lvl == 8 then
+            return 'nmam' // 远古猛犸象
+        elseif lvl == 9 then
+            return 'nwrg' // 战争魔像
+        else
+            return 'nggr' // 花岗岩傀儡
+        endif
+    elseif cat == 2 then
+        // Category 2: W 诡诈迅影 (Ranged / Agility)
+        if lvl == 1 then
+            return 'nhar' // 鹰身女妖斥候
+        elseif lvl == 2 then
+            return 'ncea' // 半人马弓箭手
+        elseif lvl == 3 then
+            return 'nqbh' // 野猪人猎手
+        elseif lvl == 4 then
+            return 'nhrn' // 鹰身女妖盗贼
+        elseif lvl == 5 then
+            return 'nnwa' // 蛛魔战士
+        elseif lvl == 6 then
+            return 'nws1' // 飞蛇巨鹰
+        elseif lvl == 7 then
+            return 'nghs' // 极寒怨灵
+        elseif lvl == 8 then
+            return 'nbdo' // 蓝色龙人督察
+        elseif lvl == 9 then
+            return 'njgb' // 狂暴追猎者
+        else
+            return 'nbwm' // 远古黑色巨龙
+        endif
+    else
+        // Category 3: E 万相灵音 (Caster / Intelligence)
+        if lvl == 1 then
+            return 'nwiz' // 巫师学徒
+        elseif lvl == 2 then
+            return 'nfsp' // 森林暗影祭司
+        elseif lvl == 3 then
+            return 'nkog' // 狗头人地卜师
+        elseif lvl == 4 then
+            return 'nhw2' // 鹰身女妖风巫
+        elseif lvl == 5 then
+            return 'nfrs' // 熊怪萨满
+        elseif lvl == 6 then
+            return 'nsth' // 萨特唤魔者
+        elseif lvl == 7 then
+            return 'nfre' // 熊怪长者萨满
+        elseif lvl == 8 then
+            return 'nthl' // 雷霆巨蜥
+        elseif lvl == 9 then
+            return 'nerw' // 艾瑞达术士
+        else
+            return 'nrdr' // 远古红色巨龙
+        endif
+    endif
+endfunction
+
+function Wild_GetFormName takes integer cat, integer lvl returns string
+    if cat == 1 then
+        if lvl == 1 then
+            return "狗头人苦工"
+        elseif lvl == 2 then
+            return "豺狼人蛮兵"
+        elseif lvl == 3 then
+            return "食人魔战士"
+        elseif lvl == 4 then
+            return "半人马奔行者"
+        elseif lvl == 5 then
+            return "熊怪勇士"
+        elseif lvl == 6 then
+            return "多头九头蛇"
+        elseif lvl == 7 then
+            return "熊怪巨熊酋长"
+        elseif lvl == 8 then
+            return "远古猛犸象"
+        elseif lvl == 9 then
+            return "战争魔像"
+        else
+            return "花岗岩傀儡"
+        endif
+    elseif cat == 2 then
+        if lvl == 1 then
+            return "鹰身女妖斥候"
+        elseif lvl == 2 then
+            return "半人马弓箭手"
+        elseif lvl == 3 then
+            return "野猪人猎手"
+        elseif lvl == 4 then
+            return "鹰身女妖盗贼"
+        elseif lvl == 5 then
+            return "蛛魔战士"
+        elseif lvl == 6 then
+            return "飞蛇巨鹰"
+        elseif lvl == 7 then
+            return "极寒怨灵"
+        elseif lvl == 8 then
+            return "龙人督察"
+        elseif lvl == 9 then
+            return "狂暴追猎者"
+        else
+            return "远古黑色巨龙"
+        endif
+    else
+        if lvl == 1 then
+            return "巫师学徒"
+        elseif lvl == 2 then
+            return "森林暗影祭司"
+        elseif lvl == 3 then
+            return "狗头人地卜师"
+        elseif lvl == 4 then
+            return "鹰身女妖风巫"
+        elseif lvl == 5 then
+            return "熊怪萨满"
+        elseif lvl == 6 then
+            return "萨特唤魔者"
+        elseif lvl == 7 then
+            return "熊怪长者萨满"
+        elseif lvl == 8 then
+            return "雷霆巨蜥"
+        elseif lvl == 9 then
+            return "艾瑞达术士"
+        else
+            return "远古红色巨龙"
+        endif
+    endif
+endfunction
+
+function Wild_GetFormHP takes integer cat, integer lvl returns integer
+    if cat == 1 then
+        return 450 + lvl * 250
+    elseif cat == 2 then
+        return 380 + lvl * 210
+    else
+        return 320 + lvl * 180
+    endif
+endfunction
+
+function Wild_GetFormMana takes integer cat, integer lvl returns integer
+    if cat == 1 then
+        return 0
+    elseif cat == 2 then
+        if lvl >= 6 then
+            return 300
+        endif
+        return 0
+    else
+        return 250 + lvl * 70
+    endif
+endfunction
+
+function Wild_GetFormArmor takes integer cat, integer lvl returns real
+    if cat == 1 then
+        return 2.0 + I2R(lvl) * 1.0
+    elseif cat == 2 then
+        return 2.0 + I2R(lvl) * 0.75
+    else
+        return 1.0 + I2R(lvl) * 0.70
+    endif
+endfunction
+
+function Wild_GetFormRange takes integer cat, integer lvl returns real
+    if cat == 1 then
+        return 128.0
+    elseif cat == 2 then
+        if lvl == 1 then
+            return 400.0
+        elseif lvl == 4 then
+            return 450.0
+        elseif lvl == 7 or lvl == 10 then
+            return 600.0
+        else
+            return 500.0
+        endif
+    else
+        if lvl >= 9 then
+            return 600.0
+        elseif lvl >= 4 then
+            return 550.0
+        else
+            return 450.0
+        endif
+    endif
+endfunction
+
+function Wild_GetFormAtkCool takes integer cat, integer lvl returns real
+    if cat == 1 then
+        if lvl <= 2 then
+            return 1.20
+        else
+            return 1.35
+        endif
+    elseif cat == 2 then
+        if lvl >= 7 then
+            return 1.15
+        else
+            return 1.25
+        endif
+    else
+        if lvl >= 7 then
+            return 1.20
+        else
+            return 1.35
+        endif
+    endif
+endfunction
+
+function Wild_GetFormScale takes integer cat, integer lvl returns real
+    return 1.00 + I2R(lvl) * 0.05
+endfunction
+
+function Wild_GetFormAbil takes integer cat, integer lvl returns integer
+    if cat == 1 then
+        if lvl == 2 then
+            return 'ACct'
+        elseif lvl == 3 then
+            return 'ACbh'
+        elseif lvl == 4 then
+            return 'ACst'
+        elseif lvl == 5 then
+            return 'ACro'
+        elseif lvl == 6 then
+            return 'ACtb'
+        elseif lvl == 7 then
+            return 'ACst'
+        elseif lvl == 8 then
+            return 'ACsh'
+        elseif lvl == 9 then
+            return 'ACif'
+        elseif lvl == 10 then
+            return 'ACtb'
+        endif
+    elseif cat == 2 then
+        if lvl == 1 then
+            return 'ACev'
+        elseif lvl == 2 then
+            return 'ACct'
+        elseif lvl == 3 then
+            return 'ACcs'
+        elseif lvl == 4 then
+            return 'ACev'
+        elseif lvl == 5 then
+            return 'ACen'
+        elseif lvl == 6 then
+            return 'ACfl'
+        elseif lvl == 7 then
+            return 'ACev'
+        elseif lvl == 8 then
+            return 'ACct'
+        elseif lvl == 9 then
+            return 'ACev'
+        elseif lvl == 10 then
+            return 'ACct'
+        endif
+    else
+        if lvl == 1 then
+            return 'ACsw'
+        elseif lvl == 2 then
+            return 'ACrj'
+        elseif lvl == 3 then
+            return 'ACsw'
+        elseif lvl == 4 then
+            return 'ACpu'
+        elseif lvl == 5 then
+            return 'ACls'
+        elseif lvl == 6 then
+            return 'ACfn'
+        elseif lvl == 7 then
+            return 'ACbl'
+        elseif lvl == 8 then
+            return 'ACfl'
+        elseif lvl == 9 then
+            return 'AChx'
+        elseif lvl == 10 then
+            return 'ACf2'
+        endif
+    endif
+    return 0
+endfunction
+
+function Wild_OnMorphSuccess takes unit u, integer formId returns nothing
+    // Hook reserved for Phase 3 / future passive stacking
+endfunction
+
+function Wild_ApplyFormStats takes unit u, integer cat, integer lvl returns nothing
+    local integer baseHP = 0
+    local integer baseMana = 0
+    local real armor = 0.0
+    local real rangeN = 128.0
+    local real cool = 1.50
+    local real scale = 1.00
+    local integer strBonus = GetHeroStr(u, true) * 25
+    local integer intBonus = GetHeroInt(u, true) * 15
+
+    if cat == 0 then
+        // Base Avatar form
+        set baseHP = 600 + strBonus
+        set baseMana = 300 + intBonus
+        set armor = 3.0
+        set rangeN = 128.0
+        set cool = 1.50
+        set scale = 1.15
+        call BlzSetUnitSkin(u, 'H005')
+        call BlzSetUnitName(u, "万灵化身")
+    else
+        // Wild Creep form
+        call BlzSetUnitSkin(u, Wild_GetFormUnitTypeId(cat, lvl))
+        call BlzSetUnitName(u, "万灵化身 - " + Wild_GetFormName(cat, lvl))
+        set baseHP = Wild_GetFormHP(cat, lvl) + strBonus
+        if Wild_GetFormMana(cat, lvl) > 0 then
+            set baseMana = Wild_GetFormMana(cat, lvl) + intBonus
+        else
+            set baseMana = 0
+        endif
+        set armor = Wild_GetFormArmor(cat, lvl)
+        set rangeN = Wild_GetFormRange(cat, lvl)
+        set cool = Wild_GetFormAtkCool(cat, lvl)
+        set scale = Wild_GetFormScale(cat, lvl)
+    endif
+
+    call BlzSetUnitMaxHP(u, baseHP)
+    call BlzSetUnitMaxMana(u, baseMana)
+    call BlzSetUnitArmor(u, armor)
+    call BlzSetUnitAttackCooldown(u, cool, 0)
+    call BlzSetUnitWeaponRealField(u, UNIT_WEAPON_RF_ATTACK_RANGE, 0, rangeN)
+    call SetUnitScale(u, scale, scale, scale)
+endfunction
+
+function Wild_MorphTo takes unit u, integer cat, integer lvl returns nothing
+    local integer pId = 0
+    local real oldHP = 0.0
+    local integer oldMaxHP = 0
+    local real hpRatio = 1.0
+    local integer curMaxMana = 0
+    local integer newMaxHP = 0
+    local integer newMaxMana = 0
+    local integer newHP = 0
+    local integer formAbil = 0
+    local integer formId = cat * 100 + lvl
+
+    if u == null or IsUnitType(u, UNIT_TYPE_DEAD) then
+        return
+    endif
+    set pId = GetPlayerId(GetOwningPlayer(u))
+
+    // 1. Calculate HP ratio
+    set oldHP = GetWidgetLife(u)
+    set oldMaxHP = BlzGetUnitMaxHP(u)
+    if oldMaxHP <= 0 then
+        set oldMaxHP = 1
+    endif
+    set hpRatio = oldHP / I2R(oldMaxHP)
+    if hpRatio > 1.0 then
+        set hpRatio = 1.0
+    endif
+    if hpRatio < 0.005 then
+        set hpRatio = 0.005
+    endif
+
+    // 2. Preserve Mana ratio
+    set curMaxMana = BlzGetUnitMaxMana(u)
+    if curMaxMana > 0 then
+        set udg_Wild_StoredManaRatio[pId] = GetUnitState(u, UNIT_STATE_MANA) / I2R(curMaxMana)
+        if udg_Wild_StoredManaRatio[pId] > 1.0 then
+            set udg_Wild_StoredManaRatio[pId] = 1.0
+        endif
+    endif
+
+    // 3. Remove old signature ability
+    if udg_Wild_CurrentAbil[pId] != 0 then
+        call UnitRemoveAbility(u, udg_Wild_CurrentAbil[pId])
+        set udg_Wild_CurrentAbil[pId] = 0
+    endif
+
+    // 4. Apply new form visuals and stats
+    call Wild_ApplyFormStats(u, cat, lvl)
+
+    // 5. Apply new HP based on ratio (guaranteed minimum 1 HP)
+    set newMaxHP = BlzGetUnitMaxHP(u)
+    set newHP = R2I(I2R(newMaxHP) * hpRatio)
+    if newHP < 1 then
+        set newHP = 1
+    endif
+    call SetWidgetLife(u, I2R(newHP))
+
+    // 6. Apply new Mana based on ratio
+    set newMaxMana = BlzGetUnitMaxMana(u)
+    if newMaxMana > 0 then
+        if udg_Wild_StoredManaRatio[pId] <= 0.0 then
+            set udg_Wild_StoredManaRatio[pId] = 1.0
+        endif
+        call SetUnitState(u, UNIT_STATE_MANA, I2R(newMaxMana) * udg_Wild_StoredManaRatio[pId])
+    endif
+
+    // 7. Grant signature ability if available
+    if cat > 0 then
+        set formAbil = Wild_GetFormAbil(cat, lvl)
+        if formAbil != 0 then
+            call UnitAddAbility(u, formAbil)
+            set udg_Wild_CurrentAbil[pId] = formAbil
+        endif
+        set udg_Wild_IsMorphed[pId] = true
+        set udg_Wild_CurrentForm[pId] = formId
+        set udg_Wild_CurrentFormType[pId] = cat
+        set udg_Wild_CurrentFormLevel[pId] = lvl
+    else
+        set udg_Wild_IsMorphed[pId] = false
+        set udg_Wild_CurrentForm[pId] = 0
+        set udg_Wild_CurrentFormType[pId] = 0
+        set udg_Wild_CurrentFormLevel[pId] = 0
+    endif
+
+    // 8. Visual and sound feedback
+    call DestroyEffect(AddSpecialEffectTarget("Abilities\\\\Spells\\\\NightElf\\\\FaerieDragon\\\\PhaseShiftTarget.mdl", u, "origin"))
+    call DestroyEffect(AddSpecialEffect("Abilities\\\\Spells\\\\Orc\\\\Bloodlust\\\\BloodlustTarget.mdl", GetUnitX(u), GetUnitY(u)))
+
+    // 9. Put Q, W, E on 10s cooldown
+    call BlzStartUnitAbilityCooldown(u, 'A031', 10.0)
+    call BlzStartUnitAbilityCooldown(u, 'A032', 10.0)
+    call BlzStartUnitAbilityCooldown(u, 'A033', 10.0)
+    set udg_Wild_MorphCD[pId] = 10.0
+
+    // 10. Invoke reserved extension hook
+    call Wild_OnMorphSuccess(u, formId)
+endfunction
+
+function Wild_RevertToAvatar takes unit u returns nothing
+    local integer pId = 0
+    if u == null then
+        return
+    endif
+    set pId = GetPlayerId(GetOwningPlayer(u))
+    if not udg_Wild_IsMorphed[pId] then
+        call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 3.0, "|cffffcc00[返璞归真]|r 当前已处于万灵化身本体形态！")
+        return
+    endif
+    call Wild_MorphTo(u, 0, 0)
+    call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 4.0, "|cff00ff00[返璞归真]|r 万灵化身解除了化形形态，重归自然本体！")
+endfunction
+
+function Wild_InitHero takes unit h returns nothing
+    local integer pId = 0
+    if h == null then
+        return
+    endif
+    set pId = GetPlayerId(GetOwningPlayer(h))
+    set udg_Wild_Hero[pId] = h
+    if GetUnitAbilityLevel(h, 'A034') == 0 then
+        call UnitAddAbility(h, 'A034')
+    endif
+    if udg_Wild_IsMorphed[pId] then
+        call Wild_MorphTo(h, 0, 0)
+    endif
+endfunction
+
+function Wild_ShowMorphDialog takes player p, integer cat returns nothing
+    local integer pId = 0
+    local unit u = null
+    local integer heroLv = 1
+    local integer lvl = 1
+    local string title = ""
+    local string btnText = ""
+    local integer hotkey = 49
+
+    if p == null then
+        return
+    endif
+    set pId = GetPlayerId(p)
+    set u = udg_Wild_Hero[pId]
+    if u == null or IsUnitType(u, UNIT_TYPE_DEAD) then
+        return
+    endif
+
+    if udg_Wild_MorphCD[pId] > 0.0 then
+        call DisplayTimedTextToPlayer(p, 0, 0, 3.0, "|cffffcc00[万灵化身]|r 变身冷却中，剩余 " + R2SW(udg_Wild_MorphCD[pId], 1, 1) + " 秒！")
+        return
+    endif
+
+    set heroLv = GetHeroLevel(u)
+    if heroLv < 1 then
+        set heroLv = 1
+    endif
+    if heroLv > 10 then
+        set heroLv = 10
+    endif
+
+    set udg_Wild_PromptPlayerMenu[pId] = cat
+    call DialogDisplay(p, udg_Wild_MorphDialog, false)
+    call DialogClear(udg_Wild_MorphDialog)
+
+    if cat == 1 then
+        set title = "【狂野巨力】力量/近战系野怪化形（当前英雄等级：" + I2S(heroLv) + "）："
+    elseif cat == 2 then
+        set title = "【诡诈迅影】敏捷/远程系野怪化形（当前英雄等级：" + I2S(heroLv) + "）："
+    else
+        set title = "【万相灵音】智力/法系系野怪化形（当前英雄等级：" + I2S(heroLv) + "）："
+    endif
+    call DialogSetMessage(udg_Wild_MorphDialog, title)
+
+    loop
+        exitwhen lvl > heroLv
+        set btnText = "[" + I2S(lvl) + "] " + Wild_GetFormName(cat, lvl) + " (Lv" + I2S(lvl) + ")"
+        if lvl <= 9 then
+            set hotkey = 48 + lvl
+        else
+            set hotkey = 48
+        endif
+        set udg_Wild_MorphBtn[lvl] = DialogAddButton(udg_Wild_MorphDialog, btnText, hotkey)
+        set lvl = lvl + 1
+    endloop
+
+    set udg_Wild_MorphBtnCancel = DialogAddButton(udg_Wild_MorphDialog, "[X] 取消选择", 88)
+    call DialogDisplay(p, udg_Wild_MorphDialog, true)
+endfunction
+
+function Wild_OnMorphDialogClick takes nothing returns nothing
+    local button b = GetClickedButton()
+    local player p = GetTriggerPlayer()
+    local integer pId = 0
+    local unit u = null
+    local integer cat = 0
+    local integer lvl = 1
+    local integer heroLv = 1
+
+    if p == null or b == null then
+        return
+    endif
+    set pId = GetPlayerId(p)
+    set u = udg_Wild_Hero[pId]
+    if u == null or IsUnitType(u, UNIT_TYPE_DEAD) then
+        set b = null
+        set p = null
+        return
+    endif
+
+    set cat = udg_Wild_PromptPlayerMenu[pId]
+    set heroLv = GetHeroLevel(u)
+    if heroLv > 10 then
+        set heroLv = 10
+    endif
+
+    call DialogDisplay(p, udg_Wild_MorphDialog, false)
+
+    if b == udg_Wild_MorphBtnCancel then
+        set b = null
+        set p = null
+        return
+    endif
+
+    loop
+        exitwhen lvl > heroLv
+        if b == udg_Wild_MorphBtn[lvl] then
+            call Wild_MorphTo(u, cat, lvl)
+            call DisplayTimedTextToPlayer(p, 0, 0, 4.0, "|cff00ff00[化形成功]|r 万灵化身已蜕变为【" + Wild_GetFormName(cat, lvl) + "】形态！")
+            set b = null
+            set p = null
+            return
+        endif
+        set lvl = lvl + 1
+    endloop
+
+    set b = null
+    set p = null
+endfunction
+
+function Wild_SpawnArmyCreep takes player p, integer unitTypeId, real x, real y returns unit
+    local unit u = CreateUnit(p, unitTypeId, x, y, 0.0)
+    if u != null then
+        call UnitApplyTimedLife(u, 'BTLF', 90.0)
+        call GroupAddUnit(udg_Wild_ArmyGroup, u)
+        call DestroyEffect(AddSpecialEffect("Abilities\\\\Spells\\\\Orc\\\\FeralSpirit\\\\feralspiritdone.mdl", x, y))
+    endif
+    return u
+endfunction
+
+function Wild_GetTargetBaseX takes player p returns real
+    local integer i = 0
+    local player enemyP = null
+    loop
+        exitwhen i > 7
+        set enemyP = Player(i)
+        if IsPlayerEnemy(p, enemyP) and GetPlayerSlotState(enemyP) == PLAYER_SLOT_STATE_PLAYING then
+            return GetStartLocationX(GetPlayerStartLocation(enemyP))
+        endif
+        set i = i + 1
+    endloop
+    return 0.0
+endfunction
+
+function Wild_GetTargetBaseY takes player p returns real
+    local integer i = 0
+    local player enemyP = null
+    loop
+        exitwhen i > 7
+        set enemyP = Player(i)
+        if IsPlayerEnemy(p, enemyP) and GetPlayerSlotState(enemyP) == PLAYER_SLOT_STATE_PLAYING then
+            return GetStartLocationY(GetPlayerStartLocation(enemyP))
+        endif
+        set i = i + 1
+    endloop
+    return 0.0
+endfunction
+
+function Wild_CastWrath takes unit caster returns nothing
+    local integer pId = 0
+    local integer heroLv = 1
+    local real cx = 0.0
+    local real cy = 0.0
+    local player p = null
+    local unit c = null
+
+    if caster == null or IsUnitType(caster, UNIT_TYPE_DEAD) then
+        return
+    endif
+    set p = GetOwningPlayer(caster)
+    set pId = GetPlayerId(p)
+    set heroLv = GetHeroLevel(caster)
+    set cx = GetUnitX(caster)
+    set cy = GetUnitY(caster)
+
+    call DestroyEffect(AddSpecialEffect("Abilities\\\\Spells\\\\NightElf\\\\Tranquility\\\\Tranquility.mdl", cx, cy))
+    call DestroyEffect(AddSpecialEffect("Abilities\\\\Spells\\\\Orc\\\\WarStomp\\\\WarStompCaster.mdl", cx, cy))
+    call DisplayTimedTextToPlayer(p, 0, 0, 6.0, "|cffff8800【众野之怒】|r 万灵化身长啸号令全图荒野！真实血条的狂暴野怪大军向敌阵发起冲锋！")
+
+    if heroLv < 7 then
+        set c = Wild_SpawnArmyCreep(p, 'nhyd', cx + 70.0, cy)
+        set c = Wild_SpawnArmyCreep(p, 'nhyd', cx - 70.0, cy)
+        set c = Wild_SpawnArmyCreep(p, 'nnwa', cx, cy + 70.0)
+        set c = Wild_SpawnArmyCreep(p, 'nnwa', cx, cy - 70.0)
+        set c = Wild_SpawnArmyCreep(p, 'nfrs', cx + 100.0, cy + 100.0)
+        set c = Wild_SpawnArmyCreep(p, 'nfrs', cx - 100.0, cy - 100.0)
+        set c = Wild_SpawnArmyCreep(p, 'nogr', cx + 130.0, cy)
+        set c = Wild_SpawnArmyCreep(p, 'nogr', cx - 130.0, cy)
+        set c = Wild_SpawnArmyCreep(p, 'nqbh', cx, cy + 130.0)
+        set c = Wild_SpawnArmyCreep(p, 'nqbh', cx, cy - 130.0)
+    elseif heroLv < 9 then
+        set c = Wild_SpawnArmyCreep(p, 'nfrg', cx + 80.0, cy)
+        set c = Wild_SpawnArmyCreep(p, 'nmam', cx - 80.0, cy)
+        set c = Wild_SpawnArmyCreep(p, 'nghs', cx, cy + 80.0)
+        set c = Wild_SpawnArmyCreep(p, 'nbdo', cx, cy - 80.0)
+        set c = Wild_SpawnArmyCreep(p, 'nfre', cx + 110.0, cy + 110.0)
+        set c = Wild_SpawnArmyCreep(p, 'nfre', cx - 110.0, cy - 110.0)
+        set c = Wild_SpawnArmyCreep(p, 'nhyd', cx + 140.0, cy)
+        set c = Wild_SpawnArmyCreep(p, 'nhyd', cx - 140.0, cy)
+        set c = Wild_SpawnArmyCreep(p, 'nnwa', cx, cy + 140.0)
+        set c = Wild_SpawnArmyCreep(p, 'nnwa', cx, cy - 140.0)
+    elseif heroLv == 9 then
+        set c = Wild_SpawnArmyCreep(p, 'nwrg', cx + 90.0, cy)
+        set c = Wild_SpawnArmyCreep(p, 'nwrg', cx - 90.0, cy)
+        set c = Wild_SpawnArmyCreep(p, 'njgb', cx, cy + 90.0)
+        set c = Wild_SpawnArmyCreep(p, 'njgb', cx, cy - 90.0)
+        set c = Wild_SpawnArmyCreep(p, 'nerw', cx + 120.0, cy + 120.0)
+        set c = Wild_SpawnArmyCreep(p, 'nerw', cx - 120.0, cy - 120.0)
+        set c = Wild_SpawnArmyCreep(p, 'nmam', cx + 150.0, cy)
+        set c = Wild_SpawnArmyCreep(p, 'nmam', cx - 150.0, cy)
+        set c = Wild_SpawnArmyCreep(p, 'nbdo', cx, cy + 150.0)
+        set c = Wild_SpawnArmyCreep(p, 'nbdo', cx, cy - 150.0)
+    else
+        set c = Wild_SpawnArmyCreep(p, 'nbwm', cx + 100.0, cy)
+        set c = Wild_SpawnArmyCreep(p, 'nggr', cx - 100.0, cy)
+        set c = Wild_SpawnArmyCreep(p, 'nrdr', cx, cy + 100.0)
+        set c = Wild_SpawnArmyCreep(p, 'nerw', cx, cy - 100.0)
+        set c = Wild_SpawnArmyCreep(p, 'nwrg', cx + 140.0, cy + 140.0)
+        set c = Wild_SpawnArmyCreep(p, 'nmam', cx - 140.0, cy - 140.0)
+        set c = Wild_SpawnArmyCreep(p, 'njgb', cx + 140.0, cy - 140.0)
+        set c = Wild_SpawnArmyCreep(p, 'nbdo', cx - 140.0, cy + 140.0)
+        set c = Wild_SpawnArmyCreep(p, 'nhyd', cx + 180.0, cy)
+        set c = Wild_SpawnArmyCreep(p, 'nfrg', cx - 180.0, cy)
+    endif
+    set c = null
+    set p = null
+endfunction
+
+function Wild_ArmyPushLoop takes nothing returns nothing
+    local unit enumU = null
+    local group tempG = CreateGroup()
+    local real tx = 0.0
+    local real ty = 0.0
+
+    call GroupAddGroup(udg_Wild_ArmyGroup, tempG)
+    loop
+        set enumU = FirstOfGroup(tempG)
+        exitwhen enumU == null
+        call GroupRemoveUnit(tempG, enumU)
+        if IsUnitType(enumU, UNIT_TYPE_DEAD) or GetUnitTypeId(enumU) == 0 then
+            call GroupRemoveUnit(udg_Wild_ArmyGroup, enumU)
+        else
+            if GetUnitCurrentOrder(enumU) == 0 then
+                set tx = Wild_GetTargetBaseX(GetOwningPlayer(enumU))
+                set ty = Wild_GetTargetBaseY(GetOwningPlayer(enumU))
+                call IssuePointOrder(enumU, "attack", tx, ty)
+            endif
+        endif
+    endloop
+    call DestroyGroup(tempG)
+    set tempG = null
+endfunction
+
 function AI_GetPlayerAltar takes player p returns unit
     local group g = CreateGroup()
     local unit u = null
@@ -4410,6 +5144,52 @@ function AI_LearnSkillForStrain takes unit h returns boolean
     return AI_ForceLearnSkill(h, 'Aamk', 10, false)
 endfunction
 
+function AI_LearnSkillForWild takes unit h returns boolean
+    local integer hLv = GetHeroLevel(h)
+    local integer qLv = GetUnitAbilityLevel(h, 'A031')
+    local integer wLv = GetUnitAbilityLevel(h, 'A032')
+    local integer eLv = GetUnitAbilityLevel(h, 'A033')
+    local integer dLv = GetUnitAbilityLevel(h, 'A035')
+
+    if GetUnitAbilityLevel(h, 'A034') == 0 then
+        call UnitAddAbility(h, 'A034')
+    endif
+
+    // 1. Ultimate D (A035) at Lv 6
+    if hLv >= 6 and dLv == 0 then
+        return AI_ForceLearnSkill(h, 'A035', 1, false)
+    endif
+
+    // 2. Learn unlearned basic skills
+    if qLv == 0 then
+        return AI_ForceLearnSkill(h, 'A031', 3, false)
+    endif
+    if wLv == 0 then
+        return AI_ForceLearnSkill(h, 'A032', 3, false)
+    endif
+    if eLv == 0 then
+        return AI_ForceLearnSkill(h, 'A033', 3, false)
+    endif
+
+    // 3. Max Q
+    if qLv < 3 and hLv >= (qLv * 2 + 1) then
+        return AI_ForceLearnSkill(h, 'A031', 3, false)
+    endif
+
+    // 4. Max W
+    if wLv < 3 and hLv >= (wLv * 2 + 1) then
+        return AI_ForceLearnSkill(h, 'A032', 3, false)
+    endif
+
+    // 5. Max E
+    if eLv < 3 and hLv >= (eLv * 2 + 1) then
+        return AI_ForceLearnSkill(h, 'A033', 3, false)
+    endif
+
+    // 6. Stat bonus
+    return AI_ForceLearnSkill(h, 'Aamk', 10, false)
+endfunction
+
 function AI_AutoLearnSkills takes unit h returns nothing
     local integer uId = 0
     local boolean learned = false
@@ -4431,6 +5211,8 @@ function AI_AutoLearnSkills takes unit h returns nothing
             set learned = AI_LearnSkillForNinja(h)
         elseif uId == 'H004' then
             set learned = AI_LearnSkillForStrain(h)
+        elseif uId == 'H005' then
+            set learned = AI_LearnSkillForWild(h)
         endif
         if not learned then
             exitwhen true
@@ -4445,6 +5227,8 @@ function AI_SpawnCustomHeroForPlayer takes integer pId, real x, real y, real fac
         set hTypeId = 'H003'
     elseif udg_AI_HeroMode[pId] == 3 then
         set hTypeId = 'H004'
+    elseif udg_AI_HeroMode[pId] == 4 then
+        set hTypeId = 'H005'
     endif
     set h = CreateUnit(Player(pId), hTypeId, x, y, facing)
     call RemoveGuardPosition(h)
@@ -4465,6 +5249,9 @@ function AI_SpawnCustomHeroForPlayer takes integer pId, real x, real y, real fac
     elseif hTypeId == 'H004' then
         set udg_Strain_Hero[pId] = h
         call Strain_InitHero(h)
+    elseif hTypeId == 'H005' then
+        set udg_Wild_Hero[pId] = h
+        call Wild_InitHero(h)
     endif
 
     call AI_AutoLearnSkills(h)
@@ -4472,6 +5259,7 @@ function AI_SpawnCustomHeroForPlayer takes integer pId, real x, real y, real fac
     call SetPlayerTechMaxAllowed(Player(pId), 'H002', 1)
     call SetPlayerTechMaxAllowed(Player(pId), 'H003', 1)
     call SetPlayerTechMaxAllowed(Player(pId), 'H004', 1)
+    call SetPlayerTechMaxAllowed(Player(pId), 'H005', 1)
 
     call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\MassTeleport\\MassTeleportTarget.mdl", h, "origin"))
 
@@ -4994,6 +5782,7 @@ function AI_TacticalLoop takes nothing returns nothing
     local integer i = 0
     local unit h = null
     local integer hTypeId = 0
+    local integer heroLv = 0
     local real hx = 0.0
     local real hy = 0.0
     local integer enemyCount = 0
@@ -5023,9 +5812,17 @@ function AI_TacticalLoop takes nothing returns nothing
     set i = 0
     loop
         exitwhen i > 7
+        if GetPlayerSlotState(Player(i)) == PLAYER_SLOT_STATE_PLAYING and GetPlayerController(Player(i)) == MAP_CONTROL_USER then
+            if udg_Wild_MorphCD[i] > 0.0 then
+                set udg_Wild_MorphCD[i] = udg_Wild_MorphCD[i] - 1.0
+            endif
+        endif
         if GetPlayerSlotState(Player(i)) == PLAYER_SLOT_STATE_PLAYING and GetPlayerController(Player(i)) == MAP_CONTROL_COMPUTER then
             if udg_AI_HeroMode[i] > 0 then
                 // Decrement Cooldowns
+                if udg_Wild_MorphCD[i] > 0.0 then
+                    set udg_Wild_MorphCD[i] = udg_Wild_MorphCD[i] - 1.0
+                endif
                 if udg_AI_CastCD_Q[i] > 0.0 then
                     set udg_AI_CastCD_Q[i] = udg_AI_CastCD_Q[i] - 1.0
                 endif
@@ -5048,7 +5845,7 @@ function AI_TacticalLoop takes nothing returns nothing
                         set enumU = FirstOfGroup(g)
                         exitwhen enumU == null
                         call GroupRemoveUnit(g, enumU)
-                        if IsUnitType(enumU, UNIT_TYPE_HERO) and GetUnitTypeId(enumU) != 'H002' and GetUnitTypeId(enumU) != 'H003' and GetUnitTypeId(enumU) != 'H004' and not IsUnitIllusion(enumU) and not IsUnitInGroup(enumU, udg_FakeHeroGroup) then
+                        if IsUnitType(enumU, UNIT_TYPE_HERO) and GetUnitTypeId(enumU) != 'H002' and GetUnitTypeId(enumU) != 'H003' and GetUnitTypeId(enumU) != 'H004' and GetUnitTypeId(enumU) != 'H005' and not IsUnitIllusion(enumU) and not IsUnitInGroup(enumU, udg_FakeHeroGroup) then
                             set hx = GetUnitX(enumU)
                             set hy = GetUnitY(enumU)
                             set d = GetUnitFacing(enumU)
@@ -5231,6 +6028,70 @@ function AI_TacticalLoop takes nothing returns nothing
                             endloop
                         endif
 
+                    elseif hTypeId == 'H005' then
+                        // Hero #4: The Wild Avatar Tactical AI
+                        set heroLv = GetHeroLevel(h)
+                        // 1. Cast Ultimate D (A035 众野之怒)
+                        if udg_AI_CastCD_R[i] <= 0.0 and GetUnitAbilityLevel(h, 'A035') > 0 and GetUnitState(h, UNIT_STATE_MANA) >= 175.0 and enemyCount >= 2 then
+                            call IssueImmediateOrder(h, "starfall")
+                            set udg_AI_CastCD_R[i] = 110.0
+                        endif
+
+                        // 2. Morph if cooldown ready
+                        if udg_Wild_MorphCD[i] <= 0.0 then
+                            if enemyCount >= 3 or GetWidgetLife(h) < (GetUnitState(h, UNIT_STATE_MAX_LIFE) * 0.45) then
+                                call Wild_MorphTo(h, 3, heroLv)
+                            elseif enemyCount >= 1 then
+                                call Wild_MorphTo(h, 1, heroLv)
+                            else
+                                call Wild_MorphTo(h, 2, heroLv)
+                            endif
+                        endif
+
+                        // 3. Cast signature form abilities in combat
+                        if udg_AI_CastCD_W[i] <= 0.0 and enemyCount >= 1 and nearestEnemy != null then
+                            set abil = udg_Wild_CurrentAbil[i]
+                            if abil == 'ACst' then
+                                call IssueImmediateOrder(h, "stomp")
+                                set udg_AI_CastCD_W[i] = 8.0
+                            elseif abil == 'ACro' then
+                                call IssueImmediateOrder(h, "roar")
+                                set udg_AI_CastCD_W[i] = 12.0
+                            elseif abil == 'ACsh' then
+                                call IssuePointOrder(h, "shockwave", GetUnitX(nearestEnemy), GetUnitY(nearestEnemy))
+                                set udg_AI_CastCD_W[i] = 8.0
+                            elseif abil == 'ACtb' then
+                                call IssueTargetOrder(h, "thunderbolt", nearestEnemy)
+                                set udg_AI_CastCD_W[i] = 7.0
+                            elseif abil == 'ACen' then
+                                call IssueTargetOrder(h, "ensnare", nearestEnemy)
+                                set udg_AI_CastCD_W[i] = 10.0
+                            elseif abil == 'ACsw' then
+                                call IssueTargetOrder(h, "slow", nearestEnemy)
+                                set udg_AI_CastCD_W[i] = 6.0
+                            elseif abil == 'ACpu' then
+                                call IssueTargetOrder(h, "purge", nearestEnemy)
+                                set udg_AI_CastCD_W[i] = 8.0
+                            elseif abil == 'ACls' then
+                                call IssueTargetOrder(h, "lightningshield", h)
+                                set udg_AI_CastCD_W[i] = 10.0
+                            elseif abil == 'ACfn' then
+                                call IssueTargetOrder(h, "frostnova", nearestEnemy)
+                                set udg_AI_CastCD_W[i] = 8.0
+                            elseif abil == 'ACbl' then
+                                call IssueTargetOrder(h, "bloodlust", h)
+                                set udg_AI_CastCD_W[i] = 8.0
+                            elseif abil == 'ACfl' then
+                                call IssueTargetOrder(h, "forkedlightning", nearestEnemy)
+                                set udg_AI_CastCD_W[i] = 8.0
+                            elseif abil == 'AChx' then
+                                call IssueTargetOrder(h, "hex", nearestEnemy)
+                                set udg_AI_CastCD_W[i] = 10.0
+                            elseif abil == 'ACf2' then
+                                call IssueTargetOrder(h, "frostarmor", h)
+                                set udg_AI_CastCD_W[i] = 8.0
+                            endif
+                        endif
                     elseif hTypeId == 'H004' then
                         // Hero #3 Primordial Strain Tactical Brain
                         // 1. If burrowed and enemy is close: unburrow to knockup and strike!
@@ -5883,6 +6744,30 @@ function DM_OnSpellEffect takes nothing returns boolean
         set pId = GetPlayerId(GetOwningPlayer(caster))
         set udg_Strain_Hero[pId] = caster
         call Strain_ShowGeneDialog(GetOwningPlayer(caster), pId)
+    elseif abil == 'A031' then
+        set pId = GetPlayerId(GetOwningPlayer(caster))
+        set udg_Wild_Hero[pId] = caster
+        if GetPlayerController(GetOwningPlayer(caster)) == MAP_CONTROL_USER then
+            call Wild_ShowMorphDialog(GetOwningPlayer(caster), 1)
+        endif
+    elseif abil == 'A032' then
+        set pId = GetPlayerId(GetOwningPlayer(caster))
+        set udg_Wild_Hero[pId] = caster
+        if GetPlayerController(GetOwningPlayer(caster)) == MAP_CONTROL_USER then
+            call Wild_ShowMorphDialog(GetOwningPlayer(caster), 2)
+        endif
+    elseif abil == 'A033' then
+        set pId = GetPlayerId(GetOwningPlayer(caster))
+        set udg_Wild_Hero[pId] = caster
+        if GetPlayerController(GetOwningPlayer(caster)) == MAP_CONTROL_USER then
+            call Wild_ShowMorphDialog(GetOwningPlayer(caster), 3)
+        endif
+    elseif abil == 'A034' then
+        set pId = GetPlayerId(GetOwningPlayer(caster))
+        set udg_Wild_Hero[pId] = caster
+        call Wild_RevertToAvatar(caster)
+    elseif abil == 'A035' then
+        call Wild_CastWrath(caster)
     endif
 
     // Hero #3 Stolen Skill Resonance Overload (Supports both Slot 1 and Slot 2)
@@ -6241,6 +7126,13 @@ function DM_OnUnitDeath takes nothing returns boolean
         endif
     endif
 
+    // 1.6. Clean up Hero #4 state on death
+    if deadType == 'H005' then
+        if udg_Wild_IsMorphed[deadPId] then
+            call Wild_MorphTo(dead, 0, 0)
+        endif
+    endif
+
     // 2. Ninja Karma Mark (ONLY TRUE HERO H003 marks killer; clones NEVER mark killer!)
     if deadType == 'H003' and not isFakeHero and not isIllusion and not isAnyClone and killer != null and IsUnitEnemy(killer, deadOwner) then
         set eLv = GetUnitAbilityLevel(dead, 'A013')
@@ -6382,12 +7274,13 @@ function TM_ShowMainDialog takes player p returns nothing
     set udg_TM_PromptPlayer = p
     call DialogDisplay(p, udg_TM_MainDialog, false)
     call DialogClear(udg_TM_MainDialog)
-    call DialogSetMessage(udg_TM_MainDialog, "【测试模式选择】(鼠标点击或按数字键1-5)")
+    call DialogSetMessage(udg_TM_MainDialog, "【测试模式选择】(鼠标点击或按数字键1-6)")
     set udg_TM_BtnNormal = DialogAddButton(udg_TM_MainDialog, "[1] 正常模式（使用原有英雄）", 49)
     set udg_TM_BtnMode1All = DialogAddButton(udg_TM_MainDialog, "[2] 测试模式一：全部电脑出【幻梦大师】", 50)
     set udg_TM_BtnMode2All = DialogAddButton(udg_TM_MainDialog, "[3] 测试模式二：全部电脑出【魔音忍者】", 51)
     set udg_TM_BtnMode3All = DialogAddButton(udg_TM_MainDialog, "[4] 测试模式三：全部电脑出【异种之源】", 52)
-    set udg_TM_BtnCustom = DialogAddButton(udg_TM_MainDialog, "[5] 精细配置：指定玩家的英雄...", 53)
+    set udg_TM_BtnMode4All = DialogAddButton(udg_TM_MainDialog, "[5] 测试模式四：全部电脑出【万灵化身】", 53)
+    set udg_TM_BtnCustom = DialogAddButton(udg_TM_MainDialog, "[6] 精细配置：指定玩家的英雄...", 54)
     call DialogDisplay(p, udg_TM_MainDialog, true)
 endfunction
 
@@ -6411,6 +7304,8 @@ function TM_ShowSlotDialog takes player p returns nothing
                 set lbl = "玩家 " + I2S(i + 1) + "：【魔音忍者】 (点击切换)"
             elseif udg_AI_HeroMode[i] == 3 then
                 set lbl = "玩家 " + I2S(i + 1) + "：【异种之源】 (点击切换)"
+            elseif udg_AI_HeroMode[i] == 4 then
+                set lbl = "玩家 " + I2S(i + 1) + "：【万灵化身】 (点击切换)"
             else
                 set lbl = "玩家 " + I2S(i + 1) + "：【常规默认英雄】 (点击切换)"
             endif
@@ -6479,6 +7374,17 @@ function TM_OnMainDialogClicked takes nothing returns nothing
         endloop
         call DisplayTimedTextToPlayer(p, 0, 0, 6.0, "|cff00ff00[测试模式]|r 已设置测试模式三：全部电脑出【异种之源】！(随时输入 -test 可重选)")
         call TM_ApplyAIConfig()
+    elseif b == udg_TM_BtnMode4All then
+        set i = 0
+        loop
+            exitwhen i > 7
+            if GetPlayerSlotState(Player(i)) == PLAYER_SLOT_STATE_PLAYING and GetPlayerController(Player(i)) == MAP_CONTROL_COMPUTER then
+                set udg_AI_HeroMode[i] = 4
+            endif
+            set i = i + 1
+        endloop
+        call DisplayTimedTextToPlayer(p, 0, 0, 6.0, "|cff00ff00[测试模式]|r 已设置测试模式四：全部电脑出【万灵化身】！(随时输入 -test 可重选)")
+        call TM_ApplyAIConfig()
     elseif b == udg_TM_BtnCustom then
         call TM_ShowSlotDialog(p)
     endif
@@ -6513,6 +7419,8 @@ function TM_OnSlotDialogClicked takes nothing returns nothing
                     set udg_AI_HeroMode[i] = 2
                 elseif udg_AI_HeroMode[i] == 2 then
                     set udg_AI_HeroMode[i] = 3
+                elseif udg_AI_HeroMode[i] == 3 then
+                    set udg_AI_HeroMode[i] = 4
                 else
                     set udg_AI_HeroMode[i] = 0
                 endif
@@ -6676,6 +7584,17 @@ function TM_OnChatCommand takes nothing returns nothing
         endloop
         call DisplayTimedTextToPlayer(p, 0, 0, 6.0, "|cff00ff00[测试模式]|r 已设置测试模式三：全部电脑出【异种之源】！")
         call TM_ApplyAIConfig()
+    elseif s == "-m4" then
+        set i = 0
+        loop
+            exitwhen i > 7
+            if GetPlayerSlotState(Player(i)) == PLAYER_SLOT_STATE_PLAYING and GetPlayerController(Player(i)) == MAP_CONTROL_COMPUTER then
+                set udg_AI_HeroMode[i] = 4
+            endif
+            set i = i + 1
+        endloop
+        call DisplayTimedTextToPlayer(p, 0, 0, 6.0, "|cff00ff00[测试模式]|r 已设置测试模式四：全部电脑出【万灵化身】！")
+        call TM_ApplyAIConfig()
     elseif s == "-spawn" then
         call TM_SpawnSandboxTargets(p)
     elseif s == "-refuge" then
@@ -6711,7 +7630,7 @@ endfunction
 
 function AI_OnHeroLevel takes nothing returns boolean
     local unit h = GetLevelingUnit()
-    if h != null and (GetUnitTypeId(h) == 'H002' or GetUnitTypeId(h) == 'H003' or GetUnitTypeId(h) == 'H004') then
+    if h != null and (GetUnitTypeId(h) == 'H002' or GetUnitTypeId(h) == 'H003' or GetUnitTypeId(h) == 'H004' or GetUnitTypeId(h) == 'H005') then
         if GetPlayerController(GetOwningPlayer(h)) == MAP_CONTROL_COMPUTER then
             call AI_AutoLearnSkills(h)
         endif
@@ -6734,12 +7653,20 @@ function AI_OnUnitTrainFinish takes nothing returns boolean
         if GetUnitTypeId(trained) == 'H004' then
             set udg_Strain_Hero[pId] = trained
             call Strain_InitHero(trained)
+        elseif GetUnitTypeId(trained) == 'H005' then
+            set udg_Wild_Hero[pId] = trained
+            call Wild_InitHero(trained)
         endif
         if GetPlayerController(p) == MAP_CONTROL_COMPUTER then
             if udg_AI_HeroMode[pId] > 0 and not IsUnitType(trained, UNIT_TYPE_PEON) then
                 call RemoveGuardPosition(trained)
             endif
-            if GetUnitTypeId(trained) == 'H004' then
+            if GetUnitTypeId(trained) == 'H005' then
+                set udg_Wild_Hero[pId] = trained
+                set udg_AI_CustomHero[pId] = trained
+                set udg_AI_HeroSpawned[pId] = true
+                call AI_AutoLearnSkills(trained)
+            elseif GetUnitTypeId(trained) == 'H004' then
                 set udg_AI_CustomHero[pId] = trained
                 set udg_AI_HeroSpawned[pId] = true
                 call AI_AutoLearnSkills(trained)
@@ -6783,6 +7710,7 @@ function DM_InitTriggers takes nothing returns nothing
     local trigger tGeneDialog = CreateTrigger()
     local trigger tHeroDialog = CreateTrigger()
     local trigger tReplaceDialog = CreateTrigger()
+    local trigger tWildDialog = CreateTrigger()
     local timer tmrCap = CreateTimer()
     local timer tmrStealth = CreateTimer()
     local timer tmrStart = CreateTimer()
@@ -6850,6 +7778,15 @@ function DM_InitTriggers takes nothing returns nothing
         set udg_Strain_PendingNewAbil[i] = 0
         set udg_Strain_Hero[i] = null
 
+        set udg_Wild_Hero[i] = null
+        set udg_Wild_IsMorphed[i] = false
+        set udg_Wild_CurrentForm[i] = 0
+        set udg_Wild_CurrentFormType[i] = 0
+        set udg_Wild_CurrentFormLevel[i] = 0
+        set udg_Wild_CurrentAbil[i] = 0
+        set udg_Wild_StoredManaRatio[i] = 1.0
+        set udg_Wild_MorphCD[i] = 0.0
+
         set i = i + 1
     endloop
 
@@ -6876,6 +7813,15 @@ function DM_InitTriggers takes nothing returns nothing
 
     call TriggerRegisterDialogEvent(tReplaceDialog, udg_Strain_ReplaceDialog)
     call TriggerAddAction(tReplaceDialog, function Strain_OnReplaceDialogClick)
+
+    // Initialize Wild Avatar Dialog & Groups
+    set udg_Wild_MorphDialog = DialogCreate()
+    set udg_Wild_ArmyGroup = CreateGroup()
+    set udg_Wild_ArmyTimer = CreateTimer()
+    call TimerStart(udg_Wild_ArmyTimer, 2.00, true, function Wild_ArmyPushLoop)
+
+    call TriggerRegisterDialogEvent(tWildDialog, udg_Wild_MorphDialog)
+    call TriggerAddAction(tWildDialog, function Wild_OnMorphDialogClick)
 
     set i = 0
     loop
