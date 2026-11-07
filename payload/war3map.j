@@ -202,7 +202,7 @@ globals
     integer array udg_Wild_TplAbil
     string array udg_Wild_TplAbilName
 
-    // v3.4 为虎作伥·伥鬼奴役系统 Globals
+    // v3.5 为虎作伥·伥鬼奴役系统 Globals
     real array udg_Wild_WrathTimer
     integer array udg_Wild_HeroThrallCount
     integer array udg_Wild_ThrallSkin
@@ -229,6 +229,8 @@ globals
 
     integer array udg_Wild_CreepThrallCount
     integer array udg_Wild_CreepThrallType
+    integer array udg_Wild_CreepThrallPower
+    integer array udg_Wild_SoulStacks
     integer array udg_Wild_ArmyBonusHP
     integer array udg_Wild_ArmyBonusDmg
 endglobals
@@ -5010,9 +5012,67 @@ function Wild_OnMorphDialogClick takes nothing returns nothing
     set p = null
 endfunction
 
-function Wild_SpawnArmyCreep takes player p, integer unitTypeId, real x, real y returns unit
+function Wild_IsWorkerOrTrash takes unit u returns boolean
+    local integer uId = 0
+    if u == null then
+        return true
+    endif
+    set uId = GetUnitTypeId(u)
+    if IsUnitType(u, UNIT_TYPE_PEON) then
+        return true
+    endif
+    if uId == 'ewsp' or uId == 'opeo' or uId == 'hpea' or uId == 'uaco' or uId == 'ugho' then
+        return true
+    endif
+    if GetUnitLevel(u) < 3 or BlzGetUnitMaxHP(u) < 420 then
+        return true
+    endif
+    return false
+endfunction
+
+function Wild_AddSoulStack takes integer pId returns nothing
+    local unit enumU = null
+    local boolean isEven = false
+    if pId < 0 or pId > 15 then
+        return
+    endif
+    set udg_Wild_SoulStacks[pId] = udg_Wild_SoulStacks[pId] + 1
+    set udg_Wild_ArmyBonusHP[pId] = udg_Wild_SoulStacks[pId] * 4
+    set udg_Wild_ArmyBonusDmg[pId] = udg_Wild_SoulStacks[pId] / 2
+    set isEven = (ModuloInteger(udg_Wild_SoulStacks[pId], 2) == 0)
+
+    // Real-time buff for active summons in the field
+    call GroupClear(udg_EnumGroup)
+    call GroupAddGroup(udg_Wild_ArmyGroup, udg_EnumGroup)
+    loop
+        set enumU = FirstOfGroup(udg_EnumGroup)
+        exitwhen enumU == null
+        call GroupRemoveUnit(udg_EnumGroup, enumU)
+        if GetOwningPlayer(enumU) == Player(pId) and not IsUnitType(enumU, UNIT_TYPE_DEAD) then
+            call BlzSetUnitMaxHP(enumU, BlzGetUnitMaxHP(enumU) + 4)
+            call SetWidgetLife(enumU, GetWidgetLife(enumU) + 4.0)
+            if isEven then
+                call BlzSetUnitBaseDamage(enumU, BlzGetUnitBaseDamage(enumU, 0) + 1, 0)
+            endif
+        endif
+    endloop
+    set enumU = null
+endfunction
+
+function Wild_SpawnArmyCreep takes player p, integer unitTypeId, real x, real y, integer bonusHP, integer bonusDmg returns unit
     local unit u = CreateUnit(p, unitTypeId, x, y, 0.0)
+    local integer maxHP = 0
+    local integer baseDmg = 0
     call UnitApplyTimedLife(u, 'BTLF', 90.0)
+    if bonusHP > 0 then
+        set maxHP = BlzGetUnitMaxHP(u) + bonusHP
+        call BlzSetUnitMaxHP(u, maxHP)
+        call SetWidgetLife(u, I2R(maxHP))
+    endif
+    if bonusDmg > 0 then
+        set baseDmg = BlzGetUnitBaseDamage(u, 0) + bonusDmg
+        call BlzSetUnitBaseDamage(u, baseDmg, 0)
+    endif
     call GroupAddUnit(udg_Wild_ArmyGroup, u)
     return u
 endfunction
@@ -5061,6 +5121,9 @@ function Wild_EnslaveHero takes integer pId, unit deadHero returns nothing
     if deadHero == null or pId < 0 or pId > 15 then
         return
     endif
+
+    call Wild_AddSoulStack(pId)
+
     set count = udg_Wild_HeroThrallCount[pId]
     if count < 8 then
         set slot = count
@@ -5220,20 +5283,51 @@ endfunction
 function Wild_EnslaveCreep takes integer pId, unit deadCreep returns nothing
     local integer count = 0
     local integer uId = 0
+    local integer deadPower = 0
+    local integer minSlot = 0
+    local integer minPower = 0
+    local integer s = 0
+
     if deadCreep == null or pId < 0 or pId > 15 then
         return
     endif
+
+    // Unconditionally add Soul Stack (+4 HP, +0.5 Dmg) and buff field units in real-time
+    call Wild_AddSoulStack(pId)
+
+    // Filter out workers & trash creeps: they do NOT occupy the 12 elite thrall slots
+    if Wild_IsWorkerOrTrash(deadCreep) then
+        return
+    endif
+
     set count = udg_Wild_CreepThrallCount[pId]
     set uId = GetUnitTypeId(deadCreep)
+    set deadPower = GetUnitLevel(deadCreep) * 1000 + BlzGetUnitMaxHP(deadCreep)
+
     if count < 12 then
         set udg_Wild_CreepThrallType[pId * 12 + count] = uId
+        set udg_Wild_CreepThrallPower[pId * 12 + count] = deadPower
         set udg_Wild_CreepThrallCount[pId] = count + 1
-        call DisplayTimedTextToPlayer(Player(pId), 0, 0, 3.0, "|cffffcc00[为虎作伥]|r 已奴役【" + GetUnitName(deadCreep) + "】为荒野伥鬼！(当前精锐伥鬼: " + I2S(count + 1) + "/12)")
     else
-        set udg_Wild_ArmyBonusHP[pId] = udg_Wild_ArmyBonusHP[pId] + 25
-        set udg_Wild_ArmyBonusDmg[pId] = udg_Wild_ArmyBonusDmg[pId] + 3
-        call DisplayTimedTextToPlayer(Player(pId), 0, 0, 2.5, "|cffffcc00[百鬼军魂]|r 吞噬敌军精魄，荒野大军永久获得 +25 生命上限与 +3 攻击力！(当前累计: +" + I2S(udg_Wild_ArmyBonusHP[pId]) + "HP/+" + I2S(udg_Wild_ArmyBonusDmg[pId]) + "攻)")
+        // 12 slots full: Survival of the Fittest (replace weakest creep if newly killed creep is stronger)
+        set minSlot = 0
+        set minPower = udg_Wild_CreepThrallPower[pId * 12 + 0]
+        set s = 1
+        loop
+            exitwhen s >= 12
+            if udg_Wild_CreepThrallPower[pId * 12 + s] < minPower then
+                set minPower = udg_Wild_CreepThrallPower[pId * 12 + s]
+                set minSlot = s
+            endif
+            set s = s + 1
+        endloop
+
+        if deadPower > minPower then
+            set udg_Wild_CreepThrallType[pId * 12 + minSlot] = uId
+            set udg_Wild_CreepThrallPower[pId * 12 + minSlot] = deadPower
+        endif
     endif
+    // Completely silent: 0 screen spam for normal kills!
 endfunction
 
 function Wild_CastWrath takes unit caster returns nothing
@@ -5253,6 +5347,8 @@ function Wild_CastWrath takes unit caster returns nothing
     local integer i = 0
     local integer cIdx = 0
     local integer tType = 0
+    local integer bonusHP = 0
+    local integer bonusDmg = 0
 
     if caster == null or IsUnitType(caster, UNIT_TYPE_DEAD) then
         return
@@ -5268,46 +5364,50 @@ function Wild_CastWrath takes unit caster returns nothing
 
     set udg_Wild_WrathTimer[pId] = 90.0
 
+    set bonusHP = udg_Wild_ArmyBonusHP[pId]
+    set bonusDmg = udg_Wild_ArmyBonusDmg[pId]
+
     call DisplayTimedTextToPlayer(p, 0, 0, 5.0, "|cffff0000[众野之怒]|r 荒野狂潮冲锋！野怪与炼化伥鬼大军已向敌方核心基地发起狂暴推进！")
+    call DisplayTimedTextToPlayer(p, 0, 0, 6.0, "|cffffcc00[伥鬼军势]|r 随军出征: 伪英雄伥鬼: |cffff8000" + I2S(udg_Wild_HeroThrallCount[pId]) + "/8|r 位 | 精锐精魄伥鬼: |cff33ccff" + I2S(udg_Wild_CreepThrallCount[pId]) + "/12|r 头 | 百鬼军魂: |cff00ff00" + I2S(udg_Wild_SoulStacks[pId]) + "|r 层 (全军永久 |cff00ff00+" + I2S(bonusHP) + " HP|r / |cffff6600+" + I2S(bonusDmg) + " 攻击|r)！")
 
     // Tier 1: Rank 1 (Lv 6)
     if dRank == 1 then
-        set c = Wild_SpawnArmyCreep(p, 'nhyd', cx + 70.0, cy)
-        set c = Wild_SpawnArmyCreep(p, 'nhyd', cx - 70.0, cy)
-        set c = Wild_SpawnArmyCreep(p, 'nnwa', cx, cy + 70.0)
-        set c = Wild_SpawnArmyCreep(p, 'nnwa', cx, cy - 70.0)
-        set c = Wild_SpawnArmyCreep(p, 'nfrs', cx + 100.0, cy + 100.0)
-        set c = Wild_SpawnArmyCreep(p, 'nfrs', cx - 100.0, cy - 100.0)
-        set c = Wild_SpawnArmyCreep(p, 'nogr', cx + 130.0, cy)
-        set c = Wild_SpawnArmyCreep(p, 'nogr', cx - 130.0, cy)
-        set c = Wild_SpawnArmyCreep(p, 'nrzs', cx, cy + 130.0)
-        set c = Wild_SpawnArmyCreep(p, 'nrzs', cx, cy - 130.0)
+        set c = Wild_SpawnArmyCreep(p, 'nhyd', cx + 70.0, cy, bonusHP, bonusDmg)
+        set c = Wild_SpawnArmyCreep(p, 'nhyd', cx - 70.0, cy, bonusHP, bonusDmg)
+        set c = Wild_SpawnArmyCreep(p, 'nnwa', cx, cy + 70.0, bonusHP, bonusDmg)
+        set c = Wild_SpawnArmyCreep(p, 'nnwa', cx, cy - 70.0, bonusHP, bonusDmg)
+        set c = Wild_SpawnArmyCreep(p, 'nfrs', cx + 100.0, cy + 100.0, bonusHP, bonusDmg)
+        set c = Wild_SpawnArmyCreep(p, 'nfrs', cx - 100.0, cy - 100.0, bonusHP, bonusDmg)
+        set c = Wild_SpawnArmyCreep(p, 'nogr', cx + 130.0, cy, bonusHP, bonusDmg)
+        set c = Wild_SpawnArmyCreep(p, 'nogr', cx - 130.0, cy, bonusHP, bonusDmg)
+        set c = Wild_SpawnArmyCreep(p, 'nrzs', cx, cy + 130.0, bonusHP, bonusDmg)
+        set c = Wild_SpawnArmyCreep(p, 'nrzs', cx, cy - 130.0, bonusHP, bonusDmg)
 
     // Tier 2: Rank 2 (Lv 8)
     elseif dRank == 2 then
-        set c = Wild_SpawnArmyCreep(p, 'nfrb', cx + 80.0, cy)
-        set c = Wild_SpawnArmyCreep(p, 'nmam', cx - 80.0, cy)
-        set c = Wild_SpawnArmyCreep(p, 'nrvl', cx, cy + 80.0)
-        set c = Wild_SpawnArmyCreep(p, 'nbdo', cx, cy - 80.0)
-        set c = Wild_SpawnArmyCreep(p, 'nfrs', cx + 110.0, cy + 110.0)
-        set c = Wild_SpawnArmyCreep(p, 'nfrs', cx - 110.0, cy - 110.0)
-        set c = Wild_SpawnArmyCreep(p, 'nhyd', cx + 140.0, cy)
-        set c = Wild_SpawnArmyCreep(p, 'nhyd', cx - 140.0, cy)
-        set c = Wild_SpawnArmyCreep(p, 'nstw', cx, cy + 140.0)
-        set c = Wild_SpawnArmyCreep(p, 'nstw', cx, cy - 140.0)
+        set c = Wild_SpawnArmyCreep(p, 'nfrb', cx + 80.0, cy, bonusHP, bonusDmg)
+        set c = Wild_SpawnArmyCreep(p, 'nmam', cx - 80.0, cy, bonusHP, bonusDmg)
+        set c = Wild_SpawnArmyCreep(p, 'nrvl', cx, cy + 80.0, bonusHP, bonusDmg)
+        set c = Wild_SpawnArmyCreep(p, 'nbdo', cx, cy - 80.0, bonusHP, bonusDmg)
+        set c = Wild_SpawnArmyCreep(p, 'nfrs', cx + 110.0, cy + 110.0, bonusHP, bonusDmg)
+        set c = Wild_SpawnArmyCreep(p, 'nfrs', cx - 110.0, cy - 110.0, bonusHP, bonusDmg)
+        set c = Wild_SpawnArmyCreep(p, 'nhyd', cx + 140.0, cy, bonusHP, bonusDmg)
+        set c = Wild_SpawnArmyCreep(p, 'nhyd', cx - 140.0, cy, bonusHP, bonusDmg)
+        set c = Wild_SpawnArmyCreep(p, 'nstw', cx, cy + 140.0, bonusHP, bonusDmg)
+        set c = Wild_SpawnArmyCreep(p, 'nstw', cx, cy - 140.0, bonusHP, bonusDmg)
 
     // Tier 3: Rank 3 (Lv 10) - Supreme Boss Wave
     else
-        set c = Wild_SpawnArmyCreep(p, 'nbwm', cx + 100.0, cy)
-        set c = Wild_SpawnArmyCreep(p, 'nggr', cx - 100.0, cy)
-        set c = Wild_SpawnArmyCreep(p, 'nrdr', cx, cy + 100.0)
-        set c = Wild_SpawnArmyCreep(p, 'nerw', cx, cy - 100.0)
-        set c = Wild_SpawnArmyCreep(p, 'nwrg', cx + 140.0, cy + 140.0)
-        set c = Wild_SpawnArmyCreep(p, 'nmam', cx - 140.0, cy - 140.0)
-        set c = Wild_SpawnArmyCreep(p, 'nbdo', cx + 140.0, cy - 140.0)
-        set c = Wild_SpawnArmyCreep(p, 'ninf', cx - 140.0, cy + 140.0)
-        set c = Wild_SpawnArmyCreep(p, 'nhyd', cx + 180.0, cy)
-        set c = Wild_SpawnArmyCreep(p, 'nfrb', cx - 180.0, cy)
+        set c = Wild_SpawnArmyCreep(p, 'nbwm', cx + 100.0, cy, bonusHP, bonusDmg)
+        set c = Wild_SpawnArmyCreep(p, 'nggr', cx - 100.0, cy, bonusHP, bonusDmg)
+        set c = Wild_SpawnArmyCreep(p, 'nrdr', cx, cy + 100.0, bonusHP, bonusDmg)
+        set c = Wild_SpawnArmyCreep(p, 'nerw', cx, cy - 100.0, bonusHP, bonusDmg)
+        set c = Wild_SpawnArmyCreep(p, 'nwrg', cx + 140.0, cy + 140.0, bonusHP, bonusDmg)
+        set c = Wild_SpawnArmyCreep(p, 'nmam', cx - 140.0, cy - 140.0, bonusHP, bonusDmg)
+        set c = Wild_SpawnArmyCreep(p, 'nbdo', cx + 140.0, cy - 140.0, bonusHP, bonusDmg)
+        set c = Wild_SpawnArmyCreep(p, 'ninf', cx - 140.0, cy + 140.0, bonusHP, bonusDmg)
+        set c = Wild_SpawnArmyCreep(p, 'nhyd', cx + 180.0, cy, bonusHP, bonusDmg)
+        set c = Wild_SpawnArmyCreep(p, 'nfrb', cx - 180.0, cy, bonusHP, bonusDmg)
     endif
 
     // Spawn Enslaved Hero Thralls (u003)
@@ -5321,8 +5421,8 @@ function Wild_CastWrath takes unit caster returns nothing
         call SetUnitVertexColor(thrall, 170, 210, 255, 225)
         call BlzSetUnitName(thrall, "【伥鬼】" + udg_Wild_ThrallName[idx] + "(Lv" + I2S(udg_Wild_ThrallLevel[idx]) + ")")
 
-        set finalHP = udg_Wild_ThrallHP[idx] + udg_Wild_ArmyBonusHP[pId]
-        set finalDmg = udg_Wild_ThrallDmg[idx] + udg_Wild_ArmyBonusDmg[pId]
+        set finalHP = udg_Wild_ThrallHP[idx] + bonusHP
+        set finalDmg = udg_Wild_ThrallDmg[idx] + bonusDmg
         call BlzSetUnitMaxHP(thrall, finalHP)
         call SetWidgetLife(thrall, I2R(finalHP))
         if udg_Wild_ThrallMana[idx] > 0 then
@@ -5387,10 +5487,7 @@ function Wild_CastWrath takes unit caster returns nothing
         exitwhen cIdx >= udg_Wild_CreepThrallCount[pId]
         set tType = udg_Wild_CreepThrallType[pId * 12 + cIdx]
         if tType != 0 then
-            set c = Wild_SpawnArmyCreep(p, tType, cx + GetRandomReal(-180.0, 180.0), cy + GetRandomReal(-180.0, 180.0))
-            call BlzSetUnitMaxHP(c, BlzGetUnitMaxHP(c) + udg_Wild_ArmyBonusHP[pId])
-            call SetWidgetLife(c, I2R(BlzGetUnitMaxHP(c)))
-            call BlzSetUnitBaseDamage(c, BlzGetUnitBaseDamage(c, 0) + udg_Wild_ArmyBonusDmg[pId], 0)
+            set c = Wild_SpawnArmyCreep(p, tType, cx + GetRandomReal(-180.0, 180.0), cy + GetRandomReal(-180.0, 180.0), bonusHP, bonusDmg)
             call SetUnitVertexColor(c, 180, 220, 255, 230)
         endif
         set cIdx = cIdx + 1
