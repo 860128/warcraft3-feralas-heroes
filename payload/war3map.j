@@ -4298,96 +4298,96 @@ function Wild_GetCreepAbilName takes integer cat, integer tier, integer sub retu
 endfunction
 
 function Wild_InitCreepTemplates takes nothing returns nothing
-    call Wild_SetTpl(1, 1, 1, 'nkob', "狗头人苦工", "狗头人苦工 (高血/防御)", 320, 0, 13, 3.0, 1.40, 270.0, 128, 1.00, 'ACev', "闪避")
-    call Wild_SetTpl(1, 1, 2, 'ngns', "豺狼人刺客", "豺狼人刺客 (狂暴/快攻)", 260, 0, 16, 1.0, 1.10, 300.0, 128, 1.00, 'ACpu', "重击/暴击")
-    call Wild_SetTpl(1, 1, 3, 'nmrr', "鱼人战士", "鱼人战士 (均衡/抗性)", 280, 0, 14, 2.0, 1.35, 280.0, 128, 1.00, 'ACcs', "抗性皮肤")
-    call Wild_SetTpl(1, 2, 1, 'ngrk', "泥土魔像", "泥土魔像 (石肤/高血)", 480, 0, 19, 4.0, 1.50, 270.0, 128, 1.05, 'ACcs', "抗性皮肤")
-    call Wild_SetTpl(1, 2, 2, 'nrzb', "刺背兽蛮兵", "刺背兽蛮兵 (狂暴/重击)", 380, 0, 23, 2.0, 1.15, 310.0, 128, 1.00, 'ACbh', "重击")
-    call Wild_SetTpl(1, 2, 3, 'ngno', "豺狼人头目", "豺狼人头目 (战歌/光环)", 420, 0, 20, 3.0, 1.35, 290.0, 128, 1.05, 'ACct', "战歌光环")
-    call Wild_SetTpl(1, 3, 1, 'nrzm', "刺背兽盾战", "刺背兽盾战 (坚韧/重甲)", 620, 0, 25, 4.0, 1.45, 280.0, 128, 1.05, 'ACcs', "抗性皮肤")
-    call Wild_SetTpl(1, 3, 2, 'ncen', "半人马先锋", "半人马先锋 (突击/狂暴)", 520, 0, 30, 2.0, 1.15, 320.0, 128, 1.05, 'ACbh', "重击")
-    call Wild_SetTpl(1, 3, 3, 'ndtb', "黑巨魔战士", "黑巨魔战士 (暗影/闪避)", 550, 0, 27, 3.0, 1.30, 300.0, 128, 1.05, 'ACev', "高阶闪避")
-    call Wild_SetTpl(1, 4, 1, 'nogr', "食人魔战士", "食人魔战士 (巨力/厚皮)", 780, 0, 32, 4.0, 1.50, 270.0, 128, 1.10, 'ACcs', "抗性皮肤")
-    call Wild_SetTpl(1, 4, 2, 'nsat', "萨特狂怒者", "萨特狂怒者 (暗影/暴击)", 650, 0, 38, 2.0, 1.10, 320.0, 128, 1.10, 'ACpu', "致命一击")
-    call Wild_SetTpl(1, 4, 3, 'nfrg', "熊怪战士", "熊怪战士 (战嚎/重锤)", 720, 0, 34, 3.0, 1.35, 290.0, 128, 1.10, 'ACro', "战嚎")
-    call Wild_SetTpl(1, 5, 1, 'nfrb', "熊怪巨熊酋长", "熊怪巨熊酋长 (重甲/耐力)", 950, 0, 40, 5.0, 1.45, 280.0, 128, 1.15, 'ACen', "耐力光环")
-    call Wild_SetTpl(1, 5, 2, 'nanw', "刺背蛛魔督军", "刺背蛛魔督军 (穿刺/狂暴)", 800, 0, 48, 3.0, 1.10, 330.0, 128, 1.15, 'ACpu', "致命重击")
-    call Wild_SetTpl(1, 5, 3, 'nsth', "萨特幽灵盗贼", "萨特幽灵盗贼 (幽灵/极速闪避)", 850, 0, 44, 4.0, 1.25, 310.0, 128, 1.15, 'ACev', "极速闪避")
-    call Wild_SetTpl(1, 6, 1, 'nogm', "食人魔霸主", "食人魔霸主 (泰坦/粉碎重击)", 1150, 0, 48, 5.0, 1.45, 280.0, 128, 1.20, 'ACbh', "粉碎重击")
-    call Wild_SetTpl(1, 6, 2, 'nftb', "巨魔狂战士", "巨魔狂战士 (狂怒/极速嗜血)", 950, 0, 58, 3.0, 1.05, 340.0, 128, 1.15, 'ACbl', "嗜血术")
-    call Wild_SetTpl(1, 6, 3, 'nrvs', "极寒冰霜守卫", "极寒冰霜守卫 (霜冻/抗性神肤)", 1050, 0, 52, 4.0, 1.30, 300.0, 128, 1.20, 'ACcs', "抗性皮肤")
-    call Wild_SetTpl(1, 7, 1, 'ngst', "岩石魔像", "岩石魔像 (坚石/投掷重石)", 1350, 0, 56, 6.0, 1.50, 270.0, 128, 1.25, 'ACtb', "巨石投掷")
-    call Wild_SetTpl(1, 7, 2, 'nsts', "萨特狱火撕裂者", "萨特狱火撕裂者 (毁灭/高阶暴击)", 1150, 0, 68, 3.0, 1.05, 340.0, 128, 1.20, 'ACpu', "高阶暴击")
-    call Wild_SetTpl(1, 7, 3, 'ncnk', "半人马可汗", "半人马可汗 (战争领袖/耐力光环)", 1250, 0, 60, 5.0, 1.35, 310.0, 128, 1.25, 'ACen', "耐力光环")
-    call Wild_SetTpl(1, 8, 1, 'nmam', "远古猛犸象", "远古猛犸象 (冰原巨兽/震荡波)", 1600, 0, 65, 6.0, 1.50, 280.0, 128, 1.30, 'ACsh', "震荡波")
-    call Wild_SetTpl(1, 8, 2, 'nbdm', "龙人近卫督军", "龙人近卫督军 (龙鳞/狂暴重斩)", 1350, 0, 80, 4.0, 1.05, 340.0, 128, 1.25, 'ACpu', "龙王暴击")
-    call Wild_SetTpl(1, 8, 3, 'nsgb', "海巨人暴怒者", "海巨人暴怒者 (深海坚壳/抗性)", 1500, 0, 70, 7.0, 1.40, 270.0, 128, 1.30, 'ACcs', "硬化外壳")
-    call Wild_SetTpl(1, 9, 1, 'nwrg', "战争魔像", "战争魔像 (泰坦石躯/心灵之火)", 1900, 0, 78, 8.0, 1.50, 280.0, 128, 1.35, 'ACif', "心灵之火")
-    call Wild_SetTpl(1, 9, 2, 'nano', "刺背蛛魔皇族", "刺背蛛魔皇族 (深渊撕裂/狂暴)", 1600, 0, 95, 5.0, 1.05, 350.0, 128, 1.30, 'ACpu', "致死暴击")
-    call Wild_SetTpl(1, 9, 3, 'ndrv', "深渊复仇亡魂", "深渊复仇亡魂 (死亡之握/极速闪避)", 1700, 0, 85, 6.0, 1.15, 330.0, 128, 1.30, 'ACev', "高阶闪避")
-    call Wild_SetTpl(1, 10, 1, 'nggr', "花岗岩傀儡", "花岗岩傀儡 (巨石神体/投石/极高护甲)", 2300, 0, 95, 10.0, 1.50, 280.0, 128, 1.40, 'ACtb', "巨石飞掷")
-    call Wild_SetTpl(1, 10, 2, 'nbwm', "远古黑色巨龙", "远古黑色巨龙 (灭世龙神/毁灭龙皇暴击)", 2000, 0, 120, 7.0, 1.05, 360.0, 128, 1.40, 'ACpu', "龙皇毁灭暴击")
-    call Wild_SetTpl(1, 10, 3, 'ninf', "远古地狱火", "远古地狱火 (天外陨神/烈焰献祭/抗性)", 2150, 0, 105, 8.0, 1.25, 300.0, 128, 1.40, 'ACcs', "抗性神皮")
-    call Wild_SetTpl(2, 1, 1, 'nkog', "狗头人地卜师", "狗头人地卜师 (投石稳固/坚毅)", 280, 0, 14, 2.0, 1.40, 280.0, 500, 1.00, 'ACcs', "抗性皮肤")
-    call Wild_SetTpl(2, 1, 2, 'nftt', "森林巨魔猎手", "森林巨魔猎手 (飞斧/迅捷连掷)", 240, 0, 17, 1.0, 1.10, 310.0, 500, 1.00, 'ACpu', "暴击")
-    call Wild_SetTpl(2, 1, 3, 'nhar', "鹰身女妖盗贼", "鹰身女妖盗贼 (疾风低空/灵巧闪避)", 250, 0, 15, 2.0, 1.25, 320.0, 500, 1.00, 'ACev', "闪避")
-    call Wild_SetTpl(2, 2, 1, 'ncea', "半人马射手", "半人马射手 (强弓重箭/稳固)", 400, 0, 20, 3.0, 1.35, 290.0, 500, 1.05, 'ACcs', "抗性皮肤")
-    call Wild_SetTpl(2, 2, 2, 'ngna', "豺狼人强盗", "豺狼人强盗 (连弩破甲/迅捷)", 340, 0, 24, 1.0, 1.10, 310.0, 500, 1.00, 'ACpu', "致命一击")
-    call Wild_SetTpl(2, 2, 3, 'nmrm', "鱼人猎手", "鱼人猎手 (剧毒骨矛/迟缓)", 360, 0, 21, 2.0, 1.25, 300.0, 500, 1.05, 'ACen', "剧毒光环")
-    call Wild_SetTpl(2, 3, 1, 'nrzg', "野猪人狙击手", "野猪人狙击手 (穿刺重矢/重装)", 520, 0, 26, 3.0, 1.35, 290.0, 500, 1.05, 'ACcs', "抗性皮肤")
-    call Wild_SetTpl(2, 3, 2, 'nstl', "萨特欺诈弓手", "萨特欺诈弓手 (暗影射击/极速)", 440, 0, 31, 2.0, 1.10, 320.0, 550, 1.05, 'ACev', "闪避")
-    call Wild_SetTpl(2, 3, 3, 'nrvf', "冰霜幽魂弓手", "冰霜幽魂弓手 (冰霜箭/霜冻新星)", 480, 0, 28, 2.0, 1.25, 300.0, 550, 1.05, 'ACfn', "霜冻新星")
-    call Wild_SetTpl(2, 4, 1, 'nrzs', "野猪人猎头手", "野猪人猎头手 (猎头重矛/穿刺狂暴)", 650, 0, 33, 4.0, 1.30, 300.0, 550, 1.10, 'ACcs', "抗性皮肤")
-    call Wild_SetTpl(2, 4, 2, 'nnwa', "蛛魔穿刺斥候", "蛛魔穿刺斥候 (蛛刺毒芒/连击暴击)", 560, 0, 39, 2.0, 1.05, 330.0, 550, 1.10, 'ACpu', "致命暴击")
-    call Wild_SetTpl(2, 4, 3, 'nhrw', "鹰身风行者", "鹰身风行者 (疾风闪避/天界灵动)", 600, 0, 35, 3.0, 1.20, 340.0, 550, 1.10, 'ACev', "高阶闪避")
-    call Wild_SetTpl(2, 5, 1, 'nrvi', "寒冰亡魂骨弓", "寒冰亡魂骨弓 (霜冻甲壳/抗魔)", 800, 0, 40, 4.0, 1.30, 300.0, 550, 1.15, 'ACcs', "抗性皮肤")
-    call Wild_SetTpl(2, 5, 2, 'ndtt', "黑巨魔猎手", "黑巨魔猎手 (狂暴投刃/嗜血神威)", 680, 0, 49, 2.0, 1.05, 330.0, 550, 1.15, 'ACbl', "嗜血术")
-    call Wild_SetTpl(2, 5, 3, 'nnwl', "蛛魔织网者", "蛛魔织网者 (阴影蛛网/控场缚敌)", 730, 0, 43, 3.0, 1.20, 310.0, 550, 1.15, 'ACsw', "蛛网")
-    call Wild_SetTpl(2, 6, 1, 'nbdm', "龙人近卫射手", "龙人近卫射手 (龙鳞防御/远距重弩)", 980, 0, 48, 5.0, 1.30, 310.0, 600, 1.20, 'ACcs', "抗性皮肤")
-    call Wild_SetTpl(2, 6, 2, 'nitt', "冰巨魔狂暴掷斧", "冰巨魔狂暴掷斧 (破冰飞斧/暴击割裂)", 830, 0, 58, 3.0, 1.00, 340.0, 550, 1.15, 'ACpu', "致命一击")
-    call Wild_SetTpl(2, 6, 3, 'nhrh', "鹰身风暴女巫", "鹰身风暴女巫 (雷鸣呼唤/风暴震击)", 880, 0, 51, 4.0, 1.20, 330.0, 550, 1.20, 'ACtb', "风暴之锤")
-    call Wild_SetTpl(2, 7, 1, 'ncnt', "半人马强袭统领", "半人马强袭统领 (统御重弓/战歌光环)", 1150, 0, 57, 5.0, 1.30, 320.0, 600, 1.25, 'ACct', "战歌光环")
-    call Wild_SetTpl(2, 7, 2, 'nass', "暗影刺客宗师", "暗影刺客宗师 (淬毒致命暗刃/极速)", 980, 0, 70, 3.0, 0.95, 360.0, 550, 1.20, 'ACpu', "致死暗袭")
-    call Wild_SetTpl(2, 7, 3, 'nrvl', "极寒怨灵领主", "极寒怨灵领主 (绝对霜霜/霜冻风暴)", 1050, 0, 62, 4.0, 1.20, 310.0, 600, 1.25, 'ACfn', "霜冻新星")
-    call Wild_SetTpl(2, 8, 1, 'nbdo', "龙人督察", "龙人督察 (龙威重弩/坚毅龙鳞)", 1350, 0, 67, 6.0, 1.30, 320.0, 600, 1.30, 'ACcs', "抗性皮肤")
-    call Wild_SetTpl(2, 8, 2, 'ndtr', "深渊复仇射手", "深渊复仇射手 (暗夜风影/极速闪避)", 1150, 0, 82, 4.0, 0.95, 370.0, 600, 1.25, 'ACev', "高阶闪避")
-    call Wild_SetTpl(2, 8, 3, 'nadw', "碧蓝幼龙", "碧蓝幼龙 (冰霜吐息/巨龙烈焰)", 1250, 0, 72, 5.0, 1.20, 330.0, 600, 1.25, 'ACf2', "冰霜吐息")
-    call Wild_SetTpl(2, 9, 1, 'nndk', "虚空穿刺幼龙", "虚空穿刺幼龙 (虚空龙鳞/超远射程)", 1600, 0, 78, 7.0, 1.25, 330.0, 650, 1.30, 'ACcs', "抗性皮肤")
-    call Wild_SetTpl(2, 9, 2, 'nmdr', "极地猛犸射手", "极地猛犸射手 (冰原战意/致命重击)", 1350, 0, 98, 4.0, 0.90, 380.0, 600, 1.35, 'ACpu', "泰坦重击")
-    call Wild_SetTpl(2, 9, 3, 'nbdk', "黑龙近卫幼龙", "黑龙近卫幼龙 (毁灭黑炎/黑龙暴击)", 1450, 0, 86, 6.0, 1.15, 340.0, 600, 1.30, 'ACf2', "黑龙龙炎")
-    call Wild_SetTpl(2, 10, 1, 'nbzw', "远古青铜龙", "远古青铜龙 (时光守护/神圣龙鳞)", 1950, 0, 92, 9.0, 1.25, 340.0, 600, 1.40, 'ACcs', "抗性神皮")
-    call Wild_SetTpl(2, 10, 2, 'nbwm', "远古黑色巨龙", "远古黑色巨龙 (600射程终极黑龙毁灭暴击)", 1700, 0, 115, 6.0, 0.90, 390.0, 600, 1.40, 'ACpu', "龙皇毁灭暴击")
-    call Wild_SetTpl(2, 10, 3, 'nadr', "远古碧蓝巨龙", "远古碧蓝巨龙 (绝对零度/极寒冰霜吐息)", 1800, 0, 100, 7.0, 1.15, 340.0, 600, 1.40, 'ACfn', "霜冻新星")
-    call Wild_SetTpl(3, 1, 1, 'nfsp', "森林巨魔暗影牧师", "森林巨魔暗影牧师 (医疗神术/恢复)", 260, 300, 12, 1.0, 1.40, 280.0, 550, 1.00, 'ACrj', "医疗神术")
-    call Wild_SetTpl(3, 1, 2, 'nkog', "狗头人占卜师", "狗头人占卜师 (心灵之火/法力澎湃)", 240, 280, 15, 0.0, 1.30, 290.0, 550, 1.00, 'ACif', "心灵之火")
-    call Wild_SetTpl(3, 1, 3, 'nstl', "萨特诡计巫师", "萨特诡计巫师 (虚空之眼/净化术)", 250, 320, 13, 1.0, 1.35, 280.0, 550, 1.00, 'ACpu', "净化残卷")
-    call Wild_SetTpl(3, 2, 1, 'ngnw', "豺狼人巫医", "豺狼人巫医 (生命之源/治愈)", 360, 350, 18, 2.0, 1.35, 280.0, 550, 1.05, 'ACrj', "医疗术")
-    call Wild_SetTpl(3, 2, 2, 'ncks', "半人马巫师", "半人马巫师 (心灵之火/狂怒)", 340, 320, 21, 1.0, 1.25, 300.0, 550, 1.05, 'ACif', "心灵之火")
-    call Wild_SetTpl(3, 2, 3, 'nstl', "萨特欺诈法师", "萨特欺诈法师 (虚空放逐/净化)", 350, 380, 19, 1.0, 1.30, 290.0, 550, 1.05, 'ACpu', "净化")
-    call Wild_SetTpl(3, 3, 1, 'nomg', "食人魔魔导师", "食人魔魔导师 (狂暴之血/嗜血术)", 500, 400, 24, 2.0, 1.35, 290.0, 550, 1.10, 'ACbl', "嗜血术")
-    call Wild_SetTpl(3, 3, 2, 'nrvf', "极寒幽魂法师", "极寒幽魂法师 (极寒爆裂/霜冻新星)", 450, 380, 29, 1.0, 1.25, 300.0, 550, 1.10, 'ACfn', "霜冻新星")
-    call Wild_SetTpl(3, 3, 3, 'nnwl', "蛛魔地网控者", "蛛魔地网控者 (阴影缚敌/地网缠绕)", 470, 420, 25, 2.0, 1.30, 290.0, 550, 1.10, 'ACsw', "蛛网")
-    call Wild_SetTpl(3, 4, 1, 'nfrs', "熊怪长者萨满", "熊怪长者萨满 (风暴雷霆/闪电之盾)", 620, 450, 30, 3.0, 1.35, 290.0, 550, 1.10, 'ACls', "闪电之盾")
-    call Wild_SetTpl(3, 4, 2, 'nrzm', "野猪人智者", "野猪人智者 (烈焰冲击/震荡波)", 560, 420, 36, 2.0, 1.25, 300.0, 550, 1.10, 'ACsh', "震荡波")
-    call Wild_SetTpl(3, 4, 3, 'nhrh', "鹰身风暴祭司", "鹰身风暴祭司 (天神震慑/风暴之锤)", 580, 480, 32, 2.0, 1.30, 310.0, 550, 1.10, 'ACtb', "风暴之锤")
-    call Wild_SetTpl(3, 5, 1, 'nwzg', "变节大法师", "变节大法师 (极寒冰环/霜冻新星)", 750, 520, 36, 3.0, 1.30, 300.0, 550, 1.15, 'ACfn', "霜冻新星")
-    call Wild_SetTpl(3, 5, 2, 'nltl', "闪电蜥蜴幼兽", "闪电蜥蜴幼兽 (雷霆叉状闪电)", 680, 480, 43, 2.0, 1.20, 310.0, 550, 1.15, 'ACfl', "叉状闪电")
-    call Wild_SetTpl(3, 5, 3, 'nsth', "萨特暗影法王", "萨特暗影法王 (暗影抗性/黑魔法)", 710, 550, 38, 3.0, 1.25, 300.0, 550, 1.15, 'ACcs', "抗性皮肤")
-    call Wild_SetTpl(3, 6, 1, 'nfrb', "熊怪巨熊神萨", "熊怪巨熊神萨 (神圣雷电/闪电之盾)", 900, 600, 42, 4.0, 1.30, 300.0, 550, 1.20, 'ACls', "闪电之盾")
-    call Wild_SetTpl(3, 6, 2, 'nrdk', "红龙近卫法龙", "红龙近卫法龙 (纯正红龙烈焰吐息)", 820, 550, 51, 3.0, 1.20, 320.0, 550, 1.20, 'ACf2', "烈焰吐息")
-    call Wild_SetTpl(3, 6, 3, 'nhrq', "鹰身女妖女皇", "鹰身女妖女皇 (雷霆风暴锤/天罚)", 860, 620, 45, 3.0, 1.25, 320.0, 550, 1.20, 'ACtb', "风暴之锤")
-    call Wild_SetTpl(3, 7, 1, 'nerw', "艾瑞达巫师", "艾瑞达巫师 (暗影神火/心灵之火)", 1050, 680, 49, 4.0, 1.30, 310.0, 550, 1.25, 'ACif', "心灵之火")
-    call Wild_SetTpl(3, 7, 2, 'nstw', "雷霆巨蜥", "雷霆巨蜥 (雷霆万钧/极速叉状闪电)", 950, 620, 60, 3.0, 1.20, 320.0, 550, 1.25, 'ACfl', "叉状闪电")
-    call Wild_SetTpl(3, 7, 3, 'nerd', "艾瑞达恶魔学徒", "艾瑞达恶魔学徒 (暗影变身/妖术)", 1000, 700, 52, 3.0, 1.25, 310.0, 550, 1.25, 'AChx', "妖术")
-    call Wild_SetTpl(3, 8, 1, 'nwrg', "战争魔导师", "战争魔导师 (泰坦心火/神圣石甲)", 1250, 780, 56, 5.0, 1.30, 310.0, 600, 1.30, 'ACif', "心灵之火")
-    call Wild_SetTpl(3, 8, 2, 'nslh', "暴怒雷霆巨蜥", "暴怒雷霆巨蜥 (天怒雷霆风暴/连锁闪电)", 1100, 700, 70, 4.0, 1.15, 330.0, 600, 1.30, 'ACfl', "叉状闪电")
-    call Wild_SetTpl(3, 8, 3, 'nerd', "艾瑞达暗影术士", "艾瑞达暗影术士 (暗影妖术/混乱放逐)", 1180, 800, 60, 4.0, 1.25, 320.0, 600, 1.30, 'AChx', "暗影妖术")
-    call Wild_SetTpl(3, 9, 1, 'nhyd', "远古九头蛇", "远古九头蛇 (多头毒神/抗性皮肤)", 1500, 880, 65, 6.0, 1.25, 320.0, 600, 1.35, 'ACcs', "抗性皮肤")
-    call Wild_SetTpl(3, 9, 2, 'nrwm', "远古红龙统领", "远古红龙统领 (真龙焚天/灭世烈焰)", 1300, 800, 82, 5.0, 1.15, 340.0, 600, 1.35, 'ACf2', "真龙烈焰")
-    call Wild_SetTpl(3, 9, 3, 'nerw', "艾瑞达大恶魔", "艾瑞达大恶魔 (暗影妖术/恶魔放逐)", 1400, 900, 70, 5.0, 1.20, 330.0, 600, 1.35, 'AChx', "暗影妖术")
-    call Wild_SetTpl(3, 10, 1, 'nbzw', "远古青铜龙神", "远古青铜龙神 (时光心火/不灭真龙神体)", 1800, 1000, 75, 8.0, 1.25, 330.0, 600, 1.40, 'ACif', "心灵之火")
-    call Wild_SetTpl(3, 10, 2, 'nrdr', "远古红色巨龙", "远古红色巨龙 (真龙灭世烈焰/冰霜神护)", 1600, 950, 98, 6.0, 1.10, 350.0, 600, 1.40, 'ACf2', "真龙烈焰")
-    call Wild_SetTpl(3, 10, 3, 'nerw', "艾瑞达毁灭术皇", "艾瑞达毁灭术皇 (深渊妖术/终极放逐)", 1700, 1050, 85, 7.0, 1.20, 340.0, 600, 1.40, 'AChx', "暗影妖术")
+    call Wild_SetTpl(1, 1, 1, 'nkob', "狗头人苦工", "狗头人苦工 (专注光环)", 320, 0, 13, 3.0, 1.40, 270.0, 128, 1.00, 'ACdv', "专注光环")
+    call Wild_SetTpl(1, 1, 2, 'ngns', "豺狼人刺客", "豺狼人刺客 (致命一击)", 260, 0, 16, 1.0, 1.10, 300.0, 128, 1.00, 'ACct', "致命一击")
+    call Wild_SetTpl(1, 1, 3, 'nmrr', "鱼人战士", "鱼人战士 (异种剧毒)", 280, 0, 14, 2.0, 1.35, 280.0, 128, 1.00, 'A026', "异种剧毒")
+    call Wild_SetTpl(1, 2, 1, 'ngrk', "泥土魔像", "泥土魔像 (投掷巨石)", 480, 0, 19, 4.0, 1.50, 270.0, 128, 1.05, 'ACtb', "投掷巨石")
+    call Wild_SetTpl(1, 2, 2, 'nrzb', "刺背兽蛮兵", "刺背兽蛮兵 (重击)", 380, 0, 23, 2.0, 1.15, 310.0, 128, 1.00, 'ACbh', "重击")
+    call Wild_SetTpl(1, 2, 3, 'ngno', "豺狼人头目", "豺狼人头目 (统御光环)", 420, 0, 20, 3.0, 1.35, 290.0, 128, 1.05, 'ACav', "统御光环")
+    call Wild_SetTpl(1, 3, 1, 'nrzm', "刺背兽盾战", "刺背兽盾战 (异种甲壳进化)", 620, 0, 25, 4.0, 1.45, 280.0, 128, 1.05, 'A025', "异种甲壳进化")
+    call Wild_SetTpl(1, 3, 2, 'ncen', "半人马先锋", "半人马先锋 (重击)", 520, 0, 30, 2.0, 1.15, 320.0, 128, 1.05, 'ACbh', "重击")
+    call Wild_SetTpl(1, 3, 3, 'ndtb', "黑巨魔战士", "黑巨魔战士 (闪避)", 550, 0, 27, 3.0, 1.30, 300.0, 128, 1.05, 'ACev', "闪避")
+    call Wild_SetTpl(1, 4, 1, 'nogr', "食人魔战士", "食人魔战士 (重击)", 780, 0, 32, 4.0, 1.50, 270.0, 128, 1.10, 'ACbh', "重击")
+    call Wild_SetTpl(1, 4, 2, 'nsat', "萨特狂怒者", "萨特狂怒者 (致命一击)", 650, 0, 38, 2.0, 1.10, 320.0, 128, 1.10, 'ACct', "致命一击")
+    call Wild_SetTpl(1, 4, 3, 'nfrg', "熊怪战士", "熊怪战士 (战吼咆哮)", 720, 0, 34, 3.0, 1.35, 290.0, 128, 1.10, 'ACro', "战吼咆哮")
+    call Wild_SetTpl(1, 5, 1, 'nfrb', "熊怪巨熊酋长", "熊怪巨熊酋长 (战争践踏)", 950, 0, 40, 5.0, 1.45, 280.0, 128, 1.15, 'ACst', "战争践踏")
+    call Wild_SetTpl(1, 5, 2, 'nanw', "刺背蛛魔督军", "刺背蛛魔督军 (异种剧毒)", 800, 0, 48, 3.0, 1.10, 330.0, 128, 1.15, 'A026', "异种剧毒")
+    call Wild_SetTpl(1, 5, 3, 'nsth', "萨特幽灵盗贼", "萨特幽灵盗贼 (闪避)", 850, 0, 44, 4.0, 1.25, 310.0, 128, 1.15, 'ACev', "闪避")
+    call Wild_SetTpl(1, 6, 1, 'nogm', "食人魔霸主", "食人魔霸主 (重击)", 1150, 0, 48, 5.0, 1.45, 280.0, 128, 1.20, 'ACbh', "重击")
+    call Wild_SetTpl(1, 6, 2, 'nftb', "巨魔狂战士", "巨魔狂战士 (嗜血术)", 950, 0, 58, 3.0, 1.05, 340.0, 128, 1.15, 'ACbl', "嗜血术")
+    call Wild_SetTpl(1, 6, 3, 'nrvs', "极寒冰霜守卫", "极寒冰霜守卫 (霜冻护甲)", 1050, 0, 52, 4.0, 1.30, 300.0, 128, 1.20, 'ACf2', "霜冻护甲")
+    call Wild_SetTpl(1, 7, 1, 'ngst', "岩石魔像", "岩石魔像 (投掷巨石)", 1350, 0, 56, 6.0, 1.50, 270.0, 128, 1.25, 'ACtb', "投掷巨石")
+    call Wild_SetTpl(1, 7, 2, 'nsts', "萨特狱火撕裂者", "萨特狱火撕裂者 (致命一击)", 1150, 0, 68, 3.0, 1.05, 340.0, 128, 1.20, 'ACct', "致命一击")
+    call Wild_SetTpl(1, 7, 3, 'ncnk', "半人马可汗", "半人马可汗 (战争践踏)", 1250, 0, 60, 5.0, 1.35, 310.0, 128, 1.25, 'ACst', "战争践踏")
+    call Wild_SetTpl(1, 8, 1, 'nmam', "远古猛犸象", "远古猛犸象 (震荡波)", 1600, 0, 65, 6.0, 1.50, 280.0, 128, 1.30, 'ACsh', "震荡波")
+    call Wild_SetTpl(1, 8, 2, 'nbdm', "龙人近卫督军", "龙人近卫督军 (致命一击)", 1350, 0, 80, 4.0, 1.05, 340.0, 128, 1.25, 'ACct', "致命一击")
+    call Wild_SetTpl(1, 8, 3, 'nsgb', "海巨人暴怒者", "海巨人暴怒者 (异种甲壳进化)", 1500, 0, 70, 7.0, 1.40, 270.0, 128, 1.30, 'A025', "异种甲壳进化")
+    call Wild_SetTpl(1, 9, 1, 'nwrg', "战争魔像", "战争魔像 (投掷巨石)", 1900, 0, 78, 8.0, 1.50, 280.0, 128, 1.35, 'ACtb', "投掷巨石")
+    call Wild_SetTpl(1, 9, 2, 'nano', "刺背蛛魔皇族", "刺背蛛魔皇族 (异种剧毒)", 1600, 0, 95, 5.0, 1.05, 350.0, 128, 1.30, 'A026', "异种剧毒")
+    call Wild_SetTpl(1, 9, 3, 'ndrv', "深渊复仇亡魂", "深渊复仇亡魂 (闪避)", 1700, 0, 85, 6.0, 1.15, 330.0, 128, 1.30, 'ACev', "闪避")
+    call Wild_SetTpl(1, 10, 1, 'nggr', "花岗岩傀儡", "花岗岩傀儡 (投掷巨石)", 2300, 0, 95, 10.0, 1.50, 280.0, 128, 1.40, 'ACtb', "投掷巨石")
+    call Wild_SetTpl(1, 10, 2, 'nbwm', "远古黑色巨龙", "远古黑色巨龙 (致命一击)", 2000, 0, 120, 7.0, 1.05, 360.0, 128, 1.40, 'ACct', "致命一击")
+    call Wild_SetTpl(1, 10, 3, 'ninf', "远古地狱火", "远古地狱火 (战争践踏)", 2150, 0, 105, 8.0, 1.25, 300.0, 128, 1.40, 'ACst', "战争践踏")
+    call Wild_SetTpl(2, 1, 1, 'nkog', "狗头人地卜师", "狗头人地卜师 (减速)", 280, 0, 14, 2.0, 1.40, 280.0, 500, 1.00, 'ACsw', "减速")
+    call Wild_SetTpl(2, 1, 2, 'nftt', "森林巨魔猎手", "森林巨魔猎手 (致命一击)", 240, 0, 17, 1.0, 1.10, 310.0, 500, 1.00, 'ACct', "致命一击")
+    call Wild_SetTpl(2, 1, 3, 'nhar', "鹰身女妖盗贼", "鹰身女妖盗贼 (闪避)", 250, 0, 15, 2.0, 1.25, 320.0, 500, 1.00, 'ACev', "闪避")
+    call Wild_SetTpl(2, 2, 1, 'ncea', "半人马射手", "半人马射手 (统御光环)", 400, 0, 20, 3.0, 1.35, 290.0, 500, 1.05, 'ACav', "统御光环")
+    call Wild_SetTpl(2, 2, 2, 'ngna', "豺狼人强盗", "豺狼人强盗 (致命一击)", 340, 0, 24, 1.0, 1.10, 310.0, 500, 1.00, 'ACct', "致命一击")
+    call Wild_SetTpl(2, 2, 3, 'nmrm', "鱼人猎手", "鱼人猎手 (异种剧毒)", 360, 0, 21, 2.0, 1.25, 300.0, 500, 1.05, 'A026', "异种剧毒")
+    call Wild_SetTpl(2, 3, 1, 'nrzg', "野猪人狙击手", "野猪人狙击手 (异种甲壳进化)", 520, 0, 26, 3.0, 1.35, 290.0, 500, 1.05, 'A025', "异种甲壳进化")
+    call Wild_SetTpl(2, 3, 2, 'nstl', "萨特欺诈弓手", "萨特欺诈弓手 (闪避)", 440, 0, 31, 2.0, 1.10, 320.0, 550, 1.05, 'ACev', "闪避")
+    call Wild_SetTpl(2, 3, 3, 'nrvf', "冰霜幽魂弓手", "冰霜幽魂弓手 (霜冻新星)", 480, 0, 28, 2.0, 1.25, 300.0, 550, 1.05, 'ACfn', "霜冻新星")
+    call Wild_SetTpl(2, 4, 1, 'nrzs', "野猪人猎头手", "野猪人猎头手 (诱捕)", 650, 0, 33, 4.0, 1.30, 300.0, 550, 1.10, 'ACen', "诱捕")
+    call Wild_SetTpl(2, 4, 2, 'nnwa', "蛛魔穿刺斥候", "蛛魔穿刺斥候 (异种剧毒)", 560, 0, 39, 2.0, 1.05, 330.0, 550, 1.10, 'A026', "异种剧毒")
+    call Wild_SetTpl(2, 4, 3, 'nhrw', "鹰身风行者", "鹰身风行者 (闪避)", 600, 0, 35, 3.0, 1.20, 340.0, 550, 1.10, 'ACev', "闪避")
+    call Wild_SetTpl(2, 5, 1, 'nrvi', "寒冰亡魂骨弓", "寒冰亡魂骨弓 (霜冻护甲)", 800, 0, 40, 4.0, 1.30, 300.0, 550, 1.15, 'ACf2', "霜冻护甲")
+    call Wild_SetTpl(2, 5, 2, 'ndtt', "黑巨魔猎手", "黑巨魔猎手 (嗜血术)", 680, 0, 49, 2.0, 1.05, 330.0, 550, 1.15, 'ACbl', "嗜血术")
+    call Wild_SetTpl(2, 5, 3, 'nnwl', "蛛魔织网者", "蛛魔织网者 (诱捕)", 730, 0, 43, 3.0, 1.20, 310.0, 550, 1.15, 'ACen', "诱捕")
+    call Wild_SetTpl(2, 6, 1, 'nbdm', "龙人近卫射手", "龙人近卫射手 (致命一击)", 980, 0, 48, 5.0, 1.30, 310.0, 600, 1.20, 'ACct', "致命一击")
+    call Wild_SetTpl(2, 6, 2, 'nitt', "冰巨魔狂暴掷斧", "冰巨魔狂暴掷斧 (致命一击)", 830, 0, 58, 3.0, 1.00, 340.0, 550, 1.15, 'ACct', "致命一击")
+    call Wild_SetTpl(2, 6, 3, 'nhrh', "鹰身风暴女巫", "鹰身风暴女巫 (叉状闪电)", 880, 0, 51, 4.0, 1.20, 330.0, 550, 1.20, 'ACfl', "叉状闪电")
+    call Wild_SetTpl(2, 7, 1, 'ncnt', "半人马强袭统领", "半人马强袭统领 (统御光环)", 1150, 0, 57, 5.0, 1.30, 320.0, 600, 1.25, 'ACav', "统御光环")
+    call Wild_SetTpl(2, 7, 2, 'nass', "暗影刺客宗师", "暗影刺客宗师 (致命一击)", 980, 0, 70, 3.0, 0.95, 360.0, 550, 1.20, 'ACct', "致命一击")
+    call Wild_SetTpl(2, 7, 3, 'nrvl', "极寒怨灵领主", "极寒怨灵领主 (霜冻新星)", 1050, 0, 62, 4.0, 1.20, 310.0, 600, 1.25, 'ACfn', "霜冻新星")
+    call Wild_SetTpl(2, 8, 1, 'nbdo', "龙人督察", "龙人督察 (统御光环)", 1350, 0, 67, 6.0, 1.30, 320.0, 600, 1.30, 'ACav', "统御光环")
+    call Wild_SetTpl(2, 8, 2, 'ndtr', "深渊复仇射手", "深渊复仇射手 (闪避)", 1150, 0, 82, 4.0, 0.95, 370.0, 600, 1.25, 'ACev', "闪避")
+    call Wild_SetTpl(2, 8, 3, 'nadw', "碧蓝幼龙", "碧蓝幼龙 (霜冻新星)", 1250, 0, 72, 5.0, 1.20, 330.0, 600, 1.25, 'ACfn', "霜冻新星")
+    call Wild_SetTpl(2, 9, 1, 'nndk', "虚空穿刺幼龙", "虚空穿刺幼龙 (闪避)", 1600, 0, 78, 7.0, 1.25, 330.0, 650, 1.30, 'ACev', "闪避")
+    call Wild_SetTpl(2, 9, 2, 'nmdr', "极地猛犸射手", "极地猛犸射手 (震荡波)", 1350, 0, 98, 4.0, 0.90, 380.0, 600, 1.35, 'ACsh', "震荡波")
+    call Wild_SetTpl(2, 9, 3, 'nbdk', "黑龙近卫幼龙", "黑龙近卫幼龙 (致命一击)", 1450, 0, 86, 6.0, 1.15, 340.0, 600, 1.30, 'ACct', "致命一击")
+    call Wild_SetTpl(2, 10, 1, 'nbzw', "远古青铜龙", "远古青铜龙 (专注光环)", 1950, 0, 92, 9.0, 1.25, 340.0, 600, 1.40, 'ACdv', "专注光环")
+    call Wild_SetTpl(2, 10, 2, 'nbwm', "远古黑色巨龙", "远古黑色巨龙 (震荡波)", 1700, 0, 115, 6.0, 0.90, 390.0, 600, 1.40, 'ACsh', "震荡波")
+    call Wild_SetTpl(2, 10, 3, 'nadr', "远古碧蓝巨龙", "远古碧蓝巨龙 (霜冻新星)", 1800, 0, 100, 7.0, 1.15, 340.0, 600, 1.40, 'ACfn', "霜冻新星")
+    call Wild_SetTpl(3, 1, 1, 'nfsp', "森林巨魔暗影牧师", "森林巨魔暗影牧师 (生命恢复)", 260, 300, 12, 1.0, 1.40, 280.0, 550, 1.00, 'ACrj', "生命恢复")
+    call Wild_SetTpl(3, 1, 2, 'nkog', "狗头人占卜师", "狗头人占卜师 (心灵之火)", 240, 280, 15, 0.0, 1.30, 290.0, 550, 1.00, 'ACif', "心灵之火")
+    call Wild_SetTpl(3, 1, 3, 'nstl', "萨特诡计巫师", "萨特诡计巫师 (净化)", 250, 320, 13, 1.0, 1.35, 280.0, 550, 1.00, 'ACpu', "净化")
+    call Wild_SetTpl(3, 2, 1, 'ngnw', "豺狼人巫医", "豺狼人巫医 (生命恢复)", 360, 350, 18, 2.0, 1.35, 280.0, 550, 1.05, 'ACrj', "生命恢复")
+    call Wild_SetTpl(3, 2, 2, 'ncks', "半人马巫师", "半人马巫师 (心灵之火)", 340, 320, 21, 1.0, 1.25, 300.0, 550, 1.05, 'ACif', "心灵之火")
+    call Wild_SetTpl(3, 2, 3, 'nstl', "萨特欺诈法师", "萨特欺诈法师 (减速)", 350, 380, 19, 1.0, 1.30, 290.0, 550, 1.05, 'ACsw', "减速")
+    call Wild_SetTpl(3, 3, 1, 'nomg', "食人魔魔导师", "食人魔魔导师 (嗜血术)", 500, 400, 24, 2.0, 1.35, 290.0, 550, 1.10, 'ACbl', "嗜血术")
+    call Wild_SetTpl(3, 3, 2, 'nrvf', "极寒幽魂法师", "极寒幽魂法师 (霜冻新星)", 450, 380, 29, 1.0, 1.25, 300.0, 550, 1.10, 'ACfn', "霜冻新星")
+    call Wild_SetTpl(3, 3, 3, 'nnwl', "蛛魔地网控者", "蛛魔地网控者 (诱捕)", 470, 420, 25, 2.0, 1.30, 290.0, 550, 1.10, 'ACen', "诱捕")
+    call Wild_SetTpl(3, 4, 1, 'nfrs', "熊怪长者萨满", "熊怪长者萨满 (闪电护盾)", 620, 450, 30, 3.0, 1.35, 290.0, 550, 1.10, 'ACls', "闪电护盾")
+    call Wild_SetTpl(3, 4, 2, 'nrzm', "野猪人智者", "野猪人智者 (震荡波)", 560, 420, 36, 2.0, 1.25, 300.0, 550, 1.10, 'ACsh', "震荡波")
+    call Wild_SetTpl(3, 4, 3, 'nhrh', "鹰身风暴祭司", "鹰身风暴祭司 (减速)", 580, 480, 32, 2.0, 1.30, 310.0, 550, 1.10, 'ACsw', "减速")
+    call Wild_SetTpl(3, 5, 1, 'nwzg', "变节大法师", "变节大法师 (霜冻新星)", 750, 520, 36, 3.0, 1.30, 300.0, 550, 1.15, 'ACfn', "霜冻新星")
+    call Wild_SetTpl(3, 5, 2, 'nltl', "闪电蜥蜴幼兽", "闪电蜥蜴幼兽 (叉状闪电)", 680, 480, 43, 2.0, 1.20, 310.0, 550, 1.15, 'ACfl', "叉状闪电")
+    call Wild_SetTpl(3, 5, 3, 'nsth', "萨特暗影法王", "萨特暗影法王 (诅咒)", 710, 550, 38, 3.0, 1.25, 300.0, 550, 1.15, 'ACcs', "诅咒")
+    call Wild_SetTpl(3, 6, 1, 'nfrb', "熊怪巨熊神萨", "熊怪巨熊神萨 (闪电护盾)", 900, 600, 42, 4.0, 1.30, 300.0, 550, 1.20, 'ACls', "闪电护盾")
+    call Wild_SetTpl(3, 6, 2, 'nrdk', "红龙近卫法龙", "红龙近卫法龙 (霜冻护甲)", 820, 550, 51, 3.0, 1.20, 320.0, 550, 1.20, 'ACf2', "霜冻护甲")
+    call Wild_SetTpl(3, 6, 3, 'nhrq', "鹰身女妖女皇", "鹰身女妖女皇 (叉状闪电)", 860, 620, 45, 3.0, 1.25, 320.0, 550, 1.20, 'ACfl', "叉状闪电")
+    call Wild_SetTpl(3, 7, 1, 'nerw', "艾瑞达巫师", "艾瑞达巫师 (心灵之火)", 1050, 680, 49, 4.0, 1.30, 310.0, 550, 1.25, 'ACif', "心灵之火")
+    call Wild_SetTpl(3, 7, 2, 'nstw', "雷霆巨蜥", "雷霆巨蜥 (叉状闪电)", 950, 620, 60, 3.0, 1.20, 320.0, 550, 1.25, 'ACfl', "叉状闪电")
+    call Wild_SetTpl(3, 7, 3, 'nerd', "艾瑞达恶魔学徒", "艾瑞达恶魔学徒 (妖术)", 1000, 700, 52, 3.0, 1.25, 310.0, 550, 1.25, 'AChx', "妖术")
+    call Wild_SetTpl(3, 8, 1, 'nwrg', "战争魔导师", "战争魔导师 (心灵之火)", 1250, 780, 56, 5.0, 1.30, 310.0, 600, 1.30, 'ACif', "心灵之火")
+    call Wild_SetTpl(3, 8, 2, 'nslh', "暴怒雷霆巨蜥", "暴怒雷霆巨蜥 (叉状闪电)", 1100, 700, 70, 4.0, 1.15, 330.0, 600, 1.30, 'ACfl', "叉状闪电")
+    call Wild_SetTpl(3, 8, 3, 'nerd', "艾瑞达暗影术士", "艾瑞达暗影术士 (妖术)", 1180, 800, 60, 4.0, 1.25, 320.0, 600, 1.30, 'AChx', "妖术")
+    call Wild_SetTpl(3, 9, 1, 'nhyd', "远古九头蛇", "远古九头蛇 (异种剧毒)", 1500, 880, 65, 6.0, 1.25, 320.0, 600, 1.35, 'A026', "异种剧毒")
+    call Wild_SetTpl(3, 9, 2, 'nrwm', "远古红龙统领", "远古红龙统领 (战吼咆哮)", 1300, 800, 82, 5.0, 1.15, 340.0, 600, 1.35, 'ACro', "战吼咆哮")
+    call Wild_SetTpl(3, 9, 3, 'nerw', "艾瑞达大恶魔", "艾瑞达大恶魔 (妖术)", 1400, 900, 70, 5.0, 1.20, 330.0, 600, 1.35, 'AChx', "妖术")
+    call Wild_SetTpl(3, 10, 1, 'nbzw', "远古青铜龙神", "远古青铜龙神 (心灵之火)", 1800, 1000, 75, 8.0, 1.25, 330.0, 600, 1.40, 'ACif', "心灵之火")
+    call Wild_SetTpl(3, 10, 2, 'nrdr', "远古红色巨龙", "远古红色巨龙 (战吼咆哮)", 1600, 950, 98, 6.0, 1.10, 350.0, 600, 1.40, 'ACro', "战吼咆哮")
+    call Wild_SetTpl(3, 10, 3, 'nerw', "艾瑞达毁灭术皇", "艾瑞达毁灭术皇 (妖术)", 1700, 1050, 85, 7.0, 1.20, 340.0, 600, 1.40, 'AChx', "妖术")
 endfunction
 
 function Wild_IsFlyingCreep takes integer skinId returns boolean
@@ -4457,6 +4457,65 @@ endfunction
 
 function Wild_OnMorphSuccess takes unit u, integer formId returns nothing
     // Reserved hook for passive stacking
+endfunction
+
+function Wild_ClearMorphAbil takes unit u, integer pId returns nothing
+    local integer currAbil = udg_Wild_CurrentAbil[pId]
+    if u == null then
+        return
+    endif
+    if currAbil != 0 then
+        call UnitMakeAbilityPermanent(u, false, currAbil)
+        call UnitRemoveAbility(u, currAbil)
+        set udg_Wild_CurrentAbil[pId] = 0
+    endif
+    // Complete sweep of all 23 potential morph abilities to ensure 0 residue
+    call UnitMakeAbilityPermanent(u, false, 'ACbl')
+    call UnitRemoveAbility(u, 'ACbl')
+    call UnitMakeAbilityPermanent(u, false, 'ACls')
+    call UnitRemoveAbility(u, 'ACls')
+    call UnitMakeAbilityPermanent(u, false, 'ACpu')
+    call UnitRemoveAbility(u, 'ACpu')
+    call UnitMakeAbilityPermanent(u, false, 'ACct')
+    call UnitRemoveAbility(u, 'ACct')
+    call UnitMakeAbilityPermanent(u, false, 'ACbh')
+    call UnitRemoveAbility(u, 'ACbh')
+    call UnitMakeAbilityPermanent(u, false, 'ACev')
+    call UnitRemoveAbility(u, 'ACev')
+    call UnitMakeAbilityPermanent(u, false, 'ACtb')
+    call UnitRemoveAbility(u, 'ACtb')
+    call UnitMakeAbilityPermanent(u, false, 'ACro')
+    call UnitRemoveAbility(u, 'ACro')
+    call UnitMakeAbilityPermanent(u, false, 'ACif')
+    call UnitRemoveAbility(u, 'ACif')
+    call UnitMakeAbilityPermanent(u, false, 'ACsw')
+    call UnitRemoveAbility(u, 'ACsw')
+    call UnitMakeAbilityPermanent(u, false, 'AChx')
+    call UnitRemoveAbility(u, 'AChx')
+    call UnitMakeAbilityPermanent(u, false, 'ACst')
+    call UnitRemoveAbility(u, 'ACst')
+    call UnitMakeAbilityPermanent(u, false, 'ACsh')
+    call UnitRemoveAbility(u, 'ACsh')
+    call UnitMakeAbilityPermanent(u, false, 'ACfl')
+    call UnitRemoveAbility(u, 'ACfl')
+    call UnitMakeAbilityPermanent(u, false, 'ACfn')
+    call UnitRemoveAbility(u, 'ACfn')
+    call UnitMakeAbilityPermanent(u, false, 'ACf2')
+    call UnitRemoveAbility(u, 'ACf2')
+    call UnitMakeAbilityPermanent(u, false, 'ACen')
+    call UnitRemoveAbility(u, 'ACen')
+    call UnitMakeAbilityPermanent(u, false, 'ACrj')
+    call UnitRemoveAbility(u, 'ACrj')
+    call UnitMakeAbilityPermanent(u, false, 'ACcs')
+    call UnitRemoveAbility(u, 'ACcs')
+    call UnitMakeAbilityPermanent(u, false, 'ACav')
+    call UnitRemoveAbility(u, 'ACav')
+    call UnitMakeAbilityPermanent(u, false, 'ACdv')
+    call UnitRemoveAbility(u, 'ACdv')
+    call UnitMakeAbilityPermanent(u, false, 'A025')
+    call UnitRemoveAbility(u, 'A025')
+    call UnitMakeAbilityPermanent(u, false, 'A026')
+    call UnitRemoveAbility(u, 'A026')
 endfunction
 
 function Wild_DoMorph takes unit u, integer cat, integer tierLv, integer subIdx returns nothing
@@ -4612,11 +4671,8 @@ function Wild_DoMorph takes unit u, integer cat, integer tierLv, integer subIdx 
         set udg_Wild_StoredManaRatio[pId] = 1.0
     endif
 
-    // Remove old ability
-    if udg_Wild_CurrentAbil[pId] != 0 then
-        call UnitRemoveAbility(u, udg_Wild_CurrentAbil[pId])
-        set udg_Wild_CurrentAbil[pId] = 0
-    endif
+    // Remove old ability and sweep all potential morph abilities
+    call Wild_ClearMorphAbil(u, pId)
 
     // Apply skin, name, scale
     call BlzSetUnitSkin(u, skinId)
@@ -4714,51 +4770,22 @@ function Wild_RevertToAvatar takes unit u returns nothing
     local integer newCurHP = 1
     local integer newCurMana = 0
 
-    if u == null or IsUnitType(u, UNIT_TYPE_DEAD) then
+    if u == null then
         return
     endif
     set p = GetOwningPlayer(u)
     set pId = GetPlayerId(p)
 
     if not udg_Wild_IsMorphed[pId] then
-        if GetPlayerController(p) == MAP_CONTROL_USER then
+        if not IsUnitType(u, UNIT_TYPE_DEAD) and GetPlayerController(p) == MAP_CONTROL_USER then
             call DisplayTimedTextToPlayer(p, 0, 0, 2.0, "|cffffcc00[万灵化身]|r 当前已处于本体神体形态。")
         endif
         set p = null
         return
     endif
 
-    // Ratio preservation
-    set oldHP = GetWidgetLife(u)
-    set oldMaxHP = I2R(BlzGetUnitMaxHP(u))
-    if oldMaxHP > 0.0 then
-        set hpRatio = oldHP / oldMaxHP
-    else
-        set hpRatio = 1.0
-    endif
-    if hpRatio <= 0.0 then
-        set hpRatio = 0.01
-    endif
-    if hpRatio > 1.0 then
-        set hpRatio = 1.0
-    endif
-
-    set oldMaxMana = I2R(BlzGetUnitMaxMana(u))
-    if oldMaxMana > 0.0 then
-        set udg_Wild_StoredManaRatio[pId] = GetUnitState(u, UNIT_STATE_MANA) / oldMaxMana
-        if udg_Wild_StoredManaRatio[pId] > 1.0 then
-            set udg_Wild_StoredManaRatio[pId] = 1.0
-        endif
-    endif
-    if udg_Wild_StoredManaRatio[pId] <= 0.0 then
-        set udg_Wild_StoredManaRatio[pId] = 1.0
-    endif
-
-    // Remove attached creep ability
-    if udg_Wild_CurrentAbil[pId] != 0 then
-        call UnitRemoveAbility(u, udg_Wild_CurrentAbil[pId])
-        set udg_Wild_CurrentAbil[pId] = 0
-    endif
+    // Remove attached creep ability and sweep residue
+    call Wild_ClearMorphAbil(u, pId)
 
     // Restore skin, name, scale
     call BlzSetUnitSkin(u, 'H005')
@@ -4768,36 +4795,6 @@ function Wild_RevertToAvatar takes unit u returns nothing
     // Land back to ground
     call SetUnitFlyHeight(u, 0.0, 800.0)
     call SetUnitPathing(u, true)
-
-    // Base stats
-    set heroStr = GetHeroStr(u, true)
-    set heroAgi = GetHeroAgi(u, true)
-    set heroInt = GetHeroInt(u, true)
-    set hLv = GetHeroLevel(u)
-
-    set baseMaxHP = 550 + heroStr * 22 + hLv * 45
-    set baseMaxMana = 250 + heroInt * 15 + hLv * 25
-    set baseDmg = 24 + R2I(I2R(heroStr + heroAgi + heroInt) * 0.65)
-    set baseArmor = 2.0 + I2R(heroAgi) * 0.25
-    set baseCool = 1.50
-    set baseMove = 310.0
-    set baseRange = 600
-
-    call BlzSetUnitMaxHP(u, baseMaxHP)
-    set newCurHP = R2I(I2R(baseMaxHP) * hpRatio)
-    if newCurHP < 1 then
-        set newCurHP = 1
-    endif
-    call SetWidgetLife(u, I2R(newCurHP))
-
-    call BlzSetUnitMaxMana(u, baseMaxMana)
-    set newCurMana = R2I(I2R(baseMaxMana) * udg_Wild_StoredManaRatio[pId])
-    call SetUnitState(u, UNIT_STATE_MANA, I2R(newCurMana))
-
-    call BlzSetUnitBaseDamage(u, baseDmg, 0)
-    call BlzSetUnitArmor(u, baseArmor)
-    call BlzSetUnitAttackCooldown(u, baseCool, 0)
-    call SetUnitMoveSpeed(u, baseMove)
 
     // Restore 600 range missile
     call SetUnitAcquireRange(u, 700.0)
@@ -4811,8 +4808,66 @@ function Wild_RevertToAvatar takes unit u returns nothing
     set udg_Wild_CurrentFormType[pId] = 0
     set udg_Wild_CurrentFormLevel[pId] = 0
 
-    if GetPlayerController(p) == MAP_CONTROL_USER then
-        call DisplayTimedTextToPlayer(p, 0, 0, 3.0, "|cffffcc00[万灵化身]|r 已返璞归真，恢复自然神体！")
+    if not IsUnitType(u, UNIT_TYPE_DEAD) then
+        // Ratio preservation
+        set oldHP = GetWidgetLife(u)
+        set oldMaxHP = I2R(BlzGetUnitMaxHP(u))
+        if oldMaxHP > 0.0 then
+            set hpRatio = oldHP / oldMaxHP
+        else
+            set hpRatio = 1.0
+        endif
+        if hpRatio <= 0.0 then
+            set hpRatio = 0.01
+        endif
+        if hpRatio > 1.0 then
+            set hpRatio = 1.0
+        endif
+
+        set oldMaxMana = I2R(BlzGetUnitMaxMana(u))
+        if oldMaxMana > 0.0 then
+            set udg_Wild_StoredManaRatio[pId] = GetUnitState(u, UNIT_STATE_MANA) / oldMaxMana
+            if udg_Wild_StoredManaRatio[pId] > 1.0 then
+                set udg_Wild_StoredManaRatio[pId] = 1.0
+            endif
+        endif
+        if udg_Wild_StoredManaRatio[pId] <= 0.0 then
+            set udg_Wild_StoredManaRatio[pId] = 1.0
+        endif
+
+        // Base stats
+        set heroStr = GetHeroStr(u, true)
+        set heroAgi = GetHeroAgi(u, true)
+        set heroInt = GetHeroInt(u, true)
+        set hLv = GetHeroLevel(u)
+
+        set baseMaxHP = 550 + heroStr * 22 + hLv * 45
+        set baseMaxMana = 250 + heroInt * 15 + hLv * 25
+        set baseDmg = 24 + R2I(I2R(heroStr + heroAgi + heroInt) * 0.65)
+        set baseArmor = 2.0 + I2R(heroAgi) * 0.25
+        set baseCool = 1.50
+        set baseMove = 310.0
+        set baseRange = 600
+
+        call BlzSetUnitMaxHP(u, baseMaxHP)
+        set newCurHP = R2I(I2R(baseMaxHP) * hpRatio)
+        if newCurHP < 1 then
+            set newCurHP = 1
+        endif
+        call SetWidgetLife(u, I2R(newCurHP))
+
+        call BlzSetUnitMaxMana(u, baseMaxMana)
+        set newCurMana = R2I(I2R(baseMaxMana) * udg_Wild_StoredManaRatio[pId])
+        call SetUnitState(u, UNIT_STATE_MANA, I2R(newCurMana))
+
+        call BlzSetUnitBaseDamage(u, baseDmg, 0)
+        call BlzSetUnitArmor(u, baseArmor)
+        call BlzSetUnitAttackCooldown(u, baseCool, 0)
+        call SetUnitMoveSpeed(u, baseMove)
+
+        if GetPlayerController(p) == MAP_CONTROL_USER then
+            call DisplayTimedTextToPlayer(p, 0, 0, 3.0, "|cffffcc00[万灵化身]|r 已返璞归真，恢复自然神体！")
+        endif
     endif
 
     set p = null
@@ -4830,6 +4885,8 @@ function Wild_InitHero takes unit h returns nothing
     endif
     if udg_Wild_IsMorphed[pId] then
         call Wild_RevertToAvatar(h)
+    else
+        call Wild_ClearMorphAbil(h, pId)
     endif
 endfunction
 
@@ -4901,6 +4958,16 @@ function Wild_ShowSubDialog takes player p, integer cat, integer tierLv returns 
     local string title = ""
     local string btnText = ""
     local integer subIdx = 1
+    local integer abilCode = 'A031'
+    local integer sLv = 1
+    local real mult = 0.55
+    local string tplName = ""
+    local integer creepHP = 0
+    local integer creepDmg = 0
+    local integer bonusHP = 0
+    local integer bonusDmg = 0
+    local integer tplAbil = 0
+    local string abilName = ""
 
     if p == null then
         return
@@ -4909,6 +4976,23 @@ function Wild_ShowSubDialog takes player p, integer cat, integer tierLv returns 
     set u = udg_Wild_Hero[pId]
     if u == null or IsUnitType(u, UNIT_TYPE_DEAD) then
         return
+    endif
+
+    if cat == 2 then
+        set abilCode = 'A032'
+    elseif cat == 3 then
+        set abilCode = 'A033'
+    endif
+    set sLv = GetUnitAbilityLevel(u, abilCode)
+    if sLv < 1 then
+        set sLv = 1
+    endif
+    if sLv == 1 then
+        set mult = 0.55
+    elseif sLv == 2 then
+        set mult = 0.90
+    else
+        set mult = 1.30
     endif
 
     call DialogDisplay(p, udg_Wild_MorphDialog, false)
@@ -4920,7 +5004,15 @@ function Wild_ShowSubDialog takes player p, integer cat, integer tierLv returns 
     set subIdx = 1
     loop
         exitwhen subIdx > 3
-        set btnText = "[" + I2S(subIdx) + "] " + Wild_GetCreepBtnLabel(cat, tierLv, subIdx)
+        set tplName = Wild_GetCreepName(cat, tierLv, subIdx)
+        set creepHP = Wild_GetCreepBaseHP(cat, tierLv, subIdx)
+        set creepDmg = Wild_GetCreepBaseDmg(cat, tierLv, subIdx)
+        set bonusHP = R2I(I2R(creepHP) * mult)
+        set bonusDmg = R2I(I2R(creepDmg) * mult)
+        set tplAbil = Wild_GetCreepAbil(cat, tierLv, subIdx)
+        set abilName = Strain_GetAbilName(tplAbil)
+
+        set btnText = "[" + I2S(subIdx) + "] " + tplName + " (HP:+" + I2S(bonusHP) + " 攻:+" + I2S(bonusDmg) + " | 技能:" + abilName + ")"
         set udg_Wild_SubBtn[subIdx] = DialogAddButton(udg_Wild_MorphDialog, btnText, 48 + subIdx)
         set subIdx = subIdx + 1
     endloop
@@ -6178,10 +6270,18 @@ function Refuge_ProcessRevives takes nothing returns nothing
                 set ref = udg_RefugeBuilding[pId]
                 if ref != null and not IsUnitType(ref, UNIT_TYPE_DEAD) and GetWidgetLife(ref) > 0.405 then
                     call ReviveHero(u, GetUnitX(ref), GetUnitY(ref) - 150.0, true)
+                    if GetUnitTypeId(u) == 'H005' then
+                        call Wild_ClearMorphAbil(u, pId)
+                        call Wild_RevertToAvatar(u)
+                    endif
                     call DestroyEffect(AddSpecialEffect("Abilities\\Spells\\Human\\Resurrect\\ResurrectTarget.mdl", GetUnitX(ref), GetUnitY(ref) - 150.0))
                     call DisplayTimedTextToPlayer(Player(pId), 0, 0, 6.0, "|cff00ff00[避难所复活]|r 你的英雄已在无敌避难所免费自动复活！")
                 else
                     call ReviveHero(u, GetStartLocationX(GetPlayerStartLocation(Player(pId))), GetStartLocationY(GetPlayerStartLocation(Player(pId))), true)
+                    if GetUnitTypeId(u) == 'H005' then
+                        call Wild_ClearMorphAbil(u, pId)
+                        call Wild_RevertToAvatar(u)
+                    endif
                     call DisplayTimedTextToPlayer(Player(pId), 0, 0, 6.0, "|cff00ff00[避难所复活]|r 你的英雄已在出生点复活！")
                 endif
                 set ref = null
@@ -6536,12 +6636,20 @@ function AI_TacticalLoop takes nothing returns nothing
                     if altar != null then
                         if udg_AI_DeadTimer[i] >= 25.0 then
                             call ReviveHero(h, GetUnitX(altar), GetUnitY(altar) - 150.0, true)
+                            if GetUnitTypeId(h) == 'H005' then
+                                call Wild_ClearMorphAbil(h, i)
+                                call Wild_RevertToAvatar(h)
+                            endif
                             set udg_AI_DeadTimer[i] = 0.0
                             call AI_AutoLearnSkills(h)
                         endif
                     else
                         if udg_AI_DeadTimer[i] >= 35.0 then
                             call ReviveHero(h, GetStartLocationX(GetPlayerStartLocation(Player(i))), GetStartLocationY(GetPlayerStartLocation(Player(i))), true)
+                            if GetUnitTypeId(h) == 'H005' then
+                                call Wild_ClearMorphAbil(h, i)
+                                call Wild_RevertToAvatar(h)
+                            endif
                             set udg_AI_DeadTimer[i] = 0.0
                             call AI_AutoLearnSkills(h)
                         endif
@@ -7751,6 +7859,21 @@ function DM_OnHeroRevivable takes nothing returns boolean
     return false
 endfunction
 
+function Wild_OnHeroReviveFinish takes nothing returns boolean
+    local unit rev = GetRevivingUnit()
+    local integer pId = 0
+    if rev == null then
+        set rev = GetTriggerUnit()
+    endif
+    if rev != null and GetUnitTypeId(rev) == 'H005' then
+        set pId = GetPlayerId(GetOwningPlayer(rev))
+        call Wild_ClearMorphAbil(rev, pId)
+        call Wild_RevertToAvatar(rev)
+    endif
+    set rev = null
+    return false
+endfunction
+
 function DM_OnUnitDeath takes nothing returns boolean
     local unit dead = GetTriggerUnit()
     local unit killer = GetKillingUnit()
@@ -7816,6 +7939,7 @@ function DM_OnUnitDeath takes nothing returns boolean
 
     // 1.6. Clean up Hero #4 state on death
     if deadType == 'H005' then
+        call Wild_ClearMorphAbil(dead, deadPId)
         if udg_Wild_IsMorphed[deadPId] then
             call Wild_RevertToAvatar(dead)
         endif
@@ -8443,6 +8567,7 @@ function DM_InitTriggers takes nothing returns nothing
     local trigger tDeath = CreateTrigger()
     local trigger tDamage = CreateTrigger()
     local trigger tRevive = CreateTrigger()
+    local trigger tReviveFinish = CreateTrigger()
     local trigger tSkill = CreateTrigger()
     local trigger tTrain = CreateTrigger()
     local trigger tLevel = CreateTrigger()
@@ -8589,6 +8714,9 @@ function DM_InitTriggers takes nothing returns nothing
     call TriggerRegisterAnyUnitEventBJ(tRevive, EVENT_PLAYER_HERO_REVIVABLE)
     call TriggerAddCondition(tRevive, Condition(function DM_OnHeroRevivable))
 
+    call TriggerRegisterAnyUnitEventBJ(tReviveFinish, EVENT_PLAYER_HERO_REVIVE_FINISH)
+    call TriggerAddCondition(tReviveFinish, Condition(function Wild_OnHeroReviveFinish))
+
     call TriggerRegisterAnyUnitEventBJ(tDamage, EVENT_PLAYER_UNIT_DAMAGED)
     call TriggerAddCondition(tDamage, Condition(function DM_OnDamaged))
 
@@ -8612,6 +8740,7 @@ function DM_InitTriggers takes nothing returns nothing
     set tDeath = null
     set tDamage = null
     set tRevive = null
+    set tReviveFinish = null
     set tSkill = null
     set tTrain = null
     set tLevel = null
