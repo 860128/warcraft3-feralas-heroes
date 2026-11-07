@@ -201,6 +201,36 @@ globals
     real array udg_Wild_TplScale
     integer array udg_Wild_TplAbil
     string array udg_Wild_TplAbilName
+
+    // v3.4 为虎作伥·伥鬼奴役系统 Globals
+    real array udg_Wild_WrathTimer
+    integer array udg_Wild_HeroThrallCount
+    integer array udg_Wild_ThrallSkin
+    string array udg_Wild_ThrallName
+    integer array udg_Wild_ThrallLevel
+    integer array udg_Wild_ThrallHP
+    integer array udg_Wild_ThrallMana
+    integer array udg_Wild_ThrallDmg
+    real array udg_Wild_ThrallArmor
+    integer array udg_Wild_ThrallAbil1
+    integer array udg_Wild_ThrallAbil2
+    integer array udg_Wild_ThrallAbil3
+    integer array udg_Wild_ThrallAbil4
+    integer array udg_Wild_ThrallAbilLv1
+    integer array udg_Wild_ThrallAbilLv2
+    integer array udg_Wild_ThrallAbilLv3
+    integer array udg_Wild_ThrallAbilLv4
+    integer array udg_Wild_ThrallItem0
+    integer array udg_Wild_ThrallItem1
+    integer array udg_Wild_ThrallItem2
+    integer array udg_Wild_ThrallItem3
+    integer array udg_Wild_ThrallItem4
+    integer array udg_Wild_ThrallItem5
+
+    integer array udg_Wild_CreepThrallCount
+    integer array udg_Wild_CreepThrallType
+    integer array udg_Wild_ArmyBonusHP
+    integer array udg_Wild_ArmyBonusDmg
 endglobals
 
 function InitGlobals takes nothing returns nothing
@@ -4189,7 +4219,7 @@ function DM_StealthLoop takes nothing returns nothing
 endfunction
 
 //===========================================================================
-// Hero #4: The Wild Avatar (万灵化身 H005) System (v3.3 Refactored)
+// Hero #4: The Wild Avatar (万灵化身 H005) System (v3.4 Full Flight, Range & Thrall System)
 //===========================================================================
 
 function Wild_GetCreepIndex takes integer cat, integer tier, integer sub returns integer
@@ -4358,6 +4388,71 @@ function Wild_InitCreepTemplates takes nothing returns nothing
     call Wild_SetTpl(3, 10, 3, 'nerw', "艾瑞达毁灭术皇", "艾瑞达毁灭术皇 (深渊妖术/终极放逐)", 1700, 1050, 85, 7.0, 1.20, 340.0, 600, 1.40, 'AChx', "暗影妖术")
 endfunction
 
+function Wild_IsFlyingCreep takes integer skinId returns boolean
+    if skinId == 'nbwm' or skinId == 'nbdk' or skinId == 'nrwm' or skinId == 'nrdr' or skinId == 'nrdk' or skinId == 'nadw' or skinId == 'nadr' or skinId == 'nbzw' or skinId == 'nndk' or skinId == 'nfrl' then
+        return true
+    endif
+    if skinId == 'nhar' or skinId == 'nhrw' or skinId == 'nhrh' or skinId == 'nhrq' then
+        return true
+    endif
+    if skinId == 'nrvs' or skinId == 'nrvl' or skinId == 'nrvi' or skinId == 'ndrv' or skinId == 'nrvf' then
+        return true
+    endif
+    return false
+endfunction
+
+function Wild_ApplyFlight takes unit u, integer skinId returns nothing
+    if Wild_IsFlyingCreep(skinId) then
+        call UnitAddAbility(u, 'Amrf')
+        call UnitRemoveAbility(u, 'Amrf')
+        call SetUnitFlyHeight(u, 260.0, 600.0)
+        call SetUnitPathing(u, false)
+    else
+        call SetUnitFlyHeight(u, 0.0, 800.0)
+        call SetUnitPathing(u, true)
+    endif
+endfunction
+
+function Wild_GetCreepMissileArt takes integer skinId returns string
+    if skinId == 'nbwm' or skinId == 'nbdk' or skinId == 'nrwm' or skinId == 'nrdr' or skinId == 'nrdk' then
+        return "Abilities\\Weapons\\RedDragonBreath\\RedDragonMissile.mdl"
+    elseif skinId == 'nadw' or skinId == 'nadr' or skinId == 'nfrl' then
+        return "Abilities\\Weapons\\FrostWyrmMissile\\FrostWyrmMissile.mdl"
+    elseif skinId == 'nbzw' then
+        return "Abilities\\Weapons\\FireBallMissile\\FireBallMissile.mdl"
+    elseif skinId == 'nhar' or skinId == 'nhrw' or skinId == 'nhrh' or skinId == 'nhrq' then
+        return "Abilities\\Weapons\\HarpyMissile\\HarpyMissile.mdl"
+    elseif skinId == 'ncea' or skinId == 'ncnt' or skinId == 'ngna' or skinId == 'nrzg' or skinId == 'nrzs' then
+        return "Abilities\\Weapons\\Arrow\\ArrowMissile.mdl"
+    elseif skinId == 'nftt' or skinId == 'ndtt' or skinId == 'nitt' then
+        return "Abilities\\Weapons\\Axe\\AxeMissile.mdl"
+    elseif skinId == 'nltl' or skinId == 'nstw' or skinId == 'nslh' then
+        return "Abilities\\Weapons\\Lightning\\LightningBolt.mdl"
+    elseif skinId == 'nnwa' or skinId == 'nnwl' or skinId == 'nano' then
+        return "Abilities\\Weapons\\PoisonSting\\PoisonStingTarget.mdl"
+    elseif skinId == 'nrvs' or skinId == 'nrvl' or skinId == 'nrvi' or skinId == 'ndrv' or skinId == 'nrvf' then
+        return "Abilities\\Weapons\\FrostNova\\FrostNovaTarget.mdl"
+    elseif skinId == 'nerw' or skinId == 'nerd' or skinId == 'nwzg' or skinId == 'nfsp' or skinId == 'ncks' or skinId == 'nstl' then
+        return "Abilities\\Weapons\\ShadowHunterMissile\\ShadowHunterMissile.mdl"
+    endif
+    return "Abilities\\Weapons\\KeeperGroveMissile\\KeeperGroveMissile.mdl"
+endfunction
+
+function Wild_GetCreepEffectiveScale takes integer skinId, integer tierLv, real baseScale returns real
+    if tierLv == 10 then
+        if skinId == 'nbwm' or skinId == 'nrwm' or skinId == 'nrdr' or skinId == 'nadw' or skinId == 'nbzw' or skinId == 'nggr' or skinId == 'ninf' or skinId == 'nerw' or skinId == 'nhyd' then
+            return 1.85
+        endif
+        return 1.70
+    endif
+    if tierLv >= 7 then
+        if skinId == 'nbwm' or skinId == 'nrwm' or skinId == 'nrdr' or skinId == 'nadw' or skinId == 'nbzw' or skinId == 'nmam' or skinId == 'nwrg' then
+            return 1.55
+        endif
+    endif
+    return baseScale
+endfunction
+
 function Wild_OnMorphSuccess takes unit u, integer formId returns nothing
     // Reserved hook for passive stacking
 endfunction
@@ -4367,10 +4462,11 @@ function Wild_DoMorph takes unit u, integer cat, integer tierLv, integer subIdx 
     local integer pId = 0
     local integer abilCode = 'A031'
     local integer sLv = 1
-    local real mult = 1.00
+    local real mult = 0.55
+    local real speedMult = 0.95
     local integer rank = 1
     local real cd = 10.0
-    local boolean isDual = false
+    local string tierName = ""
     local integer skinId = 0
     local string name = ""
     local integer creepHP = 0
@@ -4383,10 +4479,14 @@ function Wild_DoMorph takes unit u, integer cat, integer tierLv, integer subIdx 
     local real creepScale = 1.0
     local integer creepAbil = 0
     local string creepAbilName = ""
-    local integer str = 0
-    local integer agi = 0
-    local integer intVal = 0
+    local integer heroStr = 0
+    local integer heroAgi = 0
+    local integer heroInt = 0
     local integer hLv = 0
+    local integer heroOwnHP = 0
+    local integer heroOwnMana = 0
+    local integer heroOwnDmg = 0
+    local real heroOwnArmor = 0.0
     local integer finalMaxHP = 0
     local integer finalDmg = 0
     local real finalArmor = 0.0
@@ -4398,7 +4498,8 @@ function Wild_DoMorph takes unit u, integer cat, integer tierLv, integer subIdx 
     local real oldMaxMana = 0.0
     local integer newCurHP = 1
     local integer newCurMana = 0
-    local string dualMsg = ""
+    local string missileArt = ""
+    local real effScale = 1.0
 
     if u == null or IsUnitType(u, UNIT_TYPE_DEAD) then
         return
@@ -4416,21 +4517,25 @@ function Wild_DoMorph takes unit u, integer cat, integer tierLv, integer subIdx 
         set sLv = 1
     endif
 
+    // v3.4 Smooth Fusion Formulas
     if sLv == 1 then
-        set mult = 1.00
+        set mult = 0.55
+        set speedMult = 0.95
         set rank = 1
         set cd = 10.0
-        set isDual = false
+        set tierName = "【初阶融合 (+55%野怪面板)】"
     elseif sLv == 2 then
-        set mult = 1.35
+        set mult = 0.90
+        set speedMult = 0.88
         set rank = 2
         set cd = 8.0
-        set isDual = false
+        set tierName = "【深度融合 (+90%野怪面板)】"
     else
-        set mult = 1.70
+        set mult = 1.30
+        set speedMult = 0.80
         set rank = 3
         set cd = 6.0
-        set isDual = true
+        set tierName = "【完美共鸣 (+130%野怪面板，20%极速攻速)】"
     endif
 
     if tierLv < 1 then
@@ -4459,31 +4564,24 @@ function Wild_DoMorph takes unit u, integer cat, integer tierLv, integer subIdx 
     set creepAbil = Wild_GetCreepAbil(cat, tierLv, subIdx)
     set creepAbilName = Wild_GetCreepAbilName(cat, tierLv, subIdx)
 
-    set str = GetHeroStr(u, true)
-    set agi = GetHeroAgi(u, true)
-    set intVal = GetHeroInt(u, true)
+    set heroStr = GetHeroStr(u, true)
+    set heroAgi = GetHeroAgi(u, true)
+    set heroInt = GetHeroInt(u, true)
     set hLv = GetHeroLevel(u)
 
-    if not isDual then
-        set finalMaxHP = R2I(I2R(creepHP) * mult)
-        set finalDmg = R2I(I2R(creepDmg) * mult)
-        set finalArmor = creepArmor * mult
-        if creepMana > 0 then
-            set finalMaxMana = R2I(I2R(creepMana) * mult)
-        else
-            set finalMaxMana = 0
-        endif
-        set finalAtkCool = creepCool
+    set heroOwnHP = 550 + heroStr * 22 + hLv * 45
+    set heroOwnMana = 250 + heroInt * 15 + hLv * 25
+    set heroOwnDmg = 24 + R2I(I2R(heroStr + heroAgi + heroInt) * 0.65)
+    set heroOwnArmor = 2.0 + I2R(heroAgi) * 0.25
+
+    set finalMaxHP = heroOwnHP + R2I(I2R(creepHP) * mult)
+    set finalDmg = heroOwnDmg + R2I(I2R(creepDmg) * mult)
+    set finalArmor = heroOwnArmor + creepArmor * mult
+    set finalAtkCool = creepCool * speedMult
+    if creepMana > 0 then
+        set finalMaxMana = heroOwnMana + R2I(I2R(creepMana) * mult)
     else
-        set finalMaxHP = R2I(I2R(creepHP) * 1.70) + str * 25 + hLv * 80
-        set finalDmg = R2I(I2R(creepDmg) * 1.70) + R2I(I2R(str + agi + intVal) * 1.20)
-        set finalArmor = creepArmor * 1.70 + I2R(agi) * 0.35
-        if creepMana > 0 then
-            set finalMaxMana = R2I(I2R(creepMana) * 1.70) + intVal * 20
-        else
-            set finalMaxMana = 0
-        endif
-        set finalAtkCool = creepCool * 0.80
+        set finalMaxMana = 0
     endif
 
     // Ratio preservation
@@ -4521,7 +4619,25 @@ function Wild_DoMorph takes unit u, integer cat, integer tierLv, integer subIdx 
     // Apply skin, name, scale
     call BlzSetUnitSkin(u, skinId)
     call BlzSetUnitName(u, "万灵化身 - " + name)
-    call SetUnitScale(u, creepScale, creepScale, creepScale)
+    set effScale = Wild_GetCreepEffectiveScale(skinId, tierLv, creepScale)
+    call SetUnitScale(u, effScale, effScale, effScale)
+
+    // Flight management
+    call Wild_ApplyFlight(u, skinId)
+
+    // Weapon Type & Range Management
+    if creepRange >= 400 then
+        set missileArt = Wild_GetCreepMissileArt(skinId)
+        call SetUnitAcquireRange(u, 750.0)
+        call BlzSetUnitWeaponRealField(u, UNIT_WEAPON_RF_ATTACK_RANGE, 0, I2R(creepRange))
+        call BlzSetUnitWeaponRealField(u, UNIT_WEAPON_RF_ATTACK_RANGE, 1, I2R(creepRange))
+        call BlzSetUnitWeaponRealField(u, UNIT_WEAPON_RF_ATTACK_PROJECTILE_SPEED, 0, 1100.0)
+        call BlzSetUnitWeaponStringField(u, UNIT_WEAPON_SF_ATTACK_PROJECTILE_ART, 0, missileArt)
+    else
+        call SetUnitAcquireRange(u, 500.0)
+        call BlzSetUnitWeaponRealField(u, UNIT_WEAPON_RF_ATTACK_RANGE, 0, 128.0)
+        call BlzSetUnitWeaponRealField(u, UNIT_WEAPON_RF_ATTACK_RANGE, 1, 128.0)
+    endif
 
     // Apply stats
     call BlzSetUnitMaxHP(u, finalMaxHP)
@@ -4544,7 +4660,6 @@ function Wild_DoMorph takes unit u, integer cat, integer tierLv, integer subIdx 
     call BlzSetUnitArmor(u, finalArmor)
     call BlzSetUnitAttackCooldown(u, finalAtkCool, 0)
     call SetUnitMoveSpeed(u, creepMove)
-    call BlzSetUnitWeaponRealField(u, UNIT_WEAPON_RF_ATTACK_RANGE, 0, I2R(creepRange))
 
     // Attach creep ability
     if creepAbil != 0 then
@@ -4569,12 +4684,7 @@ function Wild_DoMorph takes unit u, integer cat, integer tierLv, integer subIdx 
 
     // Screen display to human player
     if GetPlayerController(p) == MAP_CONTROL_USER then
-        if isDual then
-            set dualMsg = " |cffff0000【★触发3级双面板荒野共鸣★】|r"
-        else
-            set dualMsg = ""
-        endif
-        call DisplayTimedTextToPlayer(p, 0, 0, 5.0, "|cffffcc00[万灵化形]|r 成功化身为 |cffff8000【" + name + "】|r！" + dualMsg)
+        call DisplayTimedTextToPlayer(p, 0, 0, 5.0, "|cffffcc00[万灵化形]|r 成功化身为 |cffff8000【" + name + "】|r！" + tierName)
         call DisplayTimedTextToPlayer(p, 0, 0, 5.0, "面板属性: 生命: |cff00ff00" + I2S(finalMaxHP) + "|r | 攻击: |cffff6600" + I2S(finalDmg) + "|r | 护甲: |cff33ccff" + R2SW(finalArmor, 1, 1) + "|r | 攻速: |cffffff00" + R2SW(finalAtkCool, 1, 2) + "s|r | 特技: |cffffcc00" + creepAbilName + " (" + I2S(rank) + "阶)|r")
     endif
 
@@ -4588,9 +4698,9 @@ function Wild_RevertToAvatar takes unit u returns nothing
     local real oldMaxHP = 0.0
     local real hpRatio = 1.0
     local real oldMaxMana = 0.0
-    local integer str = 0
-    local integer agi = 0
-    local integer intVal = 0
+    local integer heroStr = 0
+    local integer heroAgi = 0
+    local integer heroInt = 0
     local integer hLv = 0
     local integer baseMaxHP = 0
     local integer baseMaxMana = 0
@@ -4598,7 +4708,7 @@ function Wild_RevertToAvatar takes unit u returns nothing
     local real baseArmor = 0.0
     local real baseCool = 1.50
     local real baseMove = 310.0
-    local integer baseRange = 128
+    local integer baseRange = 600
     local integer newCurHP = 1
     local integer newCurMana = 0
 
@@ -4651,21 +4761,25 @@ function Wild_RevertToAvatar takes unit u returns nothing
     // Restore skin, name, scale
     call BlzSetUnitSkin(u, 'H005')
     call BlzSetUnitName(u, "万灵化身")
-    call SetUnitScale(u, 1.15, 1.15, 1.15)
+    call SetUnitScale(u, 1.10, 1.10, 1.10)
+
+    // Land back to ground
+    call SetUnitFlyHeight(u, 0.0, 800.0)
+    call SetUnitPathing(u, true)
 
     // Base stats
-    set str = GetHeroStr(u, true)
-    set agi = GetHeroAgi(u, true)
-    set intVal = GetHeroInt(u, true)
+    set heroStr = GetHeroStr(u, true)
+    set heroAgi = GetHeroAgi(u, true)
+    set heroInt = GetHeroInt(u, true)
     set hLv = GetHeroLevel(u)
 
-    set baseMaxHP = 650 + str * 25 + hLv * 50
-    set baseMaxMana = 400 + intVal * 15
-    set baseDmg = 35 + str + agi / 2
-    set baseArmor = 3.0 + I2R(agi) * 0.30
+    set baseMaxHP = 550 + heroStr * 22 + hLv * 45
+    set baseMaxMana = 250 + heroInt * 15 + hLv * 25
+    set baseDmg = 24 + R2I(I2R(heroStr + heroAgi + heroInt) * 0.65)
+    set baseArmor = 2.0 + I2R(heroAgi) * 0.25
     set baseCool = 1.50
     set baseMove = 310.0
-    set baseRange = 128
+    set baseRange = 600
 
     call BlzSetUnitMaxHP(u, baseMaxHP)
     set newCurHP = R2I(I2R(baseMaxHP) * hpRatio)
@@ -4682,7 +4796,13 @@ function Wild_RevertToAvatar takes unit u returns nothing
     call BlzSetUnitArmor(u, baseArmor)
     call BlzSetUnitAttackCooldown(u, baseCool, 0)
     call SetUnitMoveSpeed(u, baseMove)
-    call BlzSetUnitWeaponRealField(u, UNIT_WEAPON_RF_ATTACK_RANGE, 0, I2R(baseRange))
+
+    // Restore 600 range missile
+    call SetUnitAcquireRange(u, 700.0)
+    call BlzSetUnitWeaponRealField(u, UNIT_WEAPON_RF_ATTACK_RANGE, 0, 600.0)
+    call BlzSetUnitWeaponRealField(u, UNIT_WEAPON_RF_ATTACK_RANGE, 1, 600.0)
+    call BlzSetUnitWeaponRealField(u, UNIT_WEAPON_RF_ATTACK_PROJECTILE_SPEED, 0, 1000.0)
+    call BlzSetUnitWeaponStringField(u, UNIT_WEAPON_SF_ATTACK_PROJECTILE_ART, 0, "Abilities\\Weapons\\KeeperGroveMissile\\KeeperGroveMissile.mdl")
 
     set udg_Wild_IsMorphed[pId] = false
     set udg_Wild_CurrentForm[pId] = 0
@@ -4919,6 +5039,203 @@ function Wild_GetTargetBaseY takes player p returns real
     return GetStartLocationY(targetId)
 endfunction
 
+function Wild_EnslaveHero takes integer pId, unit deadHero returns nothing
+    local integer count = 0
+    local integer slot = 0
+    local integer idx = 0
+    local integer skinId = 0
+    local string heroName = ""
+    local integer heroLv = 1
+    local integer maxHP = 0
+    local integer maxMana = 0
+    local integer baseDmg = 0
+    local real armor = 0.0
+    local integer primaryBonus = 0
+    local item it = null
+    local integer s = 0
+    local integer abilFound = 0
+    local integer aId = 0
+    local integer aLv = 0
+    local integer i = 0
+
+    if deadHero == null or pId < 0 or pId > 15 then
+        return
+    endif
+    set count = udg_Wild_HeroThrallCount[pId]
+    if count < 8 then
+        set slot = count
+        set udg_Wild_HeroThrallCount[pId] = count + 1
+    else
+        set slot = 7
+    endif
+    set idx = pId * 8 + slot
+
+    set skinId = BlzGetUnitSkin(deadHero)
+    if skinId == 0 then
+        set skinId = GetUnitTypeId(deadHero)
+    endif
+    set heroName = GetUnitName(deadHero)
+    set heroLv = GetHeroLevel(deadHero)
+    set maxHP = BlzGetUnitMaxHP(deadHero)
+    set maxMana = BlzGetUnitMaxMana(deadHero)
+    set primaryBonus = GetHeroStr(deadHero, true)
+    if GetHeroAgi(deadHero, true) > primaryBonus then
+        set primaryBonus = GetHeroAgi(deadHero, true)
+    endif
+    if GetHeroInt(deadHero, true) > primaryBonus then
+        set primaryBonus = GetHeroInt(deadHero, true)
+    endif
+    set baseDmg = BlzGetUnitBaseDamage(deadHero, 0) + primaryBonus
+    set armor = BlzGetUnitArmor(deadHero)
+
+    set udg_Wild_ThrallSkin[idx] = skinId
+    set udg_Wild_ThrallName[idx] = heroName
+    set udg_Wild_ThrallLevel[idx] = heroLv
+    set udg_Wild_ThrallHP[idx] = maxHP
+    set udg_Wild_ThrallMana[idx] = maxMana
+    set udg_Wild_ThrallDmg[idx] = baseDmg
+    set udg_Wild_ThrallArmor[idx] = armor
+
+    // Clear passives
+    set udg_Wild_ThrallAbil1[idx] = 0
+    set udg_Wild_ThrallAbil2[idx] = 0
+    set udg_Wild_ThrallAbil3[idx] = 0
+    set udg_Wild_ThrallAbil4[idx] = 0
+    set udg_Wild_ThrallAbilLv1[idx] = 1
+    set udg_Wild_ThrallAbilLv2[idx] = 1
+    set udg_Wild_ThrallAbilLv3[idx] = 1
+    set udg_Wild_ThrallAbilLv4[idx] = 1
+
+    // Scan known passives
+    set abilFound = 0
+    set i = 1
+    loop
+        exitwhen i > 22 or abilFound >= 4
+        if i == 1 then
+            set aId = 'AOcr'
+        elseif i == 2 then
+            set aId = 'AEev'
+        elseif i == 3 then
+            set aId = 'AHbh'
+        elseif i == 4 then
+            set aId = 'AHad'
+        elseif i == 5 then
+            set aId = 'AHab'
+        elseif i == 6 then
+            set aId = 'AOae'
+        elseif i == 7 then
+            set aId = 'AUau'
+        elseif i == 8 then
+            set aId = 'AUav'
+        elseif i == 9 then
+            set aId = 'AEar'
+        elseif i == 10 then
+            set aId = 'AEah'
+        elseif i == 11 then
+            set aId = 'AUts'
+        elseif i == 12 then
+            set aId = 'A015'
+        elseif i == 13 then
+            set aId = 'A017'
+        elseif i == 14 then
+            set aId = 'ACct'
+        elseif i == 15 then
+            set aId = 'ACev'
+        elseif i == 16 then
+            set aId = 'ACbh'
+        elseif i == 17 then
+            set aId = 'ACav'
+        elseif i == 18 then
+            set aId = 'ACdv'
+        elseif i == 19 then
+            set aId = 'ACcs'
+        elseif i == 20 then
+            set aId = 'A025'
+        elseif i == 21 then
+            set aId = 'A026'
+        else
+            set aId = 'ACen'
+        endif
+
+        set aLv = GetUnitAbilityLevel(deadHero, aId)
+        if aLv > 0 then
+            set abilFound = abilFound + 1
+            if abilFound == 1 then
+                set udg_Wild_ThrallAbil1[idx] = aId
+                set udg_Wild_ThrallAbilLv1[idx] = aLv
+            elseif abilFound == 2 then
+                set udg_Wild_ThrallAbil2[idx] = aId
+                set udg_Wild_ThrallAbilLv2[idx] = aLv
+            elseif abilFound == 3 then
+                set udg_Wild_ThrallAbil3[idx] = aId
+                set udg_Wild_ThrallAbilLv3[idx] = aLv
+            elseif abilFound == 4 then
+                set udg_Wild_ThrallAbil4[idx] = aId
+                set udg_Wild_ThrallAbilLv4[idx] = aLv
+            endif
+        endif
+        set i = i + 1
+    endloop
+
+    // Scan 6 items
+    set s = 0
+    loop
+        exitwhen s > 5
+        set it = UnitItemInSlot(deadHero, s)
+        if it != null then
+            if s == 0 then
+                set udg_Wild_ThrallItem0[idx] = GetItemTypeId(it)
+            elseif s == 1 then
+                set udg_Wild_ThrallItem1[idx] = GetItemTypeId(it)
+            elseif s == 2 then
+                set udg_Wild_ThrallItem2[idx] = GetItemTypeId(it)
+            elseif s == 3 then
+                set udg_Wild_ThrallItem3[idx] = GetItemTypeId(it)
+            elseif s == 4 then
+                set udg_Wild_ThrallItem4[idx] = GetItemTypeId(it)
+            elseif s == 5 then
+                set udg_Wild_ThrallItem5[idx] = GetItemTypeId(it)
+            endif
+        else
+            if s == 0 then
+                set udg_Wild_ThrallItem0[idx] = 0
+            elseif s == 1 then
+                set udg_Wild_ThrallItem1[idx] = 0
+            elseif s == 2 then
+                set udg_Wild_ThrallItem2[idx] = 0
+            elseif s == 3 then
+                set udg_Wild_ThrallItem3[idx] = 0
+            elseif s == 4 then
+                set udg_Wild_ThrallItem4[idx] = 0
+            elseif s == 5 then
+                set udg_Wild_ThrallItem5[idx] = 0
+            endif
+        endif
+        set s = s + 1
+    endloop
+
+    call DisplayTimedTextToPlayer(Player(pId), 0, 0, 6.0, "|cffff00ff[众野之怒·为虎作伥]|r 已将阵亡的英雄【" + heroName + " (Lv" + I2S(heroLv) + ")】连同其随身装备与被动技能永久炼化为【荒野伥鬼】！下次释放大招将随军出征！")
+endfunction
+
+function Wild_EnslaveCreep takes integer pId, unit deadCreep returns nothing
+    local integer count = 0
+    local integer uId = 0
+    if deadCreep == null or pId < 0 or pId > 15 then
+        return
+    endif
+    set count = udg_Wild_CreepThrallCount[pId]
+    set uId = GetUnitTypeId(deadCreep)
+    if count < 12 then
+        set udg_Wild_CreepThrallType[pId * 12 + count] = uId
+        set udg_Wild_CreepThrallCount[pId] = count + 1
+        call DisplayTimedTextToPlayer(Player(pId), 0, 0, 3.0, "|cffffcc00[为虎作伥]|r 已奴役【" + GetUnitName(deadCreep) + "】为荒野伥鬼！(当前精锐伥鬼: " + I2S(count + 1) + "/12)")
+    else
+        set udg_Wild_ArmyBonusHP[pId] = udg_Wild_ArmyBonusHP[pId] + 25
+        set udg_Wild_ArmyBonusDmg[pId] = udg_Wild_ArmyBonusDmg[pId] + 3
+        call DisplayTimedTextToPlayer(Player(pId), 0, 0, 2.5, "|cffffcc00[百鬼军魂]|r 吞噬敌军精魄，荒野大军永久获得 +25 生命上限与 +3 攻击力！(当前累计: +" + I2S(udg_Wild_ArmyBonusHP[pId]) + "HP/+" + I2S(udg_Wild_ArmyBonusDmg[pId]) + "攻)")
+    endif
+endfunction
+
 function Wild_CastWrath takes unit caster returns nothing
     local player p = null
     local integer pId = 0
@@ -4926,6 +5243,16 @@ function Wild_CastWrath takes unit caster returns nothing
     local real cx = 0.0
     local real cy = 0.0
     local unit c = null
+    local unit thrall = null
+    local integer s = 0
+    local integer idx = 0
+    local integer finalHP = 0
+    local integer finalDmg = 0
+    local integer itId = 0
+    local item it = null
+    local integer i = 0
+    local integer cIdx = 0
+    local integer tType = 0
 
     if caster == null or IsUnitType(caster, UNIT_TYPE_DEAD) then
         return
@@ -4939,7 +5266,9 @@ function Wild_CastWrath takes unit caster returns nothing
     set cx = GetUnitX(caster)
     set cy = GetUnitY(caster)
 
-    call DisplayTimedTextToPlayer(p, 0, 0, 5.0, "|cffff0000[众野之怒]|r 荒野狂潮冲锋！野怪大军已向敌方核心基地发起狂暴推进！")
+    set udg_Wild_WrathTimer[pId] = 90.0
+
+    call DisplayTimedTextToPlayer(p, 0, 0, 5.0, "|cffff0000[众野之怒]|r 荒野狂潮冲锋！野怪与炼化伥鬼大军已向敌方核心基地发起狂暴推进！")
 
     // Tier 1: Rank 1 (Lv 6)
     if dRank == 1 then
@@ -4981,7 +5310,95 @@ function Wild_CastWrath takes unit caster returns nothing
         set c = Wild_SpawnArmyCreep(p, 'nfrb', cx - 180.0, cy)
     endif
 
+    // Spawn Enslaved Hero Thralls (u003)
+    set s = 0
+    loop
+        exitwhen s >= udg_Wild_HeroThrallCount[pId]
+        set idx = pId * 8 + s
+        set thrall = CreateUnit(p, 'u003', cx + GetRandomReal(-150.0, 150.0), cy + GetRandomReal(-150.0, 150.0), 0.0)
+        call UnitApplyTimedLife(thrall, 'BTLF', 90.0)
+        call BlzSetUnitSkin(thrall, udg_Wild_ThrallSkin[idx])
+        call SetUnitVertexColor(thrall, 170, 210, 255, 225)
+        call BlzSetUnitName(thrall, "【伥鬼】" + udg_Wild_ThrallName[idx] + "(Lv" + I2S(udg_Wild_ThrallLevel[idx]) + ")")
+
+        set finalHP = udg_Wild_ThrallHP[idx] + udg_Wild_ArmyBonusHP[pId]
+        set finalDmg = udg_Wild_ThrallDmg[idx] + udg_Wild_ArmyBonusDmg[pId]
+        call BlzSetUnitMaxHP(thrall, finalHP)
+        call SetWidgetLife(thrall, I2R(finalHP))
+        if udg_Wild_ThrallMana[idx] > 0 then
+            call BlzSetUnitMaxMana(thrall, udg_Wild_ThrallMana[idx])
+            call SetUnitState(thrall, UNIT_STATE_MANA, I2R(udg_Wild_ThrallMana[idx]))
+        endif
+        call BlzSetUnitBaseDamage(thrall, finalDmg, 0)
+        call BlzSetUnitArmor(thrall, udg_Wild_ThrallArmor[idx])
+
+        // Passives
+        if udg_Wild_ThrallAbil1[idx] != 0 then
+            call UnitAddAbility(thrall, udg_Wild_ThrallAbil1[idx])
+            call SetUnitAbilityLevel(thrall, udg_Wild_ThrallAbil1[idx], udg_Wild_ThrallAbilLv1[idx])
+        endif
+        if udg_Wild_ThrallAbil2[idx] != 0 then
+            call UnitAddAbility(thrall, udg_Wild_ThrallAbil2[idx])
+            call SetUnitAbilityLevel(thrall, udg_Wild_ThrallAbil2[idx], udg_Wild_ThrallAbilLv2[idx])
+        endif
+        if udg_Wild_ThrallAbil3[idx] != 0 then
+            call UnitAddAbility(thrall, udg_Wild_ThrallAbil3[idx])
+            call SetUnitAbilityLevel(thrall, udg_Wild_ThrallAbil3[idx], udg_Wild_ThrallAbilLv3[idx])
+        endif
+        if udg_Wild_ThrallAbil4[idx] != 0 then
+            call UnitAddAbility(thrall, udg_Wild_ThrallAbil4[idx])
+            call SetUnitAbilityLevel(thrall, udg_Wild_ThrallAbil4[idx], udg_Wild_ThrallAbilLv4[idx])
+        endif
+
+        // Items 0..5
+        set i = 0
+        loop
+            exitwhen i > 5
+            if i == 0 then
+                set itId = udg_Wild_ThrallItem0[idx]
+            elseif i == 1 then
+                set itId = udg_Wild_ThrallItem1[idx]
+            elseif i == 2 then
+                set itId = udg_Wild_ThrallItem2[idx]
+            elseif i == 3 then
+                set itId = udg_Wild_ThrallItem3[idx]
+            elseif i == 4 then
+                set itId = udg_Wild_ThrallItem4[idx]
+            elseif i == 5 then
+                set itId = udg_Wild_ThrallItem5[idx]
+            endif
+            if itId != 0 then
+                set it = UnitAddItemById(thrall, itId)
+                if it != null then
+                    call SetItemDroppable(it, false)
+                    call SetItemPawnable(it, false)
+                endif
+            endif
+            set i = i + 1
+        endloop
+
+        call GroupAddUnit(udg_Wild_ArmyGroup, thrall)
+        set s = s + 1
+    endloop
+
+    // Spawn Enslaved Creep Thralls
+    set cIdx = 0
+    loop
+        exitwhen cIdx >= udg_Wild_CreepThrallCount[pId]
+        set tType = udg_Wild_CreepThrallType[pId * 12 + cIdx]
+        if tType != 0 then
+            set c = Wild_SpawnArmyCreep(p, tType, cx + GetRandomReal(-180.0, 180.0), cy + GetRandomReal(-180.0, 180.0))
+            call BlzSetUnitMaxHP(c, BlzGetUnitMaxHP(c) + udg_Wild_ArmyBonusHP[pId])
+            call SetWidgetLife(c, I2R(BlzGetUnitMaxHP(c)))
+            call BlzSetUnitBaseDamage(c, BlzGetUnitBaseDamage(c, 0) + udg_Wild_ArmyBonusDmg[pId], 0)
+            call SetUnitVertexColor(c, 180, 220, 255, 230)
+        endif
+        set cIdx = cIdx + 1
+    endloop
+
     set c = null
+    set thrall = null
+    set it = null
     set p = null
 endfunction
 
@@ -5009,6 +5426,7 @@ function Wild_ArmyPushLoop takes nothing returns nothing
     call DestroyGroup(tempG)
     set tempG = null
 endfunction
+
 
 
 function AI_GetPlayerAltar takes player p returns unit
@@ -6542,6 +6960,16 @@ function DM_CapTimerLoop takes nothing returns nothing
     // 3.8. Process Human Player Refuge Dead Hero Auto-Revival
     call Refuge_ProcessRevives()
 
+    // 3.9. Process Wild Wrath Duration Countdown
+    set pId = 0
+    loop
+        exitwhen pId > 15
+        if udg_Wild_WrathTimer[pId] > 0.0 then
+            set udg_Wild_WrathTimer[pId] = udg_Wild_WrathTimer[pId] - 1.0
+        endif
+        set pId = pId + 1
+    endloop
+
     // 4. Custom Hero AI Tactical Loop
     call AI_TacticalLoop()
 endfunction
@@ -6992,15 +7420,42 @@ endfunction
 
 function DM_OnUnitAttacked takes nothing returns boolean
     local unit attacker = GetAttacker()
+    local unit target = GetTriggerUnit()
     local integer pId = 0
-    if attacker != null and GetUnitTypeId(attacker) == 'H004' then
-        set pId = GetPlayerId(GetOwningPlayer(attacker))
-        if udg_Strain_MimicActive[pId] then
-            set udg_Strain_AmbushReady[pId] = true
-            call Strain_BreakMimicry(attacker, pId)
+    local integer attTypeId = 0
+    local integer crRange = 128
+    local real dx = 0.0
+    local real dy = 0.0
+    local real dist = 0.0
+
+    if attacker != null then
+        set attTypeId = GetUnitTypeId(attacker)
+        if attTypeId == 'H004' then
+            set pId = GetPlayerId(GetOwningPlayer(attacker))
+            if udg_Strain_MimicActive[pId] then
+                set udg_Strain_AmbushReady[pId] = true
+                call Strain_BreakMimicry(attacker, pId)
+            endif
+        elseif attTypeId == 'H005' and target != null then
+            set pId = GetPlayerId(GetOwningPlayer(attacker))
+            if udg_Wild_IsMorphed[pId] then
+                set crRange = Wild_GetCreepRange(udg_Wild_CurrentFormType[pId], udg_Wild_CurrentFormLevel[pId], 1)
+            else
+                set crRange = 600
+            endif
+            if crRange >= 400 then
+                set dx = GetUnitX(target) - GetUnitX(attacker)
+                set dy = GetUnitY(target) - GetUnitY(attacker)
+                set dist = SquareRoot(dx * dx + dy * dy)
+                if dist > 160.0 then
+                    call DestroyEffect(AddSpecialEffectTarget(Wild_GetCreepMissileArt(BlzGetUnitSkin(attacker)), target, "chest"))
+                endif
+            endif
         endif
     endif
+
     set attacker = null
+    set target = null
     return false
 endfunction
 
@@ -7223,6 +7678,10 @@ function DM_OnUnitDeath takes nothing returns boolean
     local real nx = 0.0
     local real ny = 0.0
     local real nhp = 0.0
+    local integer i = 0
+    local item it = null
+    local player killerOwner = null
+    local integer killerPId = -1
 
     // Anti-recursion lock
     if udg_Ninja_DeathLock then
@@ -7263,6 +7722,38 @@ function DM_OnUnitDeath takes nothing returns boolean
         if udg_Wild_IsMorphed[deadPId] then
             call Wild_RevertToAvatar(dead)
         endif
+    endif
+
+    // 1.7. Thrall item removal on death
+    if deadType == 'u003' then
+        set i = 0
+        loop
+            exitwhen i > 5
+            set it = UnitItemInSlot(dead, i)
+            if it != null then
+                call RemoveItem(it)
+            endif
+            set i = i + 1
+        endloop
+        set it = null
+    endif
+
+    // 1.8. Thrall Enslavement Check (Hero #4 为虎作伥)
+    if killer != null then
+        set killerOwner = GetOwningPlayer(killer)
+        if killerOwner != null and IsUnitEnemy(dead, killerOwner) and not IsUnitType(dead, UNIT_TYPE_STRUCTURE) and not isIllusion and not isFakeHero and not isAnyClone and deadType != 'u000' and deadType != 'u001' and deadType != 'u002' and deadType != 'u003' then
+            set killerPId = GetPlayerId(killerOwner)
+            if killerPId >= 0 and killerPId <= 15 then
+                if IsUnitInGroup(killer, udg_Wild_ArmyGroup) or (udg_Wild_WrathTimer[killerPId] > 0.0) then
+                    if IsUnitType(dead, UNIT_TYPE_HERO) then
+                        call Wild_EnslaveHero(killerPId, dead)
+                    else
+                        call Wild_EnslaveCreep(killerPId, dead)
+                    endif
+                endif
+            endif
+        endif
+        set killerOwner = null
     endif
 
     // 2. Ninja Karma Mark (ONLY TRUE HERO H003 marks killer; clones NEVER mark killer!)
@@ -7638,7 +8129,18 @@ function TM_SpawnSandboxTargets takes player p returns nothing
     call SetWidgetLife(targetU, GetUnitState(targetU, UNIT_STATE_MAX_LIFE) * 0.20)
     call PauseUnit(targetU, true)
 
-    // 5. Blademaster (Obla) - Reusable Hero: preserves drained stats across devours!
+    // Reset Wild Avatar D cooldown & give A035 for instant testing
+    if udg_Wild_Hero[pId] != null then
+        call UnitResetCooldown(udg_Wild_Hero[pId])
+        set udg_Wild_MorphCD[pId] = 0.0
+        if GetUnitAbilityLevel(udg_Wild_Hero[pId], 'A035') == 0 then
+            call UnitAddAbility(udg_Wild_Hero[pId], 'A035')
+        endif
+        call SetUnitState(udg_Wild_Hero[pId], UNIT_STATE_MANA, I2R(BlzGetUnitMaxMana(udg_Wild_Hero[pId])))
+        call DisplayTimedTextToPlayer(p, 0, 0, 4.0, "|cff00ff00[沙盒测试]|r 万灵化身【众野之怒】冷却已重置，法力已回满！")
+    endif
+
+    // 5. Blademaster (Obla) - Reusable Hero: preserves drained stats across devours & Thrall testing!
     if udg_Test_DummyHero != null then
         if IsUnitType(udg_Test_DummyHero, UNIT_TYPE_DEAD) or GetWidgetLife(udg_Test_DummyHero) <= 0.405 then
             call ReviveHero(udg_Test_DummyHero, hx + 180.0, hy - 120.0, false)
@@ -7656,6 +8158,17 @@ function TM_SpawnSandboxTargets takes player p returns nothing
         set udg_Test_DummyHero = CreateUnit(Player(PLAYER_NEUTRAL_AGGRESSIVE), 'Obla', hx + 180.0, hy - 120.0, 180.0)
         call SetWidgetLife(udg_Test_DummyHero, GetUnitState(udg_Test_DummyHero, UNIT_STATE_MAX_LIFE) * 0.20)
         call PauseUnit(udg_Test_DummyHero, true)
+    endif
+
+    // Give Dummy Blademaster items & critical strike for Thrall Enslavement test
+    if GetUnitAbilityLevel(udg_Test_DummyHero, 'AOcr') == 0 then
+        call UnitAddAbility(udg_Test_DummyHero, 'AOcr')
+        call SetUnitAbilityLevel(udg_Test_DummyHero, 'AOcr', 3)
+    endif
+    if UnitItemInSlot(udg_Test_DummyHero, 0) == null then
+        call UnitAddItemById(udg_Test_DummyHero, 'bspd')
+        call UnitAddItemById(udg_Test_DummyHero, 'clov')
+        call UnitAddItemById(udg_Test_DummyHero, 'rhth')
     endif
 
     set targetU = null
