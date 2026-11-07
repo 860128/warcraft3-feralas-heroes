@@ -175,12 +175,32 @@ globals
     real array udg_Wild_StoredManaRatio
     real array udg_Wild_MorphCD
     dialog udg_Wild_MorphDialog = null
-    button array udg_Wild_MorphBtn
-    button udg_Wild_MorphBtnCancel = null
-    integer array udg_Wild_PromptPlayerMenu
+    integer array udg_Wild_DialogState
+    integer array udg_Wild_PendingCat
+    integer array udg_Wild_PendingTier
+    button array udg_Wild_TierBtn
+    button udg_Wild_TierCancelBtn = null
+    button array udg_Wild_SubBtn
+    button udg_Wild_SubBackBtn = null
+    button udg_Wild_SubCancelBtn = null
     group udg_Wild_ArmyGroup = null
     timer udg_Wild_ArmyTimer = null
     button udg_TM_BtnMode4All = null
+
+    // 90 Creep Templates (3 Cats x 10 Tiers x 3 Options)
+    integer array udg_Wild_TplSkin
+    string array udg_Wild_TplName
+    string array udg_Wild_TplBtnLabel
+    integer array udg_Wild_TplHP
+    integer array udg_Wild_TplMana
+    integer array udg_Wild_TplDmg
+    real array udg_Wild_TplArmor
+    real array udg_Wild_TplAtkCool
+    real array udg_Wild_TplMove
+    integer array udg_Wild_TplRange
+    real array udg_Wild_TplScale
+    integer array udg_Wild_TplAbil
+    string array udg_Wild_TplAbilName
 endglobals
 
 function InitGlobals takes nothing returns nothing
@@ -4169,462 +4189,511 @@ function DM_StealthLoop takes nothing returns nothing
 endfunction
 
 //===========================================================================
-// Hero #4: The Wild Avatar (万灵化身 H005) System
+// Hero #4: The Wild Avatar (万灵化身 H005) System (v3.3 Refactored)
 //===========================================================================
 
-function Wild_GetFormUnitTypeId takes integer cat, integer lvl returns integer
-    if cat == 1 then
-        // Category 1: Q 狂野巨力 (Melee / Strength)
-        if lvl == 1 then
-            return 'nkob' // 狗头人苦工
-        elseif lvl == 2 then
-            return 'ngnb' // 豺狼人蛮兵
-        elseif lvl == 3 then
-            return 'nogr' // 食人魔战士
-        elseif lvl == 4 then
-            return 'ncer' // 半人马奔行者
-        elseif lvl == 5 then
-            return 'nfrb' // 熊怪勇士
-        elseif lvl == 6 then
-            return 'nhyd' // 多头九头蛇
-        elseif lvl == 7 then
-            return 'nfrg' // 熊怪巨熊酋长
-        elseif lvl == 8 then
-            return 'nmam' // 远古猛犸象
-        elseif lvl == 9 then
-            return 'nwrg' // 战争魔像
-        else
-            return 'nggr' // 花岗岩傀儡
-        endif
-    elseif cat == 2 then
-        // Category 2: W 诡诈迅影 (Ranged / Agility)
-        if lvl == 1 then
-            return 'nhar' // 鹰身女妖斥候
-        elseif lvl == 2 then
-            return 'ncea' // 半人马弓箭手
-        elseif lvl == 3 then
-            return 'nqbh' // 野猪人猎手
-        elseif lvl == 4 then
-            return 'nhrn' // 鹰身女妖盗贼
-        elseif lvl == 5 then
-            return 'nnwa' // 蛛魔战士
-        elseif lvl == 6 then
-            return 'nws1' // 飞蛇巨鹰
-        elseif lvl == 7 then
-            return 'nghs' // 极寒怨灵
-        elseif lvl == 8 then
-            return 'nbdo' // 蓝色龙人督察
-        elseif lvl == 9 then
-            return 'njgb' // 狂暴追猎者
-        else
-            return 'nbwm' // 远古黑色巨龙
-        endif
-    else
-        // Category 3: E 万相灵音 (Caster / Intelligence)
-        if lvl == 1 then
-            return 'nwiz' // 巫师学徒
-        elseif lvl == 2 then
-            return 'nfsp' // 森林暗影祭司
-        elseif lvl == 3 then
-            return 'nkog' // 狗头人地卜师
-        elseif lvl == 4 then
-            return 'nhw2' // 鹰身女妖风巫
-        elseif lvl == 5 then
-            return 'nfrs' // 熊怪萨满
-        elseif lvl == 6 then
-            return 'nsth' // 萨特唤魔者
-        elseif lvl == 7 then
-            return 'nfre' // 熊怪长者萨满
-        elseif lvl == 8 then
-            return 'nthl' // 雷霆巨蜥
-        elseif lvl == 9 then
-            return 'nerw' // 艾瑞达术士
-        else
-            return 'nrdr' // 远古红色巨龙
-        endif
-    endif
+function Wild_GetCreepIndex takes integer cat, integer tier, integer sub returns integer
+    return (cat - 1) * 30 + (tier - 1) * 3 + (sub - 1)
 endfunction
 
-function Wild_GetFormName takes integer cat, integer lvl returns string
-    if cat == 1 then
-        if lvl == 1 then
-            return "狗头人苦工"
-        elseif lvl == 2 then
-            return "豺狼人蛮兵"
-        elseif lvl == 3 then
-            return "食人魔战士"
-        elseif lvl == 4 then
-            return "半人马奔行者"
-        elseif lvl == 5 then
-            return "熊怪勇士"
-        elseif lvl == 6 then
-            return "多头九头蛇"
-        elseif lvl == 7 then
-            return "熊怪巨熊酋长"
-        elseif lvl == 8 then
-            return "远古猛犸象"
-        elseif lvl == 9 then
-            return "战争魔像"
-        else
-            return "花岗岩傀儡"
-        endif
-    elseif cat == 2 then
-        if lvl == 1 then
-            return "鹰身女妖斥候"
-        elseif lvl == 2 then
-            return "半人马弓箭手"
-        elseif lvl == 3 then
-            return "野猪人猎手"
-        elseif lvl == 4 then
-            return "鹰身女妖盗贼"
-        elseif lvl == 5 then
-            return "蛛魔战士"
-        elseif lvl == 6 then
-            return "飞蛇巨鹰"
-        elseif lvl == 7 then
-            return "极寒怨灵"
-        elseif lvl == 8 then
-            return "龙人督察"
-        elseif lvl == 9 then
-            return "狂暴追猎者"
-        else
-            return "远古黑色巨龙"
-        endif
-    else
-        if lvl == 1 then
-            return "巫师学徒"
-        elseif lvl == 2 then
-            return "森林暗影祭司"
-        elseif lvl == 3 then
-            return "狗头人地卜师"
-        elseif lvl == 4 then
-            return "鹰身女妖风巫"
-        elseif lvl == 5 then
-            return "熊怪萨满"
-        elseif lvl == 6 then
-            return "萨特唤魔者"
-        elseif lvl == 7 then
-            return "熊怪长者萨满"
-        elseif lvl == 8 then
-            return "雷霆巨蜥"
-        elseif lvl == 9 then
-            return "艾瑞达术士"
-        else
-            return "远古红色巨龙"
-        endif
-    endif
+function Wild_SetTpl takes integer cat, integer tier, integer sub, integer skin, string name, string btnLabel, integer hp, integer mana, integer dmg, real armor, real cool, real move, integer rangeN, real scale, integer abil, string abilName returns nothing
+    local integer idx = (cat - 1) * 30 + (tier - 1) * 3 + (sub - 1)
+    set udg_Wild_TplSkin[idx] = skin
+    set udg_Wild_TplName[idx] = name
+    set udg_Wild_TplBtnLabel[idx] = btnLabel
+    set udg_Wild_TplHP[idx] = hp
+    set udg_Wild_TplMana[idx] = mana
+    set udg_Wild_TplDmg[idx] = dmg
+    set udg_Wild_TplArmor[idx] = armor
+    set udg_Wild_TplAtkCool[idx] = cool
+    set udg_Wild_TplMove[idx] = move
+    set udg_Wild_TplRange[idx] = rangeN
+    set udg_Wild_TplScale[idx] = scale
+    set udg_Wild_TplAbil[idx] = abil
+    set udg_Wild_TplAbilName[idx] = abilName
 endfunction
 
-function Wild_GetFormHP takes integer cat, integer lvl returns integer
-    if cat == 1 then
-        return 450 + lvl * 250
-    elseif cat == 2 then
-        return 380 + lvl * 210
-    else
-        return 320 + lvl * 180
-    endif
+function Wild_GetCreepSkinId takes integer cat, integer tier, integer sub returns integer
+    return udg_Wild_TplSkin[Wild_GetCreepIndex(cat, tier, sub)]
 endfunction
 
-function Wild_GetFormMana takes integer cat, integer lvl returns integer
-    if cat == 1 then
-        return 0
-    elseif cat == 2 then
-        if lvl >= 6 then
-            return 300
-        endif
-        return 0
-    else
-        return 250 + lvl * 70
-    endif
+function Wild_GetCreepName takes integer cat, integer tier, integer sub returns string
+    return udg_Wild_TplName[Wild_GetCreepIndex(cat, tier, sub)]
 endfunction
 
-function Wild_GetFormArmor takes integer cat, integer lvl returns real
-    if cat == 1 then
-        return 2.0 + I2R(lvl) * 1.0
-    elseif cat == 2 then
-        return 2.0 + I2R(lvl) * 0.75
-    else
-        return 1.0 + I2R(lvl) * 0.70
-    endif
+function Wild_GetCreepBtnLabel takes integer cat, integer tier, integer sub returns string
+    return udg_Wild_TplBtnLabel[Wild_GetCreepIndex(cat, tier, sub)]
 endfunction
 
-function Wild_GetFormRange takes integer cat, integer lvl returns real
-    if cat == 1 then
-        return 128.0
-    elseif cat == 2 then
-        if lvl == 1 then
-            return 400.0
-        elseif lvl == 4 then
-            return 450.0
-        elseif lvl == 7 or lvl == 10 then
-            return 600.0
-        else
-            return 500.0
-        endif
-    else
-        if lvl >= 9 then
-            return 600.0
-        elseif lvl >= 4 then
-            return 550.0
-        else
-            return 450.0
-        endif
-    endif
+function Wild_GetCreepBaseHP takes integer cat, integer tier, integer sub returns integer
+    return udg_Wild_TplHP[Wild_GetCreepIndex(cat, tier, sub)]
 endfunction
 
-function Wild_GetFormAtkCool takes integer cat, integer lvl returns real
-    if cat == 1 then
-        if lvl <= 2 then
-            return 1.20
-        else
-            return 1.35
-        endif
-    elseif cat == 2 then
-        if lvl >= 7 then
-            return 1.15
-        else
-            return 1.25
-        endif
-    else
-        if lvl >= 7 then
-            return 1.20
-        else
-            return 1.35
-        endif
-    endif
+function Wild_GetCreepBaseMana takes integer cat, integer tier, integer sub returns integer
+    return udg_Wild_TplMana[Wild_GetCreepIndex(cat, tier, sub)]
 endfunction
 
-function Wild_GetFormScale takes integer cat, integer lvl returns real
-    return 1.00 + I2R(lvl) * 0.05
+function Wild_GetCreepBaseDmg takes integer cat, integer tier, integer sub returns integer
+    return udg_Wild_TplDmg[Wild_GetCreepIndex(cat, tier, sub)]
 endfunction
 
-function Wild_GetFormAbil takes integer cat, integer lvl returns integer
-    if cat == 1 then
-        if lvl == 2 then
-            return 'ACct'
-        elseif lvl == 3 then
-            return 'ACbh'
-        elseif lvl == 4 then
-            return 'ACst'
-        elseif lvl == 5 then
-            return 'ACro'
-        elseif lvl == 6 then
-            return 'ACtb'
-        elseif lvl == 7 then
-            return 'ACst'
-        elseif lvl == 8 then
-            return 'ACsh'
-        elseif lvl == 9 then
-            return 'ACif'
-        elseif lvl == 10 then
-            return 'ACtb'
-        endif
-    elseif cat == 2 then
-        if lvl == 1 then
-            return 'ACev'
-        elseif lvl == 2 then
-            return 'ACct'
-        elseif lvl == 3 then
-            return 'ACcs'
-        elseif lvl == 4 then
-            return 'ACev'
-        elseif lvl == 5 then
-            return 'ACen'
-        elseif lvl == 6 then
-            return 'ACfl'
-        elseif lvl == 7 then
-            return 'ACev'
-        elseif lvl == 8 then
-            return 'ACct'
-        elseif lvl == 9 then
-            return 'ACev'
-        elseif lvl == 10 then
-            return 'ACct'
-        endif
-    else
-        if lvl == 1 then
-            return 'ACsw'
-        elseif lvl == 2 then
-            return 'ACrj'
-        elseif lvl == 3 then
-            return 'ACsw'
-        elseif lvl == 4 then
-            return 'ACpu'
-        elseif lvl == 5 then
-            return 'ACls'
-        elseif lvl == 6 then
-            return 'ACfn'
-        elseif lvl == 7 then
-            return 'ACbl'
-        elseif lvl == 8 then
-            return 'ACfl'
-        elseif lvl == 9 then
-            return 'AChx'
-        elseif lvl == 10 then
-            return 'ACf2'
-        endif
-    endif
-    return 0
+function Wild_GetCreepBaseArmor takes integer cat, integer tier, integer sub returns real
+    return udg_Wild_TplArmor[Wild_GetCreepIndex(cat, tier, sub)]
+endfunction
+
+function Wild_GetCreepAtkCool takes integer cat, integer tier, integer sub returns real
+    return udg_Wild_TplAtkCool[Wild_GetCreepIndex(cat, tier, sub)]
+endfunction
+
+function Wild_GetCreepMoveSpeed takes integer cat, integer tier, integer sub returns real
+    return udg_Wild_TplMove[Wild_GetCreepIndex(cat, tier, sub)]
+endfunction
+
+function Wild_GetCreepRange takes integer cat, integer tier, integer sub returns integer
+    return udg_Wild_TplRange[Wild_GetCreepIndex(cat, tier, sub)]
+endfunction
+
+function Wild_GetCreepScale takes integer cat, integer tier, integer sub returns real
+    return udg_Wild_TplScale[Wild_GetCreepIndex(cat, tier, sub)]
+endfunction
+
+function Wild_GetCreepAbil takes integer cat, integer tier, integer sub returns integer
+    return udg_Wild_TplAbil[Wild_GetCreepIndex(cat, tier, sub)]
+endfunction
+
+function Wild_GetCreepAbilName takes integer cat, integer tier, integer sub returns string
+    return udg_Wild_TplAbilName[Wild_GetCreepIndex(cat, tier, sub)]
+endfunction
+
+function Wild_InitCreepTemplates takes nothing returns nothing
+    call Wild_SetTpl(1, 1, 1, 'nkob', "狗头人苦工", "狗头人苦工 (高血/防御)", 320, 0, 13, 3.0, 1.40, 270.0, 128, 1.00, 'ACev', "闪避")
+    call Wild_SetTpl(1, 1, 2, 'ngns', "豺狼人刺客", "豺狼人刺客 (狂暴/快攻)", 260, 0, 16, 1.0, 1.10, 300.0, 128, 1.00, 'ACpu', "重击/暴击")
+    call Wild_SetTpl(1, 1, 3, 'nmrr', "鱼人战士", "鱼人战士 (均衡/抗性)", 280, 0, 14, 2.0, 1.35, 280.0, 128, 1.00, 'ACcs', "抗性皮肤")
+    call Wild_SetTpl(1, 2, 1, 'ngrk', "泥土魔像", "泥土魔像 (石肤/高血)", 480, 0, 19, 4.0, 1.50, 270.0, 128, 1.05, 'ACcs', "抗性皮肤")
+    call Wild_SetTpl(1, 2, 2, 'nrzb', "刺背兽蛮兵", "刺背兽蛮兵 (狂暴/重击)", 380, 0, 23, 2.0, 1.15, 310.0, 128, 1.00, 'ACbh', "重击")
+    call Wild_SetTpl(1, 2, 3, 'ngno', "豺狼人头目", "豺狼人头目 (战歌/光环)", 420, 0, 20, 3.0, 1.35, 290.0, 128, 1.05, 'ACct', "战歌光环")
+    call Wild_SetTpl(1, 3, 1, 'nrzm', "刺背兽盾战", "刺背兽盾战 (坚韧/重甲)", 620, 0, 25, 4.0, 1.45, 280.0, 128, 1.05, 'ACcs', "抗性皮肤")
+    call Wild_SetTpl(1, 3, 2, 'ncen', "半人马先锋", "半人马先锋 (突击/狂暴)", 520, 0, 30, 2.0, 1.15, 320.0, 128, 1.05, 'ACbh', "重击")
+    call Wild_SetTpl(1, 3, 3, 'ndtb', "黑巨魔战士", "黑巨魔战士 (暗影/闪避)", 550, 0, 27, 3.0, 1.30, 300.0, 128, 1.05, 'ACev', "高阶闪避")
+    call Wild_SetTpl(1, 4, 1, 'nogr', "食人魔战士", "食人魔战士 (巨力/厚皮)", 780, 0, 32, 4.0, 1.50, 270.0, 128, 1.10, 'ACcs', "抗性皮肤")
+    call Wild_SetTpl(1, 4, 2, 'nsat', "萨特狂怒者", "萨特狂怒者 (暗影/暴击)", 650, 0, 38, 2.0, 1.10, 320.0, 128, 1.10, 'ACpu', "致命一击")
+    call Wild_SetTpl(1, 4, 3, 'nfrg', "熊怪战士", "熊怪战士 (战嚎/重锤)", 720, 0, 34, 3.0, 1.35, 290.0, 128, 1.10, 'ACro', "战嚎")
+    call Wild_SetTpl(1, 5, 1, 'nfrb', "熊怪巨熊酋长", "熊怪巨熊酋长 (重甲/耐力)", 950, 0, 40, 5.0, 1.45, 280.0, 128, 1.15, 'ACen', "耐力光环")
+    call Wild_SetTpl(1, 5, 2, 'nanw', "刺背蛛魔督军", "刺背蛛魔督军 (穿刺/狂暴)", 800, 0, 48, 3.0, 1.10, 330.0, 128, 1.15, 'ACpu', "致命重击")
+    call Wild_SetTpl(1, 5, 3, 'nsth', "萨特幽灵盗贼", "萨特幽灵盗贼 (幽灵/极速闪避)", 850, 0, 44, 4.0, 1.25, 310.0, 128, 1.15, 'ACev', "极速闪避")
+    call Wild_SetTpl(1, 6, 1, 'nogm', "食人魔霸主", "食人魔霸主 (泰坦/粉碎重击)", 1150, 0, 48, 5.0, 1.45, 280.0, 128, 1.20, 'ACbh', "粉碎重击")
+    call Wild_SetTpl(1, 6, 2, 'nftb', "巨魔狂战士", "巨魔狂战士 (狂怒/极速嗜血)", 950, 0, 58, 3.0, 1.05, 340.0, 128, 1.15, 'ACbl', "嗜血术")
+    call Wild_SetTpl(1, 6, 3, 'nrvs', "极寒冰霜守卫", "极寒冰霜守卫 (霜冻/抗性神肤)", 1050, 0, 52, 4.0, 1.30, 300.0, 128, 1.20, 'ACcs', "抗性皮肤")
+    call Wild_SetTpl(1, 7, 1, 'ngst', "岩石魔像", "岩石魔像 (坚石/投掷重石)", 1350, 0, 56, 6.0, 1.50, 270.0, 128, 1.25, 'ACtb', "巨石投掷")
+    call Wild_SetTpl(1, 7, 2, 'nsts', "萨特狱火撕裂者", "萨特狱火撕裂者 (毁灭/高阶暴击)", 1150, 0, 68, 3.0, 1.05, 340.0, 128, 1.20, 'ACpu', "高阶暴击")
+    call Wild_SetTpl(1, 7, 3, 'ncnk', "半人马可汗", "半人马可汗 (战争领袖/耐力光环)", 1250, 0, 60, 5.0, 1.35, 310.0, 128, 1.25, 'ACen', "耐力光环")
+    call Wild_SetTpl(1, 8, 1, 'nmam', "远古猛犸象", "远古猛犸象 (冰原巨兽/震荡波)", 1600, 0, 65, 6.0, 1.50, 280.0, 128, 1.30, 'ACsh', "震荡波")
+    call Wild_SetTpl(1, 8, 2, 'nbdm', "龙人近卫督军", "龙人近卫督军 (龙鳞/狂暴重斩)", 1350, 0, 80, 4.0, 1.05, 340.0, 128, 1.25, 'ACpu', "龙王暴击")
+    call Wild_SetTpl(1, 8, 3, 'nsgb', "海巨人暴怒者", "海巨人暴怒者 (深海坚壳/抗性)", 1500, 0, 70, 7.0, 1.40, 270.0, 128, 1.30, 'ACcs', "硬化外壳")
+    call Wild_SetTpl(1, 9, 1, 'nwrg', "战争魔像", "战争魔像 (泰坦石躯/心灵之火)", 1900, 0, 78, 8.0, 1.50, 280.0, 128, 1.35, 'ACif', "心灵之火")
+    call Wild_SetTpl(1, 9, 2, 'nano', "刺背蛛魔皇族", "刺背蛛魔皇族 (深渊撕裂/狂暴)", 1600, 0, 95, 5.0, 1.05, 350.0, 128, 1.30, 'ACpu', "致死暴击")
+    call Wild_SetTpl(1, 9, 3, 'ndrv', "深渊复仇亡魂", "深渊复仇亡魂 (死亡之握/极速闪避)", 1700, 0, 85, 6.0, 1.15, 330.0, 128, 1.30, 'ACev', "高阶闪避")
+    call Wild_SetTpl(1, 10, 1, 'nggr', "花岗岩傀儡", "花岗岩傀儡 (巨石神体/投石/极高护甲)", 2300, 0, 95, 10.0, 1.50, 280.0, 128, 1.40, 'ACtb', "巨石飞掷")
+    call Wild_SetTpl(1, 10, 2, 'nbwm', "远古黑色巨龙", "远古黑色巨龙 (灭世龙神/毁灭龙皇暴击)", 2000, 0, 120, 7.0, 1.05, 360.0, 128, 1.40, 'ACpu', "龙皇毁灭暴击")
+    call Wild_SetTpl(1, 10, 3, 'ninf', "远古地狱火", "远古地狱火 (天外陨神/烈焰献祭/抗性)", 2150, 0, 105, 8.0, 1.25, 300.0, 128, 1.40, 'ACcs', "抗性神皮")
+    call Wild_SetTpl(2, 1, 1, 'nkog', "狗头人地卜师", "狗头人地卜师 (投石稳固/坚毅)", 280, 0, 14, 2.0, 1.40, 280.0, 500, 1.00, 'ACcs', "抗性皮肤")
+    call Wild_SetTpl(2, 1, 2, 'nftt', "森林巨魔猎手", "森林巨魔猎手 (飞斧/迅捷连掷)", 240, 0, 17, 1.0, 1.10, 310.0, 500, 1.00, 'ACpu', "暴击")
+    call Wild_SetTpl(2, 1, 3, 'nhar', "鹰身女妖盗贼", "鹰身女妖盗贼 (疾风低空/灵巧闪避)", 250, 0, 15, 2.0, 1.25, 320.0, 500, 1.00, 'ACev', "闪避")
+    call Wild_SetTpl(2, 2, 1, 'ncea', "半人马射手", "半人马射手 (强弓重箭/稳固)", 400, 0, 20, 3.0, 1.35, 290.0, 500, 1.05, 'ACcs', "抗性皮肤")
+    call Wild_SetTpl(2, 2, 2, 'ngna', "豺狼人强盗", "豺狼人强盗 (连弩破甲/迅捷)", 340, 0, 24, 1.0, 1.10, 310.0, 500, 1.00, 'ACpu', "致命一击")
+    call Wild_SetTpl(2, 2, 3, 'nmrm', "鱼人猎手", "鱼人猎手 (剧毒骨矛/迟缓)", 360, 0, 21, 2.0, 1.25, 300.0, 500, 1.05, 'ACen', "剧毒光环")
+    call Wild_SetTpl(2, 3, 1, 'nrzg', "野猪人狙击手", "野猪人狙击手 (穿刺重矢/重装)", 520, 0, 26, 3.0, 1.35, 290.0, 500, 1.05, 'ACcs', "抗性皮肤")
+    call Wild_SetTpl(2, 3, 2, 'nstl', "萨特欺诈弓手", "萨特欺诈弓手 (暗影射击/极速)", 440, 0, 31, 2.0, 1.10, 320.0, 550, 1.05, 'ACev', "闪避")
+    call Wild_SetTpl(2, 3, 3, 'nrvf', "冰霜幽魂弓手", "冰霜幽魂弓手 (冰霜箭/霜冻新星)", 480, 0, 28, 2.0, 1.25, 300.0, 550, 1.05, 'ACfn', "霜冻新星")
+    call Wild_SetTpl(2, 4, 1, 'nrzs', "野猪人猎头手", "野猪人猎头手 (猎头重矛/穿刺狂暴)", 650, 0, 33, 4.0, 1.30, 300.0, 550, 1.10, 'ACcs', "抗性皮肤")
+    call Wild_SetTpl(2, 4, 2, 'nnwa', "蛛魔穿刺斥候", "蛛魔穿刺斥候 (蛛刺毒芒/连击暴击)", 560, 0, 39, 2.0, 1.05, 330.0, 550, 1.10, 'ACpu', "致命暴击")
+    call Wild_SetTpl(2, 4, 3, 'nhrw', "鹰身风行者", "鹰身风行者 (疾风闪避/天界灵动)", 600, 0, 35, 3.0, 1.20, 340.0, 550, 1.10, 'ACev', "高阶闪避")
+    call Wild_SetTpl(2, 5, 1, 'nrvi', "寒冰亡魂骨弓", "寒冰亡魂骨弓 (霜冻甲壳/抗魔)", 800, 0, 40, 4.0, 1.30, 300.0, 550, 1.15, 'ACcs', "抗性皮肤")
+    call Wild_SetTpl(2, 5, 2, 'ndtt', "黑巨魔猎手", "黑巨魔猎手 (狂暴投刃/嗜血神威)", 680, 0, 49, 2.0, 1.05, 330.0, 550, 1.15, 'ACbl', "嗜血术")
+    call Wild_SetTpl(2, 5, 3, 'nnwl', "蛛魔织网者", "蛛魔织网者 (阴影蛛网/控场缚敌)", 730, 0, 43, 3.0, 1.20, 310.0, 550, 1.15, 'ACsw', "蛛网")
+    call Wild_SetTpl(2, 6, 1, 'nbdm', "龙人近卫射手", "龙人近卫射手 (龙鳞防御/远距重弩)", 980, 0, 48, 5.0, 1.30, 310.0, 600, 1.20, 'ACcs', "抗性皮肤")
+    call Wild_SetTpl(2, 6, 2, 'nitt', "冰巨魔狂暴掷斧", "冰巨魔狂暴掷斧 (破冰飞斧/暴击割裂)", 830, 0, 58, 3.0, 1.00, 340.0, 550, 1.15, 'ACpu', "致命一击")
+    call Wild_SetTpl(2, 6, 3, 'nhrh', "鹰身风暴女巫", "鹰身风暴女巫 (雷鸣呼唤/风暴震击)", 880, 0, 51, 4.0, 1.20, 330.0, 550, 1.20, 'ACtb', "风暴之锤")
+    call Wild_SetTpl(2, 7, 1, 'ncnt', "半人马强袭统领", "半人马强袭统领 (统御重弓/战歌光环)", 1150, 0, 57, 5.0, 1.30, 320.0, 600, 1.25, 'ACct', "战歌光环")
+    call Wild_SetTpl(2, 7, 2, 'nass', "暗影刺客宗师", "暗影刺客宗师 (淬毒致命暗刃/极速)", 980, 0, 70, 3.0, 0.95, 360.0, 550, 1.20, 'ACpu', "致死暗袭")
+    call Wild_SetTpl(2, 7, 3, 'nrvl', "极寒怨灵领主", "极寒怨灵领主 (绝对霜霜/霜冻风暴)", 1050, 0, 62, 4.0, 1.20, 310.0, 600, 1.25, 'ACfn', "霜冻新星")
+    call Wild_SetTpl(2, 8, 1, 'nbdo', "龙人督察", "龙人督察 (龙威重弩/坚毅龙鳞)", 1350, 0, 67, 6.0, 1.30, 320.0, 600, 1.30, 'ACcs', "抗性皮肤")
+    call Wild_SetTpl(2, 8, 2, 'ndtr', "深渊复仇射手", "深渊复仇射手 (暗夜风影/极速闪避)", 1150, 0, 82, 4.0, 0.95, 370.0, 600, 1.25, 'ACev', "高阶闪避")
+    call Wild_SetTpl(2, 8, 3, 'nadw', "碧蓝幼龙", "碧蓝幼龙 (冰霜吐息/巨龙烈焰)", 1250, 0, 72, 5.0, 1.20, 330.0, 600, 1.25, 'ACf2', "冰霜吐息")
+    call Wild_SetTpl(2, 9, 1, 'nndk', "虚空穿刺幼龙", "虚空穿刺幼龙 (虚空龙鳞/超远射程)", 1600, 0, 78, 7.0, 1.25, 330.0, 650, 1.30, 'ACcs', "抗性皮肤")
+    call Wild_SetTpl(2, 9, 2, 'nmdr', "极地猛犸射手", "极地猛犸射手 (冰原战意/致命重击)", 1350, 0, 98, 4.0, 0.90, 380.0, 600, 1.35, 'ACpu', "泰坦重击")
+    call Wild_SetTpl(2, 9, 3, 'nbdk', "黑龙近卫幼龙", "黑龙近卫幼龙 (毁灭黑炎/黑龙暴击)", 1450, 0, 86, 6.0, 1.15, 340.0, 600, 1.30, 'ACf2', "黑龙龙炎")
+    call Wild_SetTpl(2, 10, 1, 'nbzw', "远古青铜龙", "远古青铜龙 (时光守护/神圣龙鳞)", 1950, 0, 92, 9.0, 1.25, 340.0, 600, 1.40, 'ACcs', "抗性神皮")
+    call Wild_SetTpl(2, 10, 2, 'nbwm', "远古黑色巨龙", "远古黑色巨龙 (600射程终极黑龙毁灭暴击)", 1700, 0, 115, 6.0, 0.90, 390.0, 600, 1.40, 'ACpu', "龙皇毁灭暴击")
+    call Wild_SetTpl(2, 10, 3, 'nadr', "远古碧蓝巨龙", "远古碧蓝巨龙 (绝对零度/极寒冰霜吐息)", 1800, 0, 100, 7.0, 1.15, 340.0, 600, 1.40, 'ACfn', "霜冻新星")
+    call Wild_SetTpl(3, 1, 1, 'nfsp', "森林巨魔暗影牧师", "森林巨魔暗影牧师 (医疗神术/恢复)", 260, 300, 12, 1.0, 1.40, 280.0, 550, 1.00, 'ACrj', "医疗神术")
+    call Wild_SetTpl(3, 1, 2, 'nkog', "狗头人占卜师", "狗头人占卜师 (心灵之火/法力澎湃)", 240, 280, 15, 0.0, 1.30, 290.0, 550, 1.00, 'ACif', "心灵之火")
+    call Wild_SetTpl(3, 1, 3, 'nstl', "萨特诡计巫师", "萨特诡计巫师 (虚空之眼/净化术)", 250, 320, 13, 1.0, 1.35, 280.0, 550, 1.00, 'ACpu', "净化残卷")
+    call Wild_SetTpl(3, 2, 1, 'ngnw', "豺狼人巫医", "豺狼人巫医 (生命之源/治愈)", 360, 350, 18, 2.0, 1.35, 280.0, 550, 1.05, 'ACrj', "医疗术")
+    call Wild_SetTpl(3, 2, 2, 'ncks', "半人马巫师", "半人马巫师 (心灵之火/狂怒)", 340, 320, 21, 1.0, 1.25, 300.0, 550, 1.05, 'ACif', "心灵之火")
+    call Wild_SetTpl(3, 2, 3, 'nstl', "萨特欺诈法师", "萨特欺诈法师 (虚空放逐/净化)", 350, 380, 19, 1.0, 1.30, 290.0, 550, 1.05, 'ACpu', "净化")
+    call Wild_SetTpl(3, 3, 1, 'nomg', "食人魔魔导师", "食人魔魔导师 (狂暴之血/嗜血术)", 500, 400, 24, 2.0, 1.35, 290.0, 550, 1.10, 'ACbl', "嗜血术")
+    call Wild_SetTpl(3, 3, 2, 'nrvf', "极寒幽魂法师", "极寒幽魂法师 (极寒爆裂/霜冻新星)", 450, 380, 29, 1.0, 1.25, 300.0, 550, 1.10, 'ACfn', "霜冻新星")
+    call Wild_SetTpl(3, 3, 3, 'nnwl', "蛛魔地网控者", "蛛魔地网控者 (阴影缚敌/地网缠绕)", 470, 420, 25, 2.0, 1.30, 290.0, 550, 1.10, 'ACsw', "蛛网")
+    call Wild_SetTpl(3, 4, 1, 'nfrs', "熊怪长者萨满", "熊怪长者萨满 (风暴雷霆/闪电之盾)", 620, 450, 30, 3.0, 1.35, 290.0, 550, 1.10, 'ACls', "闪电之盾")
+    call Wild_SetTpl(3, 4, 2, 'nrzm', "野猪人智者", "野猪人智者 (烈焰冲击/震荡波)", 560, 420, 36, 2.0, 1.25, 300.0, 550, 1.10, 'ACsh', "震荡波")
+    call Wild_SetTpl(3, 4, 3, 'nhrh', "鹰身风暴祭司", "鹰身风暴祭司 (天神震慑/风暴之锤)", 580, 480, 32, 2.0, 1.30, 310.0, 550, 1.10, 'ACtb', "风暴之锤")
+    call Wild_SetTpl(3, 5, 1, 'nwzg', "变节大法师", "变节大法师 (极寒冰环/霜冻新星)", 750, 520, 36, 3.0, 1.30, 300.0, 550, 1.15, 'ACfn', "霜冻新星")
+    call Wild_SetTpl(3, 5, 2, 'nltl', "闪电蜥蜴幼兽", "闪电蜥蜴幼兽 (雷霆叉状闪电)", 680, 480, 43, 2.0, 1.20, 310.0, 550, 1.15, 'ACfl', "叉状闪电")
+    call Wild_SetTpl(3, 5, 3, 'nsth', "萨特暗影法王", "萨特暗影法王 (暗影抗性/黑魔法)", 710, 550, 38, 3.0, 1.25, 300.0, 550, 1.15, 'ACcs', "抗性皮肤")
+    call Wild_SetTpl(3, 6, 1, 'nfrb', "熊怪巨熊神萨", "熊怪巨熊神萨 (神圣雷电/闪电之盾)", 900, 600, 42, 4.0, 1.30, 300.0, 550, 1.20, 'ACls', "闪电之盾")
+    call Wild_SetTpl(3, 6, 2, 'nrdk', "红龙近卫法龙", "红龙近卫法龙 (纯正红龙烈焰吐息)", 820, 550, 51, 3.0, 1.20, 320.0, 550, 1.20, 'ACf2', "烈焰吐息")
+    call Wild_SetTpl(3, 6, 3, 'nhrq', "鹰身女妖女皇", "鹰身女妖女皇 (雷霆风暴锤/天罚)", 860, 620, 45, 3.0, 1.25, 320.0, 550, 1.20, 'ACtb', "风暴之锤")
+    call Wild_SetTpl(3, 7, 1, 'nerw', "艾瑞达巫师", "艾瑞达巫师 (暗影神火/心灵之火)", 1050, 680, 49, 4.0, 1.30, 310.0, 550, 1.25, 'ACif', "心灵之火")
+    call Wild_SetTpl(3, 7, 2, 'nstw', "雷霆巨蜥", "雷霆巨蜥 (雷霆万钧/极速叉状闪电)", 950, 620, 60, 3.0, 1.20, 320.0, 550, 1.25, 'ACfl', "叉状闪电")
+    call Wild_SetTpl(3, 7, 3, 'nerd', "艾瑞达恶魔学徒", "艾瑞达恶魔学徒 (暗影变身/妖术)", 1000, 700, 52, 3.0, 1.25, 310.0, 550, 1.25, 'AChx', "妖术")
+    call Wild_SetTpl(3, 8, 1, 'nwrg', "战争魔导师", "战争魔导师 (泰坦心火/神圣石甲)", 1250, 780, 56, 5.0, 1.30, 310.0, 600, 1.30, 'ACif', "心灵之火")
+    call Wild_SetTpl(3, 8, 2, 'nslh', "暴怒雷霆巨蜥", "暴怒雷霆巨蜥 (天怒雷霆风暴/连锁闪电)", 1100, 700, 70, 4.0, 1.15, 330.0, 600, 1.30, 'ACfl', "叉状闪电")
+    call Wild_SetTpl(3, 8, 3, 'nerd', "艾瑞达暗影术士", "艾瑞达暗影术士 (暗影妖术/混乱放逐)", 1180, 800, 60, 4.0, 1.25, 320.0, 600, 1.30, 'AChx', "暗影妖术")
+    call Wild_SetTpl(3, 9, 1, 'nhyd', "远古九头蛇", "远古九头蛇 (多头毒神/抗性皮肤)", 1500, 880, 65, 6.0, 1.25, 320.0, 600, 1.35, 'ACcs', "抗性皮肤")
+    call Wild_SetTpl(3, 9, 2, 'nrwm', "远古红龙统领", "远古红龙统领 (真龙焚天/灭世烈焰)", 1300, 800, 82, 5.0, 1.15, 340.0, 600, 1.35, 'ACf2', "真龙烈焰")
+    call Wild_SetTpl(3, 9, 3, 'nerw', "艾瑞达大恶魔", "艾瑞达大恶魔 (暗影妖术/恶魔放逐)", 1400, 900, 70, 5.0, 1.20, 330.0, 600, 1.35, 'AChx', "暗影妖术")
+    call Wild_SetTpl(3, 10, 1, 'nbzw', "远古青铜龙神", "远古青铜龙神 (时光心火/不灭真龙神体)", 1800, 1000, 75, 8.0, 1.25, 330.0, 600, 1.40, 'ACif', "心灵之火")
+    call Wild_SetTpl(3, 10, 2, 'nrdr', "远古红色巨龙", "远古红色巨龙 (真龙灭世烈焰/冰霜神护)", 1600, 950, 98, 6.0, 1.10, 350.0, 600, 1.40, 'ACf2', "真龙烈焰")
+    call Wild_SetTpl(3, 10, 3, 'nerw', "艾瑞达毁灭术皇", "艾瑞达毁灭术皇 (深渊妖术/终极放逐)", 1700, 1050, 85, 7.0, 1.20, 340.0, 600, 1.40, 'AChx', "暗影妖术")
 endfunction
 
 function Wild_OnMorphSuccess takes unit u, integer formId returns nothing
-    // Hook reserved for Phase 3 / future passive stacking
+    // Reserved hook for passive stacking
 endfunction
 
-function Wild_ApplyFormStats takes unit u, integer cat, integer lvl returns nothing
-    local integer baseHP = 0
-    local integer baseMana = 0
-    local real armor = 0.0
-    local real rangeN = 128.0
-    local real cool = 1.50
-    local real scale = 1.00
-    local integer strBonus = GetHeroStr(u, true) * 25
-    local integer intBonus = GetHeroInt(u, true) * 15
-
-    if cat == 0 then
-        // Base Avatar form
-        set baseHP = 600 + strBonus
-        set baseMana = 300 + intBonus
-        set armor = 3.0
-        set rangeN = 128.0
-        set cool = 1.50
-        set scale = 1.15
-        call BlzSetUnitSkin(u, 'H005')
-        call BlzSetUnitName(u, "万灵化身")
-    else
-        // Wild Creep form
-        call BlzSetUnitSkin(u, Wild_GetFormUnitTypeId(cat, lvl))
-        call BlzSetUnitName(u, "万灵化身 - " + Wild_GetFormName(cat, lvl))
-        set baseHP = Wild_GetFormHP(cat, lvl) + strBonus
-        if Wild_GetFormMana(cat, lvl) > 0 then
-            set baseMana = Wild_GetFormMana(cat, lvl) + intBonus
-        else
-            set baseMana = 0
-        endif
-        set armor = Wild_GetFormArmor(cat, lvl)
-        set rangeN = Wild_GetFormRange(cat, lvl)
-        set cool = Wild_GetFormAtkCool(cat, lvl)
-        set scale = Wild_GetFormScale(cat, lvl)
-    endif
-
-    call BlzSetUnitMaxHP(u, baseHP)
-    call BlzSetUnitMaxMana(u, baseMana)
-    call BlzSetUnitArmor(u, armor)
-    call BlzSetUnitAttackCooldown(u, cool, 0)
-    call BlzSetUnitWeaponRealField(u, UNIT_WEAPON_RF_ATTACK_RANGE, 0, rangeN)
-    call SetUnitScale(u, scale, scale, scale)
-endfunction
-
-function Wild_MorphTo takes unit u, integer cat, integer lvl returns nothing
+function Wild_DoMorph takes unit u, integer cat, integer tierLv, integer subIdx returns nothing
+    local player p = null
     local integer pId = 0
+    local integer abilCode = 'A031'
+    local integer sLv = 1
+    local real mult = 1.00
+    local integer rank = 1
+    local real cd = 10.0
+    local boolean isDual = false
+    local integer skinId = 0
+    local string name = ""
+    local integer creepHP = 0
+    local integer creepMana = 0
+    local integer creepDmg = 0
+    local real creepArmor = 0.0
+    local real creepCool = 0.0
+    local real creepMove = 0.0
+    local integer creepRange = 128
+    local real creepScale = 1.0
+    local integer creepAbil = 0
+    local string creepAbilName = ""
+    local integer str = 0
+    local integer agi = 0
+    local integer intVal = 0
+    local integer hLv = 0
+    local integer finalMaxHP = 0
+    local integer finalDmg = 0
+    local real finalArmor = 0.0
+    local integer finalMaxMana = 0
+    local real finalAtkCool = 0.0
     local real oldHP = 0.0
-    local integer oldMaxHP = 0
+    local real oldMaxHP = 0.0
     local real hpRatio = 1.0
-    local integer curMaxMana = 0
-    local integer newMaxHP = 0
-    local integer newMaxMana = 0
-    local integer newHP = 0
-    local integer formAbil = 0
-    local integer formId = cat * 100 + lvl
+    local real oldMaxMana = 0.0
+    local integer newCurHP = 1
+    local integer newCurMana = 0
+    local string dualMsg = ""
 
     if u == null or IsUnitType(u, UNIT_TYPE_DEAD) then
         return
     endif
-    set pId = GetPlayerId(GetOwningPlayer(u))
+    set p = GetOwningPlayer(u)
+    set pId = GetPlayerId(p)
 
-    // 1. Calculate HP ratio
-    set oldHP = GetWidgetLife(u)
-    set oldMaxHP = BlzGetUnitMaxHP(u)
-    if oldMaxHP <= 0 then
-        set oldMaxHP = 1
+    if cat == 2 then
+        set abilCode = 'A032'
+    elseif cat == 3 then
+        set abilCode = 'A033'
     endif
-    set hpRatio = oldHP / I2R(oldMaxHP)
+    set sLv = GetUnitAbilityLevel(u, abilCode)
+    if sLv < 1 then
+        set sLv = 1
+    endif
+
+    if sLv == 1 then
+        set mult = 1.00
+        set rank = 1
+        set cd = 10.0
+        set isDual = false
+    elseif sLv == 2 then
+        set mult = 1.35
+        set rank = 2
+        set cd = 8.0
+        set isDual = false
+    else
+        set mult = 1.70
+        set rank = 3
+        set cd = 6.0
+        set isDual = true
+    endif
+
+    if tierLv < 1 then
+        set tierLv = 1
+    endif
+    if tierLv > 10 then
+        set tierLv = 10
+    endif
+    if subIdx < 1 then
+        set subIdx = 1
+    endif
+    if subIdx > 3 then
+        set subIdx = 3
+    endif
+
+    set skinId = Wild_GetCreepSkinId(cat, tierLv, subIdx)
+    set name = Wild_GetCreepName(cat, tierLv, subIdx)
+    set creepHP = Wild_GetCreepBaseHP(cat, tierLv, subIdx)
+    set creepMana = Wild_GetCreepBaseMana(cat, tierLv, subIdx)
+    set creepDmg = Wild_GetCreepBaseDmg(cat, tierLv, subIdx)
+    set creepArmor = Wild_GetCreepBaseArmor(cat, tierLv, subIdx)
+    set creepCool = Wild_GetCreepAtkCool(cat, tierLv, subIdx)
+    set creepMove = Wild_GetCreepMoveSpeed(cat, tierLv, subIdx)
+    set creepRange = Wild_GetCreepRange(cat, tierLv, subIdx)
+    set creepScale = Wild_GetCreepScale(cat, tierLv, subIdx)
+    set creepAbil = Wild_GetCreepAbil(cat, tierLv, subIdx)
+    set creepAbilName = Wild_GetCreepAbilName(cat, tierLv, subIdx)
+
+    set str = GetHeroStr(u, true)
+    set agi = GetHeroAgi(u, true)
+    set intVal = GetHeroInt(u, true)
+    set hLv = GetHeroLevel(u)
+
+    if not isDual then
+        set finalMaxHP = R2I(I2R(creepHP) * mult)
+        set finalDmg = R2I(I2R(creepDmg) * mult)
+        set finalArmor = creepArmor * mult
+        if creepMana > 0 then
+            set finalMaxMana = R2I(I2R(creepMana) * mult)
+        else
+            set finalMaxMana = 0
+        endif
+        set finalAtkCool = creepCool
+    else
+        set finalMaxHP = R2I(I2R(creepHP) * 1.70) + str * 25 + hLv * 80
+        set finalDmg = R2I(I2R(creepDmg) * 1.70) + R2I(I2R(str + agi + intVal) * 1.20)
+        set finalArmor = creepArmor * 1.70 + I2R(agi) * 0.35
+        if creepMana > 0 then
+            set finalMaxMana = R2I(I2R(creepMana) * 1.70) + intVal * 20
+        else
+            set finalMaxMana = 0
+        endif
+        set finalAtkCool = creepCool * 0.80
+    endif
+
+    // Ratio preservation
+    set oldHP = GetWidgetLife(u)
+    set oldMaxHP = I2R(BlzGetUnitMaxHP(u))
+    if oldMaxHP > 0.0 then
+        set hpRatio = oldHP / oldMaxHP
+    else
+        set hpRatio = 1.0
+    endif
+    if hpRatio <= 0.0 then
+        set hpRatio = 0.01
+    endif
     if hpRatio > 1.0 then
         set hpRatio = 1.0
     endif
-    if hpRatio < 0.005 then
-        set hpRatio = 0.005
-    endif
 
-    // 2. Preserve Mana ratio
-    set curMaxMana = BlzGetUnitMaxMana(u)
-    if curMaxMana > 0 then
-        set udg_Wild_StoredManaRatio[pId] = GetUnitState(u, UNIT_STATE_MANA) / I2R(curMaxMana)
+    set oldMaxMana = I2R(BlzGetUnitMaxMana(u))
+    if oldMaxMana > 0.0 then
+        set udg_Wild_StoredManaRatio[pId] = GetUnitState(u, UNIT_STATE_MANA) / oldMaxMana
         if udg_Wild_StoredManaRatio[pId] > 1.0 then
             set udg_Wild_StoredManaRatio[pId] = 1.0
         endif
     endif
+    if udg_Wild_StoredManaRatio[pId] <= 0.0 then
+        set udg_Wild_StoredManaRatio[pId] = 1.0
+    endif
 
-    // 3. Remove old signature ability
+    // Remove old ability
     if udg_Wild_CurrentAbil[pId] != 0 then
         call UnitRemoveAbility(u, udg_Wild_CurrentAbil[pId])
         set udg_Wild_CurrentAbil[pId] = 0
     endif
 
-    // 4. Apply new form visuals and stats
-    call Wild_ApplyFormStats(u, cat, lvl)
+    // Apply skin, name, scale
+    call BlzSetUnitSkin(u, skinId)
+    call BlzSetUnitName(u, "万灵化身 - " + name)
+    call SetUnitScale(u, creepScale, creepScale, creepScale)
 
-    // 5. Apply new HP based on ratio (guaranteed minimum 1 HP)
-    set newMaxHP = BlzGetUnitMaxHP(u)
-    set newHP = R2I(I2R(newMaxHP) * hpRatio)
-    if newHP < 1 then
-        set newHP = 1
+    // Apply stats
+    call BlzSetUnitMaxHP(u, finalMaxHP)
+    set newCurHP = R2I(I2R(finalMaxHP) * hpRatio)
+    if newCurHP < 1 then
+        set newCurHP = 1
     endif
-    call SetWidgetLife(u, I2R(newHP))
+    call SetWidgetLife(u, I2R(newCurHP))
 
-    // 6. Apply new Mana based on ratio
-    set newMaxMana = BlzGetUnitMaxMana(u)
-    if newMaxMana > 0 then
-        if udg_Wild_StoredManaRatio[pId] <= 0.0 then
-            set udg_Wild_StoredManaRatio[pId] = 1.0
-        endif
-        call SetUnitState(u, UNIT_STATE_MANA, I2R(newMaxMana) * udg_Wild_StoredManaRatio[pId])
-    endif
-
-    // 7. Grant signature ability if available
-    if cat > 0 then
-        set formAbil = Wild_GetFormAbil(cat, lvl)
-        if formAbil != 0 then
-            call UnitAddAbility(u, formAbil)
-            set udg_Wild_CurrentAbil[pId] = formAbil
-        endif
-        set udg_Wild_IsMorphed[pId] = true
-        set udg_Wild_CurrentForm[pId] = formId
-        set udg_Wild_CurrentFormType[pId] = cat
-        set udg_Wild_CurrentFormLevel[pId] = lvl
+    if finalMaxMana > 0 then
+        call BlzSetUnitMaxMana(u, finalMaxMana)
+        set newCurMana = R2I(I2R(finalMaxMana) * udg_Wild_StoredManaRatio[pId])
+        call SetUnitState(u, UNIT_STATE_MANA, I2R(newCurMana))
     else
-        set udg_Wild_IsMorphed[pId] = false
-        set udg_Wild_CurrentForm[pId] = 0
-        set udg_Wild_CurrentFormType[pId] = 0
-        set udg_Wild_CurrentFormLevel[pId] = 0
+        call BlzSetUnitMaxMana(u, 0)
+        call SetUnitState(u, UNIT_STATE_MANA, 0.0)
     endif
 
-    // 8. Visual and sound feedback
-    call DestroyEffect(AddSpecialEffectTarget("Abilities\\\\Spells\\\\NightElf\\\\FaerieDragon\\\\PhaseShiftTarget.mdl", u, "origin"))
-    call DestroyEffect(AddSpecialEffect("Abilities\\\\Spells\\\\Orc\\\\Bloodlust\\\\BloodlustTarget.mdl", GetUnitX(u), GetUnitY(u)))
+    call BlzSetUnitBaseDamage(u, finalDmg, 0)
+    call BlzSetUnitArmor(u, finalArmor)
+    call BlzSetUnitAttackCooldown(u, finalAtkCool, 0)
+    call SetUnitMoveSpeed(u, creepMove)
+    call BlzSetUnitWeaponRealField(u, UNIT_WEAPON_RF_ATTACK_RANGE, 0, I2R(creepRange))
 
-    // 9. Put Q, W, E on 10s cooldown
-    call BlzStartUnitAbilityCooldown(u, 'A031', 10.0)
-    call BlzStartUnitAbilityCooldown(u, 'A032', 10.0)
-    call BlzStartUnitAbilityCooldown(u, 'A033', 10.0)
-    set udg_Wild_MorphCD[pId] = 10.0
+    // Attach creep ability
+    if creepAbil != 0 then
+        set udg_Wild_CurrentAbil[pId] = creepAbil
+        call UnitAddAbility(u, creepAbil)
+        call SetUnitAbilityLevel(u, creepAbil, rank)
+        call UnitMakeAbilityPermanent(u, true, creepAbil)
+    endif
 
-    // 10. Invoke reserved extension hook
-    call Wild_OnMorphSuccess(u, formId)
+    // State tracking
+    set udg_Wild_IsMorphed[pId] = true
+    set udg_Wild_CurrentForm[pId] = skinId
+    set udg_Wild_CurrentFormType[pId] = cat
+    set udg_Wild_CurrentFormLevel[pId] = tierLv
+    set udg_Wild_MorphCD[pId] = cd
+
+    call BlzStartUnitAbilityCooldown(u, 'A031', cd)
+    call BlzStartUnitAbilityCooldown(u, 'A032', cd)
+    call BlzStartUnitAbilityCooldown(u, 'A033', cd)
+
+    call Wild_OnMorphSuccess(u, skinId)
+
+    // Screen display to human player
+    if GetPlayerController(p) == MAP_CONTROL_USER then
+        if isDual then
+            set dualMsg = " |cffff0000【★触发3级双面板荒野共鸣★】|r"
+        else
+            set dualMsg = ""
+        endif
+        call DisplayTimedTextToPlayer(p, 0, 0, 5.0, "|cffffcc00[万灵化形]|r 成功化身为 |cffff8000【" + name + "】|r！" + dualMsg)
+        call DisplayTimedTextToPlayer(p, 0, 0, 5.0, "面板属性: 生命: |cff00ff00" + I2S(finalMaxHP) + "|r | 攻击: |cffff6600" + I2S(finalDmg) + "|r | 护甲: |cff33ccff" + R2SW(finalArmor, 1, 1) + "|r | 攻速: |cffffff00" + R2SW(finalAtkCool, 1, 2) + "s|r | 特技: |cffffcc00" + creepAbilName + " (" + I2S(rank) + "阶)|r")
+    endif
+
+    set p = null
 endfunction
 
 function Wild_RevertToAvatar takes unit u returns nothing
+    local player p = null
     local integer pId = 0
-    if u == null then
+    local real oldHP = 0.0
+    local real oldMaxHP = 0.0
+    local real hpRatio = 1.0
+    local real oldMaxMana = 0.0
+    local integer str = 0
+    local integer agi = 0
+    local integer intVal = 0
+    local integer hLv = 0
+    local integer baseMaxHP = 0
+    local integer baseMaxMana = 0
+    local integer baseDmg = 0
+    local real baseArmor = 0.0
+    local real baseCool = 1.50
+    local real baseMove = 310.0
+    local integer baseRange = 128
+    local integer newCurHP = 1
+    local integer newCurMana = 0
+
+    if u == null or IsUnitType(u, UNIT_TYPE_DEAD) then
         return
     endif
-    set pId = GetPlayerId(GetOwningPlayer(u))
+    set p = GetOwningPlayer(u)
+    set pId = GetPlayerId(p)
+
     if not udg_Wild_IsMorphed[pId] then
-        call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 3.0, "|cffffcc00[返璞归真]|r 当前已处于万灵化身本体形态！")
+        if GetPlayerController(p) == MAP_CONTROL_USER then
+            call DisplayTimedTextToPlayer(p, 0, 0, 2.0, "|cffffcc00[万灵化身]|r 当前已处于本体神体形态。")
+        endif
+        set p = null
         return
     endif
-    call Wild_MorphTo(u, 0, 0)
-    call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 4.0, "|cff00ff00[返璞归真]|r 万灵化身解除了化形形态，重归自然本体！")
+
+    // Ratio preservation
+    set oldHP = GetWidgetLife(u)
+    set oldMaxHP = I2R(BlzGetUnitMaxHP(u))
+    if oldMaxHP > 0.0 then
+        set hpRatio = oldHP / oldMaxHP
+    else
+        set hpRatio = 1.0
+    endif
+    if hpRatio <= 0.0 then
+        set hpRatio = 0.01
+    endif
+    if hpRatio > 1.0 then
+        set hpRatio = 1.0
+    endif
+
+    set oldMaxMana = I2R(BlzGetUnitMaxMana(u))
+    if oldMaxMana > 0.0 then
+        set udg_Wild_StoredManaRatio[pId] = GetUnitState(u, UNIT_STATE_MANA) / oldMaxMana
+        if udg_Wild_StoredManaRatio[pId] > 1.0 then
+            set udg_Wild_StoredManaRatio[pId] = 1.0
+        endif
+    endif
+    if udg_Wild_StoredManaRatio[pId] <= 0.0 then
+        set udg_Wild_StoredManaRatio[pId] = 1.0
+    endif
+
+    // Remove attached creep ability
+    if udg_Wild_CurrentAbil[pId] != 0 then
+        call UnitRemoveAbility(u, udg_Wild_CurrentAbil[pId])
+        set udg_Wild_CurrentAbil[pId] = 0
+    endif
+
+    // Restore skin, name, scale
+    call BlzSetUnitSkin(u, 'H005')
+    call BlzSetUnitName(u, "万灵化身")
+    call SetUnitScale(u, 1.15, 1.15, 1.15)
+
+    // Base stats
+    set str = GetHeroStr(u, true)
+    set agi = GetHeroAgi(u, true)
+    set intVal = GetHeroInt(u, true)
+    set hLv = GetHeroLevel(u)
+
+    set baseMaxHP = 650 + str * 25 + hLv * 50
+    set baseMaxMana = 400 + intVal * 15
+    set baseDmg = 35 + str + agi / 2
+    set baseArmor = 3.0 + I2R(agi) * 0.30
+    set baseCool = 1.50
+    set baseMove = 310.0
+    set baseRange = 128
+
+    call BlzSetUnitMaxHP(u, baseMaxHP)
+    set newCurHP = R2I(I2R(baseMaxHP) * hpRatio)
+    if newCurHP < 1 then
+        set newCurHP = 1
+    endif
+    call SetWidgetLife(u, I2R(newCurHP))
+
+    call BlzSetUnitMaxMana(u, baseMaxMana)
+    set newCurMana = R2I(I2R(baseMaxMana) * udg_Wild_StoredManaRatio[pId])
+    call SetUnitState(u, UNIT_STATE_MANA, I2R(newCurMana))
+
+    call BlzSetUnitBaseDamage(u, baseDmg, 0)
+    call BlzSetUnitArmor(u, baseArmor)
+    call BlzSetUnitAttackCooldown(u, baseCool, 0)
+    call SetUnitMoveSpeed(u, baseMove)
+    call BlzSetUnitWeaponRealField(u, UNIT_WEAPON_RF_ATTACK_RANGE, 0, I2R(baseRange))
+
+    set udg_Wild_IsMorphed[pId] = false
+    set udg_Wild_CurrentForm[pId] = 0
+    set udg_Wild_CurrentFormType[pId] = 0
+    set udg_Wild_CurrentFormLevel[pId] = 0
+
+    if GetPlayerController(p) == MAP_CONTROL_USER then
+        call DisplayTimedTextToPlayer(p, 0, 0, 3.0, "|cffffcc00[万灵化身]|r 已返璞归真，恢复自然神体！")
+    endif
+
+    set p = null
 endfunction
 
 function Wild_InitHero takes unit h returns nothing
@@ -4638,11 +4707,11 @@ function Wild_InitHero takes unit h returns nothing
         call UnitAddAbility(h, 'A034')
     endif
     if udg_Wild_IsMorphed[pId] then
-        call Wild_MorphTo(h, 0, 0)
+        call Wild_RevertToAvatar(h)
     endif
 endfunction
 
-function Wild_ShowMorphDialog takes player p, integer cat returns nothing
+function Wild_ShowTierDialog takes player p, integer cat returns nothing
     local integer pId = 0
     local unit u = null
     local integer heroLv = 1
@@ -4661,7 +4730,7 @@ function Wild_ShowMorphDialog takes player p, integer cat returns nothing
     endif
 
     if udg_Wild_MorphCD[pId] > 0.0 then
-        call DisplayTimedTextToPlayer(p, 0, 0, 3.0, "|cffffcc00[万灵化身]|r 变身冷却中，剩余 " + R2SW(udg_Wild_MorphCD[pId], 1, 1) + " 秒！")
+        call DisplayTimedTextToPlayer(p, 0, 0, 3.0, "|cffffcc00[万灵化形]|r 变身冷却中，剩余 " + R2SW(udg_Wild_MorphCD[pId], 1, 1) + " 秒！")
         return
     endif
 
@@ -4673,32 +4742,71 @@ function Wild_ShowMorphDialog takes player p, integer cat returns nothing
         set heroLv = 10
     endif
 
-    set udg_Wild_PromptPlayerMenu[pId] = cat
+    set udg_Wild_PendingCat[pId] = cat
     call DialogDisplay(p, udg_Wild_MorphDialog, false)
     call DialogClear(udg_Wild_MorphDialog)
 
     if cat == 1 then
-        set title = "【狂野巨力】力量/近战系野怪化形（当前英雄等级：" + I2S(heroLv) + "）："
+        set title = "|cffffcc00[万灵化身·狂野巨力]|r 请选择力量近战野怪等级 (英雄等级: Lv" + I2S(heroLv) + "):"
     elseif cat == 2 then
-        set title = "【诡诈迅影】敏捷/远程系野怪化形（当前英雄等级：" + I2S(heroLv) + "）："
+        set title = "|cffffcc00[万灵化身·诡诈迅影]|r 请选择敏捷远程野怪等级 (英雄等级: Lv" + I2S(heroLv) + "):"
     else
-        set title = "【万相灵音】智力/法系系野怪化形（当前英雄等级：" + I2S(heroLv) + "）："
+        set title = "|cffffcc00[万灵化身·万相灵音]|r 请选择智力法术野怪等级 (英雄等级: Lv" + I2S(heroLv) + "):"
     endif
     call DialogSetMessage(udg_Wild_MorphDialog, title)
 
+    set lvl = 1
     loop
         exitwhen lvl > heroLv
-        set btnText = "[" + I2S(lvl) + "] " + Wild_GetFormName(cat, lvl) + " (Lv" + I2S(lvl) + ")"
+        set btnText = "[" + I2S(lvl) + "] " + I2S(lvl) + "级野怪"
         if lvl <= 9 then
             set hotkey = 48 + lvl
         else
             set hotkey = 48
         endif
-        set udg_Wild_MorphBtn[lvl] = DialogAddButton(udg_Wild_MorphDialog, btnText, hotkey)
+        set udg_Wild_TierBtn[lvl] = DialogAddButton(udg_Wild_MorphDialog, btnText, hotkey)
         set lvl = lvl + 1
     endloop
 
-    set udg_Wild_MorphBtnCancel = DialogAddButton(udg_Wild_MorphDialog, "[X] 取消选择", 88)
+    set udg_Wild_TierCancelBtn = DialogAddButton(udg_Wild_MorphDialog, "[0] 取消", 48)
+    set udg_Wild_DialogState[pId] = 1
+    call DialogDisplay(p, udg_Wild_MorphDialog, true)
+endfunction
+
+function Wild_ShowSubDialog takes player p, integer cat, integer tierLv returns nothing
+    local integer pId = 0
+    local unit u = null
+    local string title = ""
+    local string btnText = ""
+    local integer subIdx = 1
+
+    if p == null then
+        return
+    endif
+    set pId = GetPlayerId(p)
+    set u = udg_Wild_Hero[pId]
+    if u == null or IsUnitType(u, UNIT_TYPE_DEAD) then
+        return
+    endif
+
+    call DialogDisplay(p, udg_Wild_MorphDialog, false)
+    call DialogClear(udg_Wild_MorphDialog)
+
+    set title = "|cffffcc00[万灵化形 - " + I2S(tierLv) + "级野怪]|r 请选择化形目标:"
+    call DialogSetMessage(udg_Wild_MorphDialog, title)
+
+    set subIdx = 1
+    loop
+        exitwhen subIdx > 3
+        set btnText = "[" + I2S(subIdx) + "] " + Wild_GetCreepBtnLabel(cat, tierLv, subIdx)
+        set udg_Wild_SubBtn[subIdx] = DialogAddButton(udg_Wild_MorphDialog, btnText, 48 + subIdx)
+        set subIdx = subIdx + 1
+    endloop
+
+    set udg_Wild_SubBackBtn = DialogAddButton(udg_Wild_MorphDialog, "[4] 返回上一级 (重选等级)", 52)
+    set udg_Wild_SubCancelBtn = DialogAddButton(udg_Wild_MorphDialog, "[0] 取消", 48)
+
+    set udg_Wild_DialogState[pId] = 2
     call DialogDisplay(p, udg_Wild_MorphDialog, true)
 endfunction
 
@@ -4707,9 +4815,10 @@ function Wild_OnMorphDialogClick takes nothing returns nothing
     local player p = GetTriggerPlayer()
     local integer pId = 0
     local unit u = null
-    local integer cat = 0
-    local integer lvl = 1
-    local integer heroLv = 1
+    local integer state = 0
+    local integer cat = 1
+    local integer tier = 1
+    local integer i = 1
 
     if p == null or b == null then
         return
@@ -4722,31 +4831,60 @@ function Wild_OnMorphDialogClick takes nothing returns nothing
         return
     endif
 
-    set cat = udg_Wild_PromptPlayerMenu[pId]
-    set heroLv = GetHeroLevel(u)
-    if heroLv > 10 then
-        set heroLv = 10
-    endif
+    set state = udg_Wild_DialogState[pId]
+    set cat = udg_Wild_PendingCat[pId]
+    set tier = udg_Wild_PendingTier[pId]
 
     call DialogDisplay(p, udg_Wild_MorphDialog, false)
 
-    if b == udg_Wild_MorphBtnCancel then
-        set b = null
-        set p = null
-        return
-    endif
-
-    loop
-        exitwhen lvl > heroLv
-        if b == udg_Wild_MorphBtn[lvl] then
-            call Wild_MorphTo(u, cat, lvl)
-            call DisplayTimedTextToPlayer(p, 0, 0, 4.0, "|cff00ff00[化形成功]|r 万灵化身已蜕变为【" + Wild_GetFormName(cat, lvl) + "】形态！")
+    // State 1: Selecting Tier
+    if state == 1 then
+        if b == udg_Wild_TierCancelBtn then
+            set udg_Wild_DialogState[pId] = 0
             set b = null
             set p = null
             return
         endif
-        set lvl = lvl + 1
-    endloop
+        set i = 1
+        loop
+            exitwhen i > 10
+            if b == udg_Wild_TierBtn[i] then
+                set udg_Wild_PendingTier[pId] = i
+                call Wild_ShowSubDialog(p, cat, i)
+                set b = null
+                set p = null
+                return
+            endif
+            set i = i + 1
+        endloop
+
+    // State 2: Selecting Sub Creep
+    elseif state == 2 then
+        if b == udg_Wild_SubCancelBtn then
+            set udg_Wild_DialogState[pId] = 0
+            set b = null
+            set p = null
+            return
+        endif
+        if b == udg_Wild_SubBackBtn then
+            call Wild_ShowTierDialog(p, cat)
+            set b = null
+            set p = null
+            return
+        endif
+        set i = 1
+        loop
+            exitwhen i > 3
+            if b == udg_Wild_SubBtn[i] then
+                set udg_Wild_DialogState[pId] = 0
+                call Wild_DoMorph(u, cat, tier, i)
+                set b = null
+                set p = null
+                return
+            endif
+            set i = i + 1
+        endloop
+    endif
 
     set b = null
     set p = null
@@ -4754,48 +4892,39 @@ endfunction
 
 function Wild_SpawnArmyCreep takes player p, integer unitTypeId, real x, real y returns unit
     local unit u = CreateUnit(p, unitTypeId, x, y, 0.0)
-    if u != null then
-        call UnitApplyTimedLife(u, 'BTLF', 90.0)
-        call GroupAddUnit(udg_Wild_ArmyGroup, u)
-        call DestroyEffect(AddSpecialEffect("Abilities\\\\Spells\\\\Orc\\\\FeralSpirit\\\\feralspiritdone.mdl", x, y))
-    endif
+    call UnitApplyTimedLife(u, 'BTLF', 90.0)
+    call GroupAddUnit(udg_Wild_ArmyGroup, u)
     return u
 endfunction
 
 function Wild_GetTargetBaseX takes player p returns real
-    local integer i = 0
-    local player enemyP = null
-    loop
-        exitwhen i > 7
-        set enemyP = Player(i)
-        if IsPlayerEnemy(p, enemyP) and GetPlayerSlotState(enemyP) == PLAYER_SLOT_STATE_PLAYING then
-            return GetStartLocationX(GetPlayerStartLocation(enemyP))
-        endif
-        set i = i + 1
-    endloop
-    return 0.0
+    local integer pId = GetPlayerId(p)
+    local integer targetId = 0
+    if pId >= 0 and pId <= 3 then
+        set targetId = 4
+    else
+        set targetId = 0
+    endif
+    return GetStartLocationX(targetId)
 endfunction
 
 function Wild_GetTargetBaseY takes player p returns real
-    local integer i = 0
-    local player enemyP = null
-    loop
-        exitwhen i > 7
-        set enemyP = Player(i)
-        if IsPlayerEnemy(p, enemyP) and GetPlayerSlotState(enemyP) == PLAYER_SLOT_STATE_PLAYING then
-            return GetStartLocationY(GetPlayerStartLocation(enemyP))
-        endif
-        set i = i + 1
-    endloop
-    return 0.0
+    local integer pId = GetPlayerId(p)
+    local integer targetId = 0
+    if pId >= 0 and pId <= 3 then
+        set targetId = 4
+    else
+        set targetId = 0
+    endif
+    return GetStartLocationY(targetId)
 endfunction
 
 function Wild_CastWrath takes unit caster returns nothing
+    local player p = null
     local integer pId = 0
-    local integer heroLv = 1
+    local integer dRank = 1
     local real cx = 0.0
     local real cy = 0.0
-    local player p = null
     local unit c = null
 
     if caster == null or IsUnitType(caster, UNIT_TYPE_DEAD) then
@@ -4803,15 +4932,17 @@ function Wild_CastWrath takes unit caster returns nothing
     endif
     set p = GetOwningPlayer(caster)
     set pId = GetPlayerId(p)
-    set heroLv = GetHeroLevel(caster)
+    set dRank = GetUnitAbilityLevel(caster, 'A035')
+    if dRank < 1 then
+        set dRank = 1
+    endif
     set cx = GetUnitX(caster)
     set cy = GetUnitY(caster)
 
-    call DestroyEffect(AddSpecialEffect("Abilities\\\\Spells\\\\NightElf\\\\Tranquility\\\\Tranquility.mdl", cx, cy))
-    call DestroyEffect(AddSpecialEffect("Abilities\\\\Spells\\\\Orc\\\\WarStomp\\\\WarStompCaster.mdl", cx, cy))
-    call DisplayTimedTextToPlayer(p, 0, 0, 6.0, "|cffff8800【众野之怒】|r 万灵化身长啸号令全图荒野！真实血条的狂暴野怪大军向敌阵发起冲锋！")
+    call DisplayTimedTextToPlayer(p, 0, 0, 5.0, "|cffff0000[众野之怒]|r 荒野狂潮冲锋！野怪大军已向敌方核心基地发起狂暴推进！")
 
-    if heroLv < 7 then
+    // Tier 1: Rank 1 (Lv 6)
+    if dRank == 1 then
         set c = Wild_SpawnArmyCreep(p, 'nhyd', cx + 70.0, cy)
         set c = Wild_SpawnArmyCreep(p, 'nhyd', cx - 70.0, cy)
         set c = Wild_SpawnArmyCreep(p, 'nnwa', cx, cy + 70.0)
@@ -4820,30 +4951,23 @@ function Wild_CastWrath takes unit caster returns nothing
         set c = Wild_SpawnArmyCreep(p, 'nfrs', cx - 100.0, cy - 100.0)
         set c = Wild_SpawnArmyCreep(p, 'nogr', cx + 130.0, cy)
         set c = Wild_SpawnArmyCreep(p, 'nogr', cx - 130.0, cy)
-        set c = Wild_SpawnArmyCreep(p, 'nqbh', cx, cy + 130.0)
-        set c = Wild_SpawnArmyCreep(p, 'nqbh', cx, cy - 130.0)
-    elseif heroLv < 9 then
-        set c = Wild_SpawnArmyCreep(p, 'nfrg', cx + 80.0, cy)
+        set c = Wild_SpawnArmyCreep(p, 'nrzs', cx, cy + 130.0)
+        set c = Wild_SpawnArmyCreep(p, 'nrzs', cx, cy - 130.0)
+
+    // Tier 2: Rank 2 (Lv 8)
+    elseif dRank == 2 then
+        set c = Wild_SpawnArmyCreep(p, 'nfrb', cx + 80.0, cy)
         set c = Wild_SpawnArmyCreep(p, 'nmam', cx - 80.0, cy)
-        set c = Wild_SpawnArmyCreep(p, 'nghs', cx, cy + 80.0)
+        set c = Wild_SpawnArmyCreep(p, 'nrvl', cx, cy + 80.0)
         set c = Wild_SpawnArmyCreep(p, 'nbdo', cx, cy - 80.0)
-        set c = Wild_SpawnArmyCreep(p, 'nfre', cx + 110.0, cy + 110.0)
-        set c = Wild_SpawnArmyCreep(p, 'nfre', cx - 110.0, cy - 110.0)
+        set c = Wild_SpawnArmyCreep(p, 'nfrs', cx + 110.0, cy + 110.0)
+        set c = Wild_SpawnArmyCreep(p, 'nfrs', cx - 110.0, cy - 110.0)
         set c = Wild_SpawnArmyCreep(p, 'nhyd', cx + 140.0, cy)
         set c = Wild_SpawnArmyCreep(p, 'nhyd', cx - 140.0, cy)
-        set c = Wild_SpawnArmyCreep(p, 'nnwa', cx, cy + 140.0)
-        set c = Wild_SpawnArmyCreep(p, 'nnwa', cx, cy - 140.0)
-    elseif heroLv == 9 then
-        set c = Wild_SpawnArmyCreep(p, 'nwrg', cx + 90.0, cy)
-        set c = Wild_SpawnArmyCreep(p, 'nwrg', cx - 90.0, cy)
-        set c = Wild_SpawnArmyCreep(p, 'njgb', cx, cy + 90.0)
-        set c = Wild_SpawnArmyCreep(p, 'njgb', cx, cy - 90.0)
-        set c = Wild_SpawnArmyCreep(p, 'nerw', cx + 120.0, cy + 120.0)
-        set c = Wild_SpawnArmyCreep(p, 'nerw', cx - 120.0, cy - 120.0)
-        set c = Wild_SpawnArmyCreep(p, 'nmam', cx + 150.0, cy)
-        set c = Wild_SpawnArmyCreep(p, 'nmam', cx - 150.0, cy)
-        set c = Wild_SpawnArmyCreep(p, 'nbdo', cx, cy + 150.0)
-        set c = Wild_SpawnArmyCreep(p, 'nbdo', cx, cy - 150.0)
+        set c = Wild_SpawnArmyCreep(p, 'nstw', cx, cy + 140.0)
+        set c = Wild_SpawnArmyCreep(p, 'nstw', cx, cy - 140.0)
+
+    // Tier 3: Rank 3 (Lv 10) - Supreme Boss Wave
     else
         set c = Wild_SpawnArmyCreep(p, 'nbwm', cx + 100.0, cy)
         set c = Wild_SpawnArmyCreep(p, 'nggr', cx - 100.0, cy)
@@ -4851,11 +4975,12 @@ function Wild_CastWrath takes unit caster returns nothing
         set c = Wild_SpawnArmyCreep(p, 'nerw', cx, cy - 100.0)
         set c = Wild_SpawnArmyCreep(p, 'nwrg', cx + 140.0, cy + 140.0)
         set c = Wild_SpawnArmyCreep(p, 'nmam', cx - 140.0, cy - 140.0)
-        set c = Wild_SpawnArmyCreep(p, 'njgb', cx + 140.0, cy - 140.0)
-        set c = Wild_SpawnArmyCreep(p, 'nbdo', cx - 140.0, cy + 140.0)
+        set c = Wild_SpawnArmyCreep(p, 'nbdo', cx + 140.0, cy - 140.0)
+        set c = Wild_SpawnArmyCreep(p, 'ninf', cx - 140.0, cy + 140.0)
         set c = Wild_SpawnArmyCreep(p, 'nhyd', cx + 180.0, cy)
-        set c = Wild_SpawnArmyCreep(p, 'nfrg', cx - 180.0, cy)
+        set c = Wild_SpawnArmyCreep(p, 'nfrb', cx - 180.0, cy)
     endif
+
     set c = null
     set p = null
 endfunction
@@ -4884,6 +5009,7 @@ function Wild_ArmyPushLoop takes nothing returns nothing
     call DestroyGroup(tempG)
     set tempG = null
 endfunction
+
 
 function AI_GetPlayerAltar takes player p returns unit
     local group g = CreateGroup()
@@ -5155,9 +5281,15 @@ function AI_LearnSkillForWild takes unit h returns boolean
         call UnitAddAbility(h, 'A034')
     endif
 
-    // 1. Ultimate D (A035) at Lv 6
-    if hLv >= 6 and dLv == 0 then
-        return AI_ForceLearnSkill(h, 'A035', 1, false)
+    // 1. Ultimate D (A035 众野之怒) at Lv 6/8/10
+    if hLv >= 10 and dLv < 3 then
+        return AI_ForceLearnSkill(h, 'A035', 3, false)
+    endif
+    if hLv >= 8 and dLv < 2 then
+        return AI_ForceLearnSkill(h, 'A035', 3, false)
+    endif
+    if hLv >= 6 and dLv < 1 then
+        return AI_ForceLearnSkill(h, 'A035', 3, false)
     endif
 
     // 2. Learn unlearned basic skills
@@ -6040,11 +6172,11 @@ function AI_TacticalLoop takes nothing returns nothing
                         // 2. Morph if cooldown ready
                         if udg_Wild_MorphCD[i] <= 0.0 then
                             if enemyCount >= 3 or GetWidgetLife(h) < (GetUnitState(h, UNIT_STATE_MAX_LIFE) * 0.45) then
-                                call Wild_MorphTo(h, 3, heroLv)
+                                call Wild_DoMorph(h, 3, heroLv, 1)
                             elseif enemyCount >= 1 then
-                                call Wild_MorphTo(h, 1, heroLv)
+                                call Wild_DoMorph(h, 1, heroLv, 2)
                             else
-                                call Wild_MorphTo(h, 2, heroLv)
+                                call Wild_DoMorph(h, 2, heroLv, 2)
                             endif
                         endif
 
@@ -6748,19 +6880,19 @@ function DM_OnSpellEffect takes nothing returns boolean
         set pId = GetPlayerId(GetOwningPlayer(caster))
         set udg_Wild_Hero[pId] = caster
         if GetPlayerController(GetOwningPlayer(caster)) == MAP_CONTROL_USER then
-            call Wild_ShowMorphDialog(GetOwningPlayer(caster), 1)
+            call Wild_ShowTierDialog(GetOwningPlayer(caster), 1)
         endif
     elseif abil == 'A032' then
         set pId = GetPlayerId(GetOwningPlayer(caster))
         set udg_Wild_Hero[pId] = caster
         if GetPlayerController(GetOwningPlayer(caster)) == MAP_CONTROL_USER then
-            call Wild_ShowMorphDialog(GetOwningPlayer(caster), 2)
+            call Wild_ShowTierDialog(GetOwningPlayer(caster), 2)
         endif
     elseif abil == 'A033' then
         set pId = GetPlayerId(GetOwningPlayer(caster))
         set udg_Wild_Hero[pId] = caster
         if GetPlayerController(GetOwningPlayer(caster)) == MAP_CONTROL_USER then
-            call Wild_ShowMorphDialog(GetOwningPlayer(caster), 3)
+            call Wild_ShowTierDialog(GetOwningPlayer(caster), 3)
         endif
     elseif abil == 'A034' then
         set pId = GetPlayerId(GetOwningPlayer(caster))
@@ -7129,7 +7261,7 @@ function DM_OnUnitDeath takes nothing returns boolean
     // 1.6. Clean up Hero #4 state on death
     if deadType == 'H005' then
         if udg_Wild_IsMorphed[deadPId] then
-            call Wild_MorphTo(dead, 0, 0)
+            call Wild_RevertToAvatar(dead)
         endif
     endif
 
@@ -7816,6 +7948,7 @@ function DM_InitTriggers takes nothing returns nothing
 
     // Initialize Wild Avatar Dialog & Groups
     set udg_Wild_MorphDialog = DialogCreate()
+    call Wild_InitCreepTemplates()
     set udg_Wild_ArmyGroup = CreateGroup()
     set udg_Wild_ArmyTimer = CreateTimer()
     call TimerStart(udg_Wild_ArmyTimer, 2.00, true, function Wild_ArmyPushLoop)
