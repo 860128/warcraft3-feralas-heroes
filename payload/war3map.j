@@ -3177,6 +3177,15 @@ function Strain_ApplyCurrentSkin takes unit u, integer pId returns nothing
     elseif stage >= 3 then
         call BlzSetUnitSkin(u, 'Ucrl')
         call SetUnitScale(u, 1.65, 1.65, 1.65)
+        call SetUnitVertexColor(u, 235, 200, 255, 255)
+        call BlzSetUnitAbilityCooldown(u, 'A022', 0, 4.0)
+        call BlzSetUnitAbilityCooldown(u, 'A022', 1, 4.0)
+        call BlzSetUnitAbilityCooldown(u, 'A022', 2, 4.0)
+        if udg_Strain_Stage3Fx[pId] != null then
+            call DestroyEffect(udg_Strain_Stage3Fx[pId])
+            set udg_Strain_Stage3Fx[pId] = null
+        endif
+        set udg_Strain_Stage3Fx[pId] = AddSpecialEffectTarget("Abilities\\Spells\\Other\\GeneralAuraTarget\\GeneralAuraTarget.mdl", u, "origin")
     endif
 endfunction
 
@@ -3189,6 +3198,8 @@ function Strain_UpdateEvoUI takes integer pId returns nothing
     local string tipR = ""
     local string titleW = ""
     local string tipW = ""
+    local string curCDStr = ""
+    local string curDigestStr = ""
     local integer curBonusHP = 0
     local integer curBonusAtk = 0
     local integer curBonusMana = 0
@@ -3206,38 +3217,47 @@ function Strain_UpdateEvoUI takes integer pId returns nothing
     set curBonusArmor = udg_Strain_TotalBonusArmor[pId]
 
     if stage == 0 then
-        set stageTitle = "【幼体·星际跳虫】(近战128)"
-        set nextReq = "还需 " + I2S(8 - devours) + " 次吞噬进阶【紫晶巨蝎】"
+        set stageTitle = "幼体·星际跳虫 (近战128码)"
+        set nextReq = "还需 " + I2S(8 - devours) + " 次吞噬进阶紫晶巨蝎"
+        set curCDStr = "20/15/10 秒"
+        set curDigestStr = "6.5/5.0/3.5 秒"
     elseif stage == 1 then
-        set stageTitle = "【一阶·紫晶重装巨蝎】(+45移速/+20%攻速)"
-        set nextReq = "还需 " + I2S(18 - devours) + " 次吞噬进阶【星际刺蛇】"
+        set stageTitle = "一阶·紫晶重装巨蝎 (+45移速/+20%攻速)"
+        set nextReq = "还需 " + I2S(18 - devours) + " 次吞噬进阶星际刺蛇"
+        set curCDStr = "20/15/10 秒"
+        set curDigestStr = "6.5/5.0/3.5 秒"
     elseif stage == 2 then
-        set stageTitle = "【二阶·星际虫族刺蛇】(500远程强酸骨刺/2.5%每秒回血)"
-        set nextReq = "还需 " + I2S(30 - devours) + " 次吞噬进阶【始祖利维坦虫皇】"
+        set stageTitle = "二阶·星际虫族刺蛇 (500远程强酸刺/2.5%每秒回血)"
+        set nextReq = "还需 " + I2S(30 - devours) + " 次吞噬进阶始祖虫皇"
+        set curCDStr = "20/15/10 秒"
+        set curDigestStr = "6.5/5.0/3.5 秒"
     else
-        set stageTitle = "【终极·始祖利维坦虫皇】(永久魔免/25%吸血/4秒深渊饕餮)"
-        set nextReq = "已达最高始祖形态！"
+        set stageTitle = "终极·始祖利维坦虫皇 (魔免/25%吸血/4秒CD)"
+        set nextReq = "已达始祖终极形态"
+        set curCDStr = "4.0 秒 (极速)"
+        set curDigestStr = "1.0 秒 (秒吞)"
     endif
 
-    set titleR = "异种蜕壳进化 (R) [形态:" + I2S(stage) + "阶 | 吞噬:" + I2S(devours) + "次]"
-    set tipR = "查看异种之源当前的蜕壳进化阶级与掠夺基因。|n|n|cff00ff00【星际虫族蜕壳状态】|r|n- 当前阶级：|cffffcc00" + stageTitle + "|r|n- 累计吞噬：|cffff00ff" + I2S(devours) + " 次|r|n- 蜕壳进度：|cff00ccff" + nextReq + "|r|n|n|cff00ff00【全维基因累计增幅】|r|n- 累计生命：|cffffcc00+" + I2S(curBonusHP) + "|r|n- 累计攻击：|cffff6600+" + I2S(curBonusAtk) + "|r|n- 累计法力：|cff33ccff+" + I2S(curBonusMana) + "|r|n- 累计护甲：|cffaaaaaa+" + R2SW(curBonusArmor, 1, 1) + "|r"
+    set titleR = "异种进化 (R) [形态:" + I2S(stage) + "阶 | 吞噬:" + I2S(devours) + "次]"
+    set tipR = "查看异种之源当前蜕壳进化与全维基因吸收收益：|n|n|cff00ff00【星际虫族蜕壳状态】|r|n- 当前形态：|cffffcc00" + stageTitle + "|r|n- 累计吞噬：|cffff00ff" + I2S(devours) + " 次|r|n- 进化进度：|cff00ccff" + nextReq + "|r|n|n|cff00ff00【全维基因累计吸收】|r|n- 累计生命：|cffffcc00+" + I2S(curBonusHP) + "|r|n- 累计攻击：|cffff6600+" + I2S(curBonusAtk) + "|r|n- 累计法力：|cff33ccff+" + I2S(curBonusMana) + "|r|n- 累计护甲：|cffaaaaaa+" + R2SW(curBonusArmor, 1, 1) + "|r|n|n|cff888888随时按快捷键 R 可管理技能槽或遗忘技能。|r"
 
     if stage >= 3 then
-        set titleW = "深渊饕餮 (W)"
-        set tipW = "【终极始祖饕餮】：撕裂吞噬任意敌方单位，冷却极速缩短为 4.0 秒，消化时间缩短为 1.0 秒！|n吞噬英雄时抽 10 点属性并掠夺 10% 血蓝与攻击，吞噬普通单位全维吸收血/攻/护甲！"
+        set titleW = "深渊饕餮 (|cffffcc00W|r) [3阶始祖虫皇特化]"
+        set tipW = "撕咬吞噬生命值低于 35% 的敌方单位（英雄为 28%，或目标血量 <= 自身上限 10% 保底瞬吞）。|n|cff00ff00当前蜕壳状态：|r|cffff0000终极·始祖利维坦虫皇|r（已吞噬 " + I2S(devours) + " 次）|n- |cffffcc00终极冷却时间：4.0 秒|r|n- |cffffcc00极速消化时间：1.0 秒|r|n|n|cff00ff00吞噬收益（复合全维吸收）：|r|n- |cff00ff80近战猎物|r：永久增加生命、攻击与永久护甲；|n- |cffff6600远程猎物|r：永久增加攻击与生命；|n- |cff33ccff魔法猎物|r：永久增加法力、生命与攻击；|n- |cffffcc00敌方英雄|r：抽取 10 点敏/力/智属性（镜像获得）+ 掠夺目标 10% 最大生命与 10% 基础攻击，英雄计 +3 次蜕壳进度！"
+    else
+        set titleW = "捕食吞噬 (|cffffcc00W|r) [" + I2S(stage) + "阶 | 吞噬:" + I2S(devours) + "次]"
+        set tipW = "撕咬吞噬生命值低于 35% 的敌方单位（英雄为 28%，或目标血量 <= 自身上限 10% 保底瞬吞）。|n|cff00ff00当前蜕壳状态：|r|cffffcc00" + stageTitle + "|r|n- 累计吞噬：|cffff00ff" + I2S(devours) + " 次|r（" + nextReq + "）|n- 当前冷却时间：" + curCDStr + "|n- 当前消化用时：" + curDigestStr + "|n|n|cff00ff00吞噬收益（复合全维吸收）：|r|n- |cff00ff80近战猎物|r：永久增加生命、攻击与永久护甲；|n- |cffff6600远程猎物|r：永久增加攻击与生命；|n- |cff33ccff魔法猎物|r：永久增加法力、生命与攻击；|n- |cffffcc00敌方英雄|r：抽取 6/8/10 点敏/力/智属性（镜像获得）+ 掠夺目标 10% 最大生命与 10% 基础攻击，英雄计 +3 次蜕壳进度！"
     endif
 
     if GetLocalPlayer() == Player(pId) then
         call BlzSetAbilityTooltip('A024', titleR, 0)
         call BlzSetAbilityExtendedTooltip('A024', tipR, 0)
-        if stage >= 3 then
-            call BlzSetAbilityTooltip('A022', titleW, 0)
-            call BlzSetAbilityTooltip('A022', titleW, 1)
-            call BlzSetAbilityTooltip('A022', titleW, 2)
-            call BlzSetAbilityExtendedTooltip('A022', tipW, 0)
-            call BlzSetAbilityExtendedTooltip('A022', tipW, 1)
-            call BlzSetAbilityExtendedTooltip('A022', tipW, 2)
-        endif
+        call BlzSetAbilityTooltip('A022', titleW, 0)
+        call BlzSetAbilityTooltip('A022', titleW, 1)
+        call BlzSetAbilityTooltip('A022', titleW, 2)
+        call BlzSetAbilityExtendedTooltip('A022', tipW, 0)
+        call BlzSetAbilityExtendedTooltip('A022', tipW, 1)
+        call BlzSetAbilityExtendedTooltip('A022', tipW, 2)
     endif
 endfunction
 
@@ -3305,7 +3325,11 @@ function Strain_CheckEvolution takes unit u, integer pId returns nothing
 
         call BlzSetUnitSkin(u, 'Ucrl')
         call SetUnitScale(u, 1.65, 1.65, 1.65)
+        call SetUnitVertexColor(u, 235, 200, 255, 255)
         call UnitAddAbility(u, 'ACmi')
+        call BlzSetUnitAbilityCooldown(u, 'A022', 0, 4.0)
+        call BlzSetUnitAbilityCooldown(u, 'A022', 1, 4.0)
+        call BlzSetUnitAbilityCooldown(u, 'A022', 2, 4.0)
         call BlzSetUnitMaxHP(u, BlzGetUnitMaxHP(u) + 1200)
         call SetWidgetLife(u, GetWidgetLife(u) + 1200.0)
         call BlzSetUnitBaseDamage(u, BlzGetUnitBaseDamage(u, 0) + 80, 0)
@@ -3316,8 +3340,9 @@ function Strain_CheckEvolution takes unit u, integer pId returns nothing
 
         if udg_Strain_Stage3Fx[pId] != null then
             call DestroyEffect(udg_Strain_Stage3Fx[pId])
+            set udg_Strain_Stage3Fx[pId] = null
         endif
-        set udg_Strain_Stage3Fx[pId] = AddSpecialEffectTarget("Abilities\\Spells\\Undead\\DarkSummoning\\DarkSummonTarget.mdl", u, "chest")
+        set udg_Strain_Stage3Fx[pId] = AddSpecialEffectTarget("Abilities\\Spells\\Other\\GeneralAuraTarget\\GeneralAuraTarget.mdl", u, "origin")
 
         call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\Thunderclap\\ThunderClapCaster.mdl", u, "origin"))
         call DestroyEffect(AddSpecialEffectTarget("Objects\\Spawnmodels\\Human\\HumanLargeDeathExplode\\HumanLargeDeathExplode.mdl", u, "origin"))
@@ -7767,6 +7792,25 @@ function DM_CapTimerLoop takes nothing returns nothing
         set pId = pId + 1
     endloop
 
+    // 3.7. Stage 3 Strain W Ability Cooldown Clamp (Hard lock to 4.0s)
+    set pId = 0
+    loop
+        exitwhen pId > 7
+        if udg_Strain_EvoStage[pId] >= 3 then
+            set u = udg_Strain_Hero[pId]
+            if u == null then
+                set u = udg_AI_CustomHero[pId]
+            endif
+            if u != null and not IsUnitType(u, UNIT_TYPE_DEAD) then
+                if BlzGetUnitAbilityCooldownRemaining(u, 'A022') > 4.0 then
+                    call BlzStartUnitAbilityCooldown(u, 'A022', 3.5)
+                endif
+            endif
+            set u = null
+        endif
+        set pId = pId + 1
+    endloop
+
     // 4. Custom Hero AI Tactical Loop
     call AI_TacticalLoop()
 endfunction
@@ -8095,6 +8139,9 @@ function DM_OnSpellEffect takes nothing returns boolean
             endif
             if udg_Strain_EvoStage[pId] >= 3 then
                 set udg_Strain_DigestTimer[pId] = 1.0
+                call BlzSetUnitAbilityCooldown(caster, 'A022', 0, 4.0)
+                call BlzSetUnitAbilityCooldown(caster, 'A022', 1, 4.0)
+                call BlzSetUnitAbilityCooldown(caster, 'A022', 2, 4.0)
                 call BlzStartUnitAbilityCooldown(caster, 'A022', 4.0)
             else
                 set udg_Strain_DigestTimer[pId] = 8.0 - 1.5 * I2R(GetUnitAbilityLevel(caster, 'A022'))
@@ -8105,8 +8152,9 @@ function DM_OnSpellEffect takes nothing returns boolean
             call UnitDamageTarget(caster, ult, 999999.0, true, false, ATTACK_TYPE_CHAOS, DAMAGE_TYPE_UNIVERSAL, WEAPON_TYPE_WHOKNOWS)
             if udg_Strain_DigestFx[pId] != null then
                 call DestroyEffect(udg_Strain_DigestFx[pId])
+                set udg_Strain_DigestFx[pId] = null
             endif
-            set udg_Strain_DigestFx[pId] = AddSpecialEffectTarget("Abilities\\Spells\\NightElf\\CorrosiveBreath\\ChimaeraAcidTargetArt.mdl", caster, "origin")
+            set udg_Strain_DigestFx[pId] = AddSpecialEffectTarget("Abilities\\Spells\\Items\\AIhe\\AIheTarget.mdl", caster, "origin")
             set ult = null
         endif
     elseif abil == 'A023' then
