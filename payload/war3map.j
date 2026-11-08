@@ -54,6 +54,10 @@ globals
     integer array udg_Strain_TotalBonusHP
     integer array udg_Strain_TotalBonusAtk
     integer array udg_Strain_TotalBonusMana
+    real array udg_Strain_TotalBonusArmor
+    integer array udg_Strain_DevourCount
+    integer array udg_Strain_EvoStage
+    effect array udg_Strain_Stage3Fx
 
     boolean array udg_Strain_MimicActive
     integer array udg_Strain_MimicType
@@ -3155,13 +3159,187 @@ endfunction
 // Hero #3: The Primordial Strain (异种之源 H004) System
 //===========================================================================
 
+function Strain_ApplyCurrentSkin takes unit u, integer pId returns nothing
+    local integer stage = 0
+    if u == null then
+        return
+    endif
+    set stage = udg_Strain_EvoStage[pId]
+    if stage == 0 then
+        call BlzSetUnitSkin(u, 'zzrg')
+        call SetUnitScale(u, 1.15, 1.15, 1.15)
+    elseif stage == 1 then
+        call BlzSetUnitSkin(u, 'nano')
+        call SetUnitScale(u, 1.30, 1.30, 1.30)
+    elseif stage == 2 then
+        call BlzSetUnitSkin(u, 'zhyd')
+        call SetUnitScale(u, 1.40, 1.40, 1.40)
+    elseif stage >= 3 then
+        call BlzSetUnitSkin(u, 'Ucrl')
+        call SetUnitScale(u, 1.65, 1.65, 1.65)
+    endif
+endfunction
+
+function Strain_UpdateEvoUI takes integer pId returns nothing
+    local integer devours = 0
+    local integer stage = 0
+    local string stageTitle = ""
+    local string nextReq = ""
+    local string titleR = ""
+    local string tipR = ""
+    local string titleW = ""
+    local string tipW = ""
+    local integer curBonusHP = 0
+    local integer curBonusAtk = 0
+    local integer curBonusMana = 0
+    local real curBonusArmor = 0.0
+
+    if pId < 0 or pId > 15 then
+        return
+    endif
+
+    set devours = udg_Strain_DevourCount[pId]
+    set stage = udg_Strain_EvoStage[pId]
+    set curBonusHP = udg_Strain_TotalBonusHP[pId]
+    set curBonusAtk = udg_Strain_TotalBonusAtk[pId]
+    set curBonusMana = udg_Strain_TotalBonusMana[pId]
+    set curBonusArmor = udg_Strain_TotalBonusArmor[pId]
+
+    if stage == 0 then
+        set stageTitle = "【幼体·星际跳虫】(近战128)"
+        set nextReq = "还需 " + I2S(8 - devours) + " 次吞噬进阶【紫晶巨蝎】"
+    elseif stage == 1 then
+        set stageTitle = "【一阶·紫晶重装巨蝎】(+45移速/+20%攻速)"
+        set nextReq = "还需 " + I2S(18 - devours) + " 次吞噬进阶【星际刺蛇】"
+    elseif stage == 2 then
+        set stageTitle = "【二阶·星际虫族刺蛇】(500远程强酸骨刺/2.5%每秒回血)"
+        set nextReq = "还需 " + I2S(30 - devours) + " 次吞噬进阶【始祖利维坦虫皇】"
+    else
+        set stageTitle = "【终极·始祖利维坦虫皇】(永久魔免/25%吸血/4秒深渊饕餮)"
+        set nextReq = "已达最高始祖形态！"
+    endif
+
+    set titleR = "异种蜕壳进化 (R) [形态:" + I2S(stage) + "阶 | 吞噬:" + I2S(devours) + "次]"
+    set tipR = "查看异种之源当前的蜕壳进化阶级与掠夺基因。|n|n|cff00ff00【星际虫族蜕壳状态】|r|n- 当前阶级：|cffffcc00" + stageTitle + "|r|n- 累计吞噬：|cffff00ff" + I2S(devours) + " 次|r|n- 蜕壳进度：|cff00ccff" + nextReq + "|r|n|n|cff00ff00【全维基因累计增幅】|r|n- 累计生命：|cffffcc00+" + I2S(curBonusHP) + "|r|n- 累计攻击：|cffff6600+" + I2S(curBonusAtk) + "|r|n- 累计法力：|cff33ccff+" + I2S(curBonusMana) + "|r|n- 累计护甲：|cffaaaaaa+" + R2SW(curBonusArmor, 1, 1) + "|r"
+
+    if stage >= 3 then
+        set titleW = "深渊饕餮 (W)"
+        set tipW = "【终极始祖饕餮】：撕裂吞噬任意敌方单位，冷却极速缩短为 4.0 秒，消化时间缩短为 1.0 秒！|n吞噬英雄时抽 10 点属性并掠夺 10% 血蓝与攻击，吞噬普通单位全维吸收血/攻/护甲！"
+    endif
+
+    if GetLocalPlayer() == Player(pId) then
+        call BlzSetAbilityTooltip('A024', titleR, 0)
+        call BlzSetAbilityExtendedTooltip('A024', tipR, 0)
+        if stage >= 3 then
+            call BlzSetAbilityTooltip('A022', titleW, 0)
+            call BlzSetAbilityTooltip('A022', titleW, 1)
+            call BlzSetAbilityTooltip('A022', titleW, 2)
+            call BlzSetAbilityExtendedTooltip('A022', tipW, 0)
+            call BlzSetAbilityExtendedTooltip('A022', tipW, 1)
+            call BlzSetAbilityExtendedTooltip('A022', tipW, 2)
+        endif
+    endif
+endfunction
+
+function Strain_CheckEvolution takes unit u, integer pId returns nothing
+    local integer devours = udg_Strain_DevourCount[pId]
+    local integer curStage = udg_Strain_EvoStage[pId]
+
+    if u == null or IsUnitType(u, UNIT_TYPE_DEAD) then
+        return
+    endif
+
+    // Stage 1 threshold: 8 devours
+    if devours >= 8 and curStage < 1 then
+        set udg_Strain_EvoStage[pId] = 1
+        set curStage = 1
+
+        call BlzSetUnitSkin(u, 'nano')
+        call SetUnitScale(u, 1.30, 1.30, 1.30)
+        call SetUnitMoveSpeed(u, GetUnitMoveSpeed(u) + 45.0)
+        call BlzSetUnitAttackCooldown(u, BlzGetUnitAttackCooldown(u, 0) * 0.80, 0)
+        call BlzSetUnitMaxHP(u, BlzGetUnitMaxHP(u) + 300)
+        call SetWidgetLife(u, GetWidgetLife(u) + 300.0)
+        call BlzSetUnitBaseDamage(u, BlzGetUnitBaseDamage(u, 0) + 25, 0)
+        call BlzSetUnitArmor(u, BlzGetUnitArmor(u) + 4.0)
+        set udg_Strain_TotalBonusHP[pId] = udg_Strain_TotalBonusHP[pId] + 300
+        set udg_Strain_TotalBonusAtk[pId] = udg_Strain_TotalBonusAtk[pId] + 25
+        set udg_Strain_TotalBonusArmor[pId] = udg_Strain_TotalBonusArmor[pId] + 4.0
+
+        call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Orc\\Devour\\DevourEffectArt.mdl", u, "origin"))
+        call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\Thunderclap\\ThunderClapCaster.mdl", u, "origin"))
+        call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Items\\AIam\\AIamTarget.mdl", u, "origin"))
+        call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 5.0, "|cff9900ff【一阶基因蜕壳·紫晶重装巨蝎】|r 异种之源突破幼体束缚完成蜕壳！永久获得 +45移速 / +20%攻速 / +300生命 / +25攻击 / +4护甲！")
+    endif
+
+    // Stage 2 threshold: 18 devours
+    if devours >= 18 and curStage < 2 then
+        set udg_Strain_EvoStage[pId] = 2
+        set curStage = 2
+
+        call BlzSetUnitSkin(u, 'zhyd')
+        call SetUnitScale(u, 1.40, 1.40, 1.40)
+        call SetUnitAcquireRange(u, 650.0)
+        call BlzSetUnitWeaponRealField(u, UNIT_WEAPON_RF_ATTACK_RANGE, 0, 500.0)
+        call BlzSetUnitWeaponRealField(u, UNIT_WEAPON_RF_ATTACK_RANGE, 1, 500.0)
+        call BlzSetUnitWeaponRealField(u, UNIT_WEAPON_RF_ATTACK_PROJECTILE_SPEED, 0, 1200.0)
+        call BlzSetUnitWeaponStringField(u, UNIT_WEAPON_SF_ATTACK_PROJECTILE_ART, 0, "Abilities\\Weapons\\ChimaeraAcidMissile\\ChimaeraAcidMissile.mdl")
+        call BlzSetUnitMaxHP(u, BlzGetUnitMaxHP(u) + 600)
+        call SetWidgetLife(u, GetWidgetLife(u) + 600.0)
+        call BlzSetUnitBaseDamage(u, BlzGetUnitBaseDamage(u, 0) + 45, 0)
+        call BlzSetUnitArmor(u, BlzGetUnitArmor(u) + 6.0)
+        set udg_Strain_TotalBonusHP[pId] = udg_Strain_TotalBonusHP[pId] + 600
+        set udg_Strain_TotalBonusAtk[pId] = udg_Strain_TotalBonusAtk[pId] + 45
+        set udg_Strain_TotalBonusArmor[pId] = udg_Strain_TotalBonusArmor[pId] + 6.0
+
+        call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Orc\\Devour\\DevourEffectArt.mdl", u, "origin"))
+        call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\Thunderclap\\ThunderClapCaster.mdl", u, "origin"))
+        call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Items\\AIam\\AIamTarget.mdl", u, "origin"))
+        call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 5.0, "|cff33ff33【二阶基因蜕壳·星际虫族刺蛇】|r 进化为星际刺蛇！获得500码远程强酸骨刺喷射、每秒2.5%最大生命值再生甲壳、+600生命 / +45攻击 / +6护甲！")
+    endif
+
+    // Stage 3 threshold: 30 devours
+    if devours >= 30 and curStage < 3 then
+        set udg_Strain_EvoStage[pId] = 3
+        set curStage = 3
+
+        call BlzSetUnitSkin(u, 'Ucrl')
+        call SetUnitScale(u, 1.65, 1.65, 1.65)
+        call UnitAddAbility(u, 'ACmi')
+        call BlzSetUnitMaxHP(u, BlzGetUnitMaxHP(u) + 1200)
+        call SetWidgetLife(u, GetWidgetLife(u) + 1200.0)
+        call BlzSetUnitBaseDamage(u, BlzGetUnitBaseDamage(u, 0) + 80, 0)
+        call BlzSetUnitArmor(u, BlzGetUnitArmor(u) + 10.0)
+        set udg_Strain_TotalBonusHP[pId] = udg_Strain_TotalBonusHP[pId] + 1200
+        set udg_Strain_TotalBonusAtk[pId] = udg_Strain_TotalBonusAtk[pId] + 80
+        set udg_Strain_TotalBonusArmor[pId] = udg_Strain_TotalBonusArmor[pId] + 10.0
+
+        if udg_Strain_Stage3Fx[pId] != null then
+            call DestroyEffect(udg_Strain_Stage3Fx[pId])
+        endif
+        set udg_Strain_Stage3Fx[pId] = AddSpecialEffectTarget("Abilities\\Spells\\Undead\\DarkSummoning\\DarkSummonTarget.mdl", u, "chest")
+
+        call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\Thunderclap\\ThunderClapCaster.mdl", u, "origin"))
+        call DestroyEffect(AddSpecialEffectTarget("Objects\\Spawnmodels\\Human\\HumanLargeDeathExplode\\HumanLargeDeathExplode.mdl", u, "origin"))
+        call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Items\\AIam\\AIamTarget.mdl", u, "origin"))
+        call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 6.0, "|cffff0000【终极基因蜕壳·始祖利维坦虫皇】|r 登顶为至高无上的深渊始祖虫皇！获得永久魔免、25%深渊吸血、W技能4秒CD且1秒秒速消化、+1200生命 / +80攻击 / +10护甲！")
+    endif
+
+    call Strain_UpdateEvoUI(pId)
+endfunction
+
 function Strain_InitHero takes unit h returns nothing
+    local integer pId = 0
     if h == null then
         return
     endif
+    set pId = GetPlayerId(GetOwningPlayer(h))
+    set udg_Strain_Hero[pId] = h
     if GetUnitAbilityLevel(h, 'A024') == 0 then
         call UnitAddAbility(h, 'A024')
     endif
+    call Strain_ApplyCurrentSkin(h, pId)
+    call Strain_UpdateEvoUI(pId)
     call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Undead\\Burrow\\BurrowTarget.mdl", h, "origin"))
 endfunction
 
@@ -3182,6 +3360,7 @@ function Strain_BreakMimicry takes unit u, integer pId returns nothing
         call SetUnitVertexColor(u, 255, 255, 255, 255)
         call SetUnitColor(u, GetPlayerColor(GetOwningPlayer(u)))
         call SetPlayerAllianceStateBJ(Player(PLAYER_NEUTRAL_AGGRESSIVE), GetOwningPlayer(u), bj_ALLIANCE_UNALLIED)
+        call Strain_ApplyCurrentSkin(u, pId)
         call DestroyEffect(AddSpecialEffect("Abilities\\Spells\\Orc\\MirrorImage\\MirrorImageDeathCaster.mdl", GetUnitX(u), GetUnitY(u)))
     endif
 endfunction
@@ -3239,8 +3418,12 @@ function Strain_ClearCurrentGene takes unit u, integer pId returns nothing
         if udg_Strain_StolenHeroAbil[pId] != 0 then
             call UnitRemoveAbility(u, udg_Strain_StolenHeroAbil[pId])
         endif
-        call SetUnitMoveSpeed(u, GetUnitDefaultMoveSpeed(u))
-        call SetUnitScale(u, 1.25, 1.25, 1.25)
+        if udg_Strain_EvoStage[pId] >= 1 then
+            call SetUnitMoveSpeed(u, GetUnitDefaultMoveSpeed(u) + 45.0)
+        else
+            call SetUnitMoveSpeed(u, GetUnitDefaultMoveSpeed(u))
+        endif
+        call Strain_ApplyCurrentSkin(u, pId)
         call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\DispelMagic\\DispelMagicTarget.mdl", u, "origin"))
         call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 3.0, "|cffffcc00[异种进化]|r 已清空双基因槽位掠夺技能！")
     endif
@@ -3258,6 +3441,8 @@ endfunction
 function Strain_DrainEnemyHero takes unit caster, unit victim returns nothing
     local integer pId = 0
     local integer k = 1
+    local integer maxK = 6
+    local integer wLv = 1
     local integer vAgi = 0
     local integer vStr = 0
     local integer vInt = 0
@@ -3270,6 +3455,10 @@ function Strain_DrainEnemyHero takes unit caster, unit victim returns nothing
     local integer gainInt = 0
     local integer totalDrainHP = 0
     local integer totalDrainMana = 0
+    local integer heroMaxHP = 0
+    local integer heroBaseAtk = 0
+    local integer heroDrainHP = 0
+    local integer heroDrainAtk = 0
     local boolean drainedSomething = false
     local string gainMsg = ""
     local integer idx = 0
@@ -3279,11 +3468,13 @@ function Strain_DrainEnemyHero takes unit caster, unit victim returns nothing
         return
     endif
     set pId = GetPlayerId(GetOwningPlayer(caster))
+    set wLv = IMaxBJ(1, GetUnitAbilityLevel(caster, 'A022'))
+    set maxK = 4 + wLv * 2
 
-    // 1. Cascading drain 4 points: Agi -> Str -> Int -> Max HP/Mana down to 1
+    // 1. Cascading drain (4 + wLv*2) points: Agi -> Str -> Int -> Max HP/Mana down to 1
     // Mirror Gain: whatever is drained from enemy is permanently added to H004
     loop
-        exitwhen k > 4
+        exitwhen k > maxK
         set vAgi = GetHeroAgi(victim, false)
         set vStr = GetHeroStr(victim, false)
         set vInt = GetHeroInt(victim, false)
@@ -3331,6 +3522,39 @@ function Strain_DrainEnemyHero takes unit caster, unit victim returns nothing
         set k = k + 1
     endloop
 
+    // 1.5. Direct 10% Max HP & 10% Base Attack Plunder
+    set heroMaxHP = BlzGetUnitMaxHP(victim)
+    set heroBaseAtk = BlzGetUnitBaseDamage(victim, 0)
+    set heroDrainHP = R2I(I2R(heroMaxHP) * 0.10)
+    set heroDrainAtk = R2I(I2R(heroBaseAtk) * 0.10)
+    if heroDrainHP < 1 then
+        set heroDrainHP = 1
+    endif
+    if heroDrainAtk < 1 then
+        set heroDrainAtk = 1
+    endif
+
+    if heroMaxHP > heroDrainHP then
+        call BlzSetUnitMaxHP(victim, heroMaxHP - heroDrainHP)
+    else
+        call BlzSetUnitMaxHP(victim, 1)
+    endif
+    if heroBaseAtk > heroDrainAtk then
+        call BlzSetUnitBaseDamage(victim, heroBaseAtk - heroDrainAtk, 0)
+    else
+        call BlzSetUnitBaseDamage(victim, 1, 0)
+    endif
+
+    call BlzSetUnitMaxHP(caster, BlzGetUnitMaxHP(caster) + heroDrainHP)
+    call BlzSetUnitBaseDamage(caster, BlzGetUnitBaseDamage(caster, 0) + heroDrainAtk, 0)
+    set udg_Strain_TotalBonusHP[pId] = udg_Strain_TotalBonusHP[pId] + heroDrainHP
+    set udg_Strain_TotalBonusAtk[pId] = udg_Strain_TotalBonusAtk[pId] + heroDrainAtk
+    set totalDrainHP = totalDrainHP + heroDrainHP
+
+    // Devour Count +3 for devouring an enemy hero
+    set udg_Strain_DevourCount[pId] = udg_Strain_DevourCount[pId] + 3
+    call Strain_CheckEvolution(caster, pId)
+
     // 2. Track crippled hero so revive at Altar enforces Max HP / Mana clamp
     set idx = 0
     loop
@@ -3371,8 +3595,11 @@ function Strain_DrainEnemyHero takes unit caster, unit victim returns nothing
     if totalDrainMana > 0 then
         set gainMsg = gainMsg + " 法力+" + I2S(totalDrainMana)
     endif
+    if heroDrainAtk > 0 then
+        set gainMsg = gainMsg + " 攻击+" + I2S(heroDrainAtk)
+    endif
 
-    call DisplayTimedTextToPlayer(GetOwningPlayer(caster), 0, 0, 5.0, "|cff00ff00[顶端掠食-镜像获得]|r 成功蚕食敌方英雄，永久夺取：" + gainMsg + "！")
+    call DisplayTimedTextToPlayer(GetOwningPlayer(caster), 0, 0, 5.0, "|cff00ff00[顶端掠食-镜像翻倍获得]|r 成功蚕食敌方英雄，永久夺取：" + gainMsg + "！(蜕壳进度+3，累计: " + I2S(udg_Strain_DevourCount[pId]) + "次)")
     call DisplayTimedTextToPlayer(GetOwningPlayer(caster), 0, 0, 5.0, "|cffff3333[目标残废状态]|r 敌方当前：" + I2S(GetHeroAgi(victim, false)) + "敏 / " + I2S(GetHeroStr(victim, false)) + "力 / " + I2S(GetHeroInt(victim, false)) + "智 / " + I2S(BlzGetUnitMaxHP(victim)) + "血 / " + I2S(BlzGetUnitMaxMana(victim)) + "蓝")
 endfunction
 
@@ -3645,10 +3872,34 @@ endfunction
 
 function Strain_ShowGeneDialog takes player p, integer pId returns nothing
     local string msg = "【异种之源 - 基因控制台】"
+    local integer devours = 0
+    local integer stage = 0
+    local string stageTitle = ""
+    local string nextReq = ""
+
     if p == null then
         return
     endif
-    set msg = msg + "\n累计进化：+" + I2S(udg_Strain_TotalBonusHP[pId]) + "生命 / +" + I2S(udg_Strain_TotalBonusAtk[pId]) + "攻击 / +" + I2S(udg_Strain_TotalBonusMana[pId]) + "法力"
+    set devours = udg_Strain_DevourCount[pId]
+    set stage = udg_Strain_EvoStage[pId]
+
+    if stage == 0 then
+        set stageTitle = "幼体·星际跳虫 (近战128)"
+        set nextReq = "还需 " + I2S(8 - devours) + " 次吞噬蜕壳为【紫晶重装巨蝎】"
+    elseif stage == 1 then
+        set stageTitle = "一阶·紫晶重装巨蝎 (+45移速/+20%攻速)"
+        set nextReq = "还需 " + I2S(18 - devours) + " 次吞噬蜕壳为【星际虫族刺蛇】"
+    elseif stage == 2 then
+        set stageTitle = "二阶·星际虫族刺蛇 (500远程强酸骨刺/2.5%每秒回血)"
+        set nextReq = "还需 " + I2S(30 - devours) + " 次吞噬蜕壳为【始祖利维坦虫皇】"
+    else
+        set stageTitle = "终极·始祖利维坦虫皇 (永久魔免/25%吸血/4秒深渊饕餮)"
+        set nextReq = "已达始祖终极形态！"
+    endif
+
+    set msg = msg + "\n【星际蜕壳】：" + stageTitle + " (累计吞噬: " + I2S(devours) + " 次)"
+    set msg = msg + "\n【进化进度】：" + nextReq
+    set msg = msg + "\n【全维增幅】：+" + I2S(udg_Strain_TotalBonusHP[pId]) + "生命 / +" + I2S(udg_Strain_TotalBonusAtk[pId]) + "攻击 / +" + I2S(udg_Strain_TotalBonusMana[pId]) + "法力 / +" + R2SW(udg_Strain_TotalBonusArmor[pId], 1, 1) + "护甲"
     if udg_Strain_StolenAbil1[pId] != 0 then
         set msg = msg + "\n【基因槽位 1】： " + Strain_GetAbilName(udg_Strain_StolenAbil1[pId]) + " (强化 " + I2S(udg_Strain_EvoTier1[pId]) + " 阶)"
     else
@@ -3868,6 +4119,7 @@ function Strain_OnDigestComplete takes unit u, integer pId returns nothing
     local integer bonusHP = 0
     local integer bonusAtk = 0
     local integer bonusMana = 0
+    local real bonusArmor = 0.0
     local integer uChoiceCount = 0
     local integer wLv = 1
     local real mult = 1.0
@@ -3987,34 +4239,60 @@ function Strain_OnDigestComplete takes unit u, integer pId returns nothing
     else
         // Non-Hero unit: Creep, Lane unit, Summon Devoured!
         if udg_Strain_DigestFeedType[pId] == 1 then
-            // Case C: Melee Unit without Mana -> Permanent Max HP bonus
-            set bonusHP = R2I(I2R(30 + 10 * udg_Strain_DigestVictimLv[pId]) * mult + 0.5)
-            call BlzSetUnitMaxHP(u, BlzGetUnitMaxHP(u) + bonusHP)
-            call SetWidgetLife(u, GetWidgetLife(u) + I2R(bonusHP))
-            set udg_Strain_TotalBonusHP[pId] = udg_Strain_TotalBonusHP[pId] + bonusHP
-            call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 4.0, "|cff00ff80[吞噬进化-近战猎物]|r 永久增加 " + I2S(bonusHP) + " 点最大生命值！（" + multStr + "收益，累计+" + I2S(udg_Strain_TotalBonusHP[pId]) + "生命）")
-        elseif udg_Strain_DigestFeedType[pId] == 2 then
-            // Case B: Ranged Unit without Mana -> Permanent Base Attack bonus (+1~2)
-            if udg_Strain_DigestVictimLv[pId] <= 1 then
-                set bonusAtk = R2I(1.0 * mult + 0.5)
-            else
-                set bonusAtk = R2I(2.0 * mult + 0.5)
-            endif
+            // Case C: Melee Unit -> bonusHP = (45 + 22*vLv)*mult, bonusAtk = (2 + vLv)*mult, bonusArmor = 0.30*vLv*mult
+            set bonusHP = R2I(I2R(45 + 22 * udg_Strain_DigestVictimLv[pId]) * mult + 0.5)
+            set bonusAtk = R2I(I2R(2 + udg_Strain_DigestVictimLv[pId]) * mult + 0.5)
+            set bonusArmor = 0.30 * I2R(udg_Strain_DigestVictimLv[pId]) * mult
             if bonusAtk < 1 then
                 set bonusAtk = 1
             endif
+
+            call BlzSetUnitMaxHP(u, BlzGetUnitMaxHP(u) + bonusHP)
+            call SetWidgetLife(u, GetWidgetLife(u) + I2R(bonusHP))
             call BlzSetUnitBaseDamage(u, BlzGetUnitBaseDamage(u, 0) + bonusAtk, 0)
+            call BlzSetUnitArmor(u, BlzGetUnitArmor(u) + bonusArmor)
+            set udg_Strain_TotalBonusHP[pId] = udg_Strain_TotalBonusHP[pId] + bonusHP
             set udg_Strain_TotalBonusAtk[pId] = udg_Strain_TotalBonusAtk[pId] + bonusAtk
-            call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 4.0, "|cffff6600[吞噬进化-远程猎物]|r 永久增加 " + I2S(bonusAtk) + " 点基础攻击力！（" + multStr + "收益，累计+" + I2S(udg_Strain_TotalBonusAtk[pId]) + "攻击）")
+            set udg_Strain_TotalBonusArmor[pId] = udg_Strain_TotalBonusArmor[pId] + bonusArmor
+            call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 4.0, "|cff00ff80[全维基因吸收-近战猎物]|r 永久增加 +" + I2S(bonusHP) + "生命 / +" + I2S(bonusAtk) + "攻击 / +" + R2SW(bonusArmor, 1, 1) + "护甲！（" + multStr + "收益）")
+        elseif udg_Strain_DigestFeedType[pId] == 2 then
+            // Case B: Ranged Unit -> bonusHP = (25 + 12*vLv)*mult, bonusAtk = (4 + 3*vLv)*mult
+            set bonusHP = R2I(I2R(25 + 12 * udg_Strain_DigestVictimLv[pId]) * mult + 0.5)
+            set bonusAtk = R2I(I2R(4 + 3 * udg_Strain_DigestVictimLv[pId]) * mult + 0.5)
+            if bonusAtk < 1 then
+                set bonusAtk = 1
+            endif
+
+            call BlzSetUnitMaxHP(u, BlzGetUnitMaxHP(u) + bonusHP)
+            call SetWidgetLife(u, GetWidgetLife(u) + I2R(bonusHP))
+            call BlzSetUnitBaseDamage(u, BlzGetUnitBaseDamage(u, 0) + bonusAtk, 0)
+            set udg_Strain_TotalBonusHP[pId] = udg_Strain_TotalBonusHP[pId] + bonusHP
+            set udg_Strain_TotalBonusAtk[pId] = udg_Strain_TotalBonusAtk[pId] + bonusAtk
+            call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 4.0, "|cffff6600[全维基因吸收-远程猎物]|r 永久增加 +" + I2S(bonusAtk) + "基础攻击 / +" + I2S(bonusHP) + "最大生命！（" + multStr + "收益）")
         else
-            // Case A: Magical Unit -> Permanent Max Mana bonus
-            set bonusMana = R2I(I2R(25 + 5 * udg_Strain_DigestVictimLv[pId]) * mult + 0.5)
+            // Case A: Magical Unit -> bonusHP = (30 + 14*vLv)*mult, bonusMana = (35 + 15*vLv)*mult, bonusAtk = (3 + 2*vLv)*mult
+            set bonusHP = R2I(I2R(30 + 14 * udg_Strain_DigestVictimLv[pId]) * mult + 0.5)
+            set bonusMana = R2I(I2R(35 + 15 * udg_Strain_DigestVictimLv[pId]) * mult + 0.5)
+            set bonusAtk = R2I(I2R(3 + 2 * udg_Strain_DigestVictimLv[pId]) * mult + 0.5)
+            if bonusAtk < 1 then
+                set bonusAtk = 1
+            endif
+
+            call BlzSetUnitMaxHP(u, BlzGetUnitMaxHP(u) + bonusHP)
+            call SetWidgetLife(u, GetWidgetLife(u) + I2R(bonusHP))
             call BlzSetUnitMaxMana(u, BlzGetUnitMaxMana(u) + bonusMana)
             call SetUnitState(u, UNIT_STATE_MANA, GetUnitState(u, UNIT_STATE_MANA) + I2R(bonusMana))
+            call BlzSetUnitBaseDamage(u, BlzGetUnitBaseDamage(u, 0) + bonusAtk, 0)
+            set udg_Strain_TotalBonusHP[pId] = udg_Strain_TotalBonusHP[pId] + bonusHP
             set udg_Strain_TotalBonusMana[pId] = udg_Strain_TotalBonusMana[pId] + bonusMana
-            call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 4.0, "|cff33ccff[吞噬进化-魔法猎物]|r 永久增加 " + I2S(bonusMana) + " 点最大法力值！（" + multStr + "收益，累计+" + I2S(udg_Strain_TotalBonusMana[pId]) + "法力）")
+            set udg_Strain_TotalBonusAtk[pId] = udg_Strain_TotalBonusAtk[pId] + bonusAtk
+            call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 4.0, "|cff33ccff[全维基因吸收-魔法猎物]|r 永久增加 +" + I2S(bonusMana) + "法力 / +" + I2S(bonusHP) + "生命 / +" + I2S(bonusAtk) + "攻击！（" + multStr + "收益）")
         endif
         call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Items\\AIam\\AIamTarget.mdl", u, "origin"))
+
+        // Devour count +1
+        set udg_Strain_DevourCount[pId] = udg_Strain_DevourCount[pId] + 1
+        call Strain_CheckEvolution(u, pId)
 
         // Also check if unit has selectable skills (captured when swallowed)
         if udg_Strain_CandidateCount[pId] > 0 then
@@ -6577,6 +6855,9 @@ function Refuge_ProcessRevives takes nothing returns nothing
                     if GetUnitTypeId(u) == 'H005' then
                         call Wild_ClearMorphAbil(u, pId)
                         call Wild_RevertToAvatar(u)
+                    elseif GetUnitTypeId(u) == 'H004' then
+                        call Strain_ApplyCurrentSkin(u, pId)
+                        call Strain_UpdateEvoUI(pId)
                     endif
                     call DestroyEffect(AddSpecialEffect("Abilities\\Spells\\Human\\Resurrect\\ResurrectTarget.mdl", GetUnitX(ref), GetUnitY(ref) - 150.0))
                     call DisplayTimedTextToPlayer(Player(pId), 0, 0, 6.0, "|cff00ff00[避难所复活]|r 你的英雄已在无敌避难所免费自动复活！")
@@ -6585,6 +6866,9 @@ function Refuge_ProcessRevives takes nothing returns nothing
                     if GetUnitTypeId(u) == 'H005' then
                         call Wild_ClearMorphAbil(u, pId)
                         call Wild_RevertToAvatar(u)
+                    elseif GetUnitTypeId(u) == 'H004' then
+                        call Strain_ApplyCurrentSkin(u, pId)
+                        call Strain_UpdateEvoUI(pId)
                     endif
                     call DisplayTimedTextToPlayer(Player(pId), 0, 0, 6.0, "|cff00ff00[避难所复活]|r 你的英雄已在出生点复活！")
                 endif
@@ -7396,6 +7680,23 @@ function DM_CapTimerLoop takes nothing returns nothing
         set i = i + 1
     endloop
 
+    // 3.4. Hero #3 Stage >= 2 Regenerative Carapace (2.5% Max HP / sec)
+    set pId = 0
+    loop
+        exitwhen pId > 7
+        if udg_Strain_EvoStage[pId] >= 2 then
+            set u = udg_Strain_Hero[pId]
+            if u == null then
+                set u = udg_AI_CustomHero[pId]
+            endif
+            if u != null and not IsUnitType(u, UNIT_TYPE_DEAD) and GetWidgetLife(u) > 0.405 then
+                call SetWidgetLife(u, GetWidgetLife(u) + 0.025 * I2R(BlzGetUnitMaxHP(u)))
+            endif
+            set u = null
+        endif
+        set pId = pId + 1
+    endloop
+
     // 3.5. Process Hero #3 Digestion Timer Countdown
     set pId = 0
     loop
@@ -7792,7 +8093,12 @@ function DM_OnSpellEffect takes nothing returns boolean
                 // Execute cascading attribute and HP/Mana drain BEFORE killing target hero!
                 call Strain_DrainEnemyHero(caster, ult)
             endif
-            set udg_Strain_DigestTimer[pId] = 8.0 - 1.5 * I2R(GetUnitAbilityLevel(caster, 'A022'))
+            if udg_Strain_EvoStage[pId] >= 3 then
+                set udg_Strain_DigestTimer[pId] = 1.0
+                call BlzStartUnitAbilityCooldown(caster, 'A022', 4.0)
+            else
+                set udg_Strain_DigestTimer[pId] = 8.0 - 1.5 * I2R(GetUnitAbilityLevel(caster, 'A022'))
+            endif
             call DestroyEffect(AddSpecialEffect("Abilities\\Spells\\Orc\\Devour\\DevourEffectArt.mdl", GetUnitX(ult), GetUnitY(ult)))
             call DestroyEffect(AddSpecialEffect("Objects\\Spawnmodels\\Human\\HumanLargeDeathExplode\\HumanLargeDeathExplode.mdl", GetUnitX(ult), GetUnitY(ult)))
             call SetUnitExploded(ult, true)
@@ -7989,6 +8295,9 @@ function DM_OnUnitAttacked takes nothing returns boolean
                 set udg_Strain_AmbushReady[pId] = true
                 call Strain_BreakMimicry(attacker, pId)
             endif
+            if udg_Strain_EvoStage[pId] >= 2 and target != null then
+                call DestroyEffect(AddSpecialEffectTarget("Abilities\\Weapons\\ChimaeraAcidMissile\\ChimaeraAcidMissile.mdl", target, "chest"))
+            endif
         elseif attTypeId == 'H005' and target != null then
             set pId = GetPlayerId(GetOwningPlayer(attacker))
             if udg_Wild_IsMorphed[pId] then
@@ -8070,6 +8379,12 @@ function DM_OnDamaged takes nothing returns boolean
                     call UnitDamageTarget(src, tgt, dmg * 1.00, true, false, ATTACK_TYPE_HERO, DAMAGE_TYPE_NORMAL, WEAPON_TYPE_WHOKNOWS)
                 endif
                 call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Orc\\CriticalStrike\\CriticalStrike.mdl", tgt, "overhead"))
+            endif
+
+            // Stage 3: Abyss Lifesteal (heal 25% of damage dealt)
+            if udg_Strain_EvoStage[pId] >= 3 then
+                call SetWidgetLife(src, GetWidgetLife(src) + dmg * 0.25)
+                call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Undead\\VampiricAura\\VampiricAuraTarget.mdl", src, "origin"))
             endif
 
             // Gene On-Attack Effects
@@ -8217,6 +8532,10 @@ function Wild_OnHeroReviveFinish takes nothing returns boolean
         set pId = GetPlayerId(GetOwningPlayer(rev))
         call Wild_ClearMorphAbil(rev, pId)
         call Wild_RevertToAvatar(rev)
+    elseif rev != null and GetUnitTypeId(rev) == 'H004' then
+        set pId = GetPlayerId(GetOwningPlayer(rev))
+        call Strain_ApplyCurrentSkin(rev, pId)
+        call Strain_UpdateEvoUI(pId)
     endif
     set rev = null
     return false
@@ -8671,6 +8990,9 @@ function TM_SpawnSandboxTargets takes player p returns nothing
     endif
     if udg_Strain_Hero[pId] != null then
         call UnitResetCooldown(udg_Strain_Hero[pId])
+        set udg_Strain_DevourCount[pId] = udg_Strain_DevourCount[pId] + 4
+        call Strain_CheckEvolution(udg_Strain_Hero[pId], pId)
+        call DisplayTimedTextToPlayer(p, 0, 0, 4.0, "|cff00ff00[沙盒测试]|r 异种之源获得 +4 吞噬进度！累计: " + I2S(udg_Strain_DevourCount[pId]) + " 次")
     endif
 
     // 1. Footman (hfoo) - Melee, Defend -> A025
@@ -8750,8 +9072,12 @@ function TM_OnChatCommand takes nothing returns nothing
     local string s = StringCase(GetEventPlayerChatString(), false)
     local player p = GetTriggerPlayer()
     local integer i = 0
+    local integer pId = 0
     if p == null then
         set p = udg_TM_PromptPlayer
+    endif
+    if p != null then
+        set pId = GetPlayerId(p)
     endif
 
     if s == "-test" or s == "-mode" then
@@ -8815,6 +9141,14 @@ function TM_OnChatCommand takes nothing returns nothing
         call TM_SpawnSandboxTargets(p)
     elseif s == "-refuge" then
         call Refuge_Relocate(p)
+    elseif s == "-evo" then
+        if udg_Strain_Hero[pId] != null then
+            set udg_Strain_DevourCount[pId] = udg_Strain_DevourCount[pId] + 8
+            call Strain_CheckEvolution(udg_Strain_Hero[pId], pId)
+            call DisplayTimedTextToPlayer(p, 0, 0, 4.0, "|cff00ff00[极速进化测试]|r 异种之源获得 +8 吞噬进度！累计: " + I2S(udg_Strain_DevourCount[pId]) + " 次")
+        else
+            call DisplayTimedTextToPlayer(p, 0, 0, 3.0, "|cffffcc00[极速进化测试]|r 未检测到异种之源英雄！")
+        endif
     endif
 
     set p = null
