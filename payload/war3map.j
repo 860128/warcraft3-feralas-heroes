@@ -58,6 +58,7 @@ globals
     integer array udg_Strain_DevourCount
     integer array udg_Strain_EvoStage
     effect array udg_Strain_Stage3Fx
+    real array udg_Strain_MirrorSyncTimer
 
     boolean array udg_Strain_MimicActive
     integer array udg_Strain_MimicType
@@ -3159,35 +3160,147 @@ endfunction
 // Hero #3: The Primordial Strain (异种之源 H004) System
 //===========================================================================
 
+function Strain_GetRealHero takes integer pId returns unit
+    local group g = null
+    local unit enumU = null
+    local unit candidate = null
+
+    if pId < 0 or pId > 15 then
+        return null
+    endif
+
+    set candidate = udg_Strain_Hero[pId]
+    if candidate != null and not IsUnitIllusion(candidate) and not IsUnitInGroup(candidate, udg_FakeHeroGroup) and GetUnitTypeId(candidate) == 'H004' then
+        return candidate
+    endif
+
+    // Strictly scan Player(pId)'s units for the genuine, non-illusion H004
+    set g = CreateGroup()
+    call GroupEnumUnitsOfPlayer(g, Player(pId), null)
+    loop
+        set enumU = FirstOfGroup(g)
+        exitwhen enumU == null
+        call GroupRemoveUnit(g, enumU)
+        if GetUnitTypeId(enumU) == 'H004' and not IsUnitIllusion(enumU) and not IsUnitInGroup(enumU, udg_FakeHeroGroup) then
+            set udg_Strain_Hero[pId] = enumU
+            call DestroyGroup(g)
+            return enumU
+        endif
+    endloop
+    call DestroyGroup(g)
+
+    return null
+endfunction
+
 function Strain_ApplyCurrentSkin takes unit u, integer pId returns nothing
     local integer stage = 0
+    local integer targetSkin = 'zzrg'
+    local real scale = 1.15
     if u == null then
         return
     endif
     set stage = udg_Strain_EvoStage[pId]
     if stage == 0 then
-        call BlzSetUnitSkin(u, 'zzrg')
-        call SetUnitScale(u, 1.15, 1.15, 1.15)
+        set targetSkin = 'zzrg'
+        set scale = 1.15
     elseif stage == 1 then
-        call BlzSetUnitSkin(u, 'nano')
-        call SetUnitScale(u, 1.30, 1.30, 1.30)
+        set targetSkin = 'nano'
+        set scale = 1.30
     elseif stage == 2 then
-        call BlzSetUnitSkin(u, 'zhyd')
-        call SetUnitScale(u, 1.40, 1.40, 1.40)
+        set targetSkin = 'zhyd'
+        set scale = 1.40
     elseif stage >= 3 then
-        call BlzSetUnitSkin(u, 'Ucrl')
-        call SetUnitScale(u, 1.65, 1.65, 1.65)
+        set targetSkin = 'Ucrl'
+        set scale = 1.65
+    endif
+
+    // 2-step skin swap to flush Warcraft 3 1.32 internal C++ skin cache (fixes AOmi Mirror Image skin lock)
+    call BlzSetUnitSkin(u, 'H004')
+    call BlzSetUnitSkin(u, targetSkin)
+    call SetUnitScale(u, scale, scale, scale)
+
+    if stage == 0 then
+        call BlzSetUnitWeaponRealField(u, UNIT_WEAPON_RF_ATTACK_RANGE, 0, 128.0)
+        call BlzSetUnitWeaponRealField(u, UNIT_WEAPON_RF_ATTACK_RANGE, 1, 128.0)
+        call SetUnitAcquireRange(u, 500.0)
+        call SetUnitVertexColor(u, 255, 255, 255, 255)
+    elseif stage == 1 then
+        call BlzSetUnitWeaponRealField(u, UNIT_WEAPON_RF_ATTACK_RANGE, 0, 128.0)
+        call BlzSetUnitWeaponRealField(u, UNIT_WEAPON_RF_ATTACK_RANGE, 1, 128.0)
+        call SetUnitAcquireRange(u, 500.0)
+        call SetUnitVertexColor(u, 255, 255, 255, 255)
+    elseif stage == 2 then
+        call BlzSetUnitWeaponRealField(u, UNIT_WEAPON_RF_ATTACK_RANGE, 0, 500.0)
+        call BlzSetUnitWeaponRealField(u, UNIT_WEAPON_RF_ATTACK_RANGE, 1, 500.0)
+        call BlzSetUnitWeaponRealField(u, UNIT_WEAPON_RF_ATTACK_PROJECTILE_SPEED, 0, 1200.0)
+        call BlzSetUnitWeaponStringField(u, UNIT_WEAPON_SF_ATTACK_PROJECTILE_ART, 0, "Abilities\\Weapons\\ChimaeraAcidMissile\\ChimaeraAcidMissile.mdl")
+        call SetUnitAcquireRange(u, 650.0)
+        call SetUnitVertexColor(u, 255, 255, 255, 255)
+    elseif stage >= 3 then
         call SetUnitVertexColor(u, 235, 200, 255, 255)
         call BlzSetUnitAbilityCooldown(u, 'A022', 0, 4.0)
         call BlzSetUnitAbilityCooldown(u, 'A022', 1, 4.0)
         call BlzSetUnitAbilityCooldown(u, 'A022', 2, 4.0)
-        if udg_Strain_Stage3Fx[pId] != null then
-            call DestroyEffect(udg_Strain_Stage3Fx[pId])
-            set udg_Strain_Stage3Fx[pId] = null
+        if not IsUnitIllusion(u) and not IsUnitInGroup(u, udg_FakeHeroGroup) then
+            if udg_Strain_Stage3Fx[pId] != null then
+                call DestroyEffect(udg_Strain_Stage3Fx[pId])
+                set udg_Strain_Stage3Fx[pId] = null
+            endif
+            set udg_Strain_Stage3Fx[pId] = AddSpecialEffectTarget("Abilities\\Spells\\Other\\GeneralAuraTarget\\GeneralAuraTarget.mdl", u, "origin")
         endif
-        set udg_Strain_Stage3Fx[pId] = AddSpecialEffectTarget("Abilities\\Spells\\Other\\GeneralAuraTarget\\GeneralAuraTarget.mdl", u, "origin")
     endif
 endfunction
+
+function Strain_SyncAllHeroAndIllusions takes integer pId returns nothing
+    local unit realHero = null
+    local group g = null
+    local unit enumU = null
+
+    if pId < 0 or pId > 15 then
+        return
+    endif
+
+    set realHero = Strain_GetRealHero(pId)
+    if realHero != null and not IsUnitType(realHero, UNIT_TYPE_DEAD) and GetWidgetLife(realHero) > 0.405 then
+        if not udg_Strain_Burrowed[pId] and not udg_Strain_MimicActive[pId] then
+            call Strain_ApplyCurrentSkin(realHero, pId)
+        endif
+    endif
+
+    // Sync all illusions of H004 for this player
+    set g = CreateGroup()
+    call GroupEnumUnitsOfPlayer(g, Player(pId), null)
+    loop
+        set enumU = FirstOfGroup(g)
+        exitwhen enumU == null
+        call GroupRemoveUnit(g, enumU)
+        if GetUnitTypeId(enumU) == 'H004' and (IsUnitIllusion(enumU) or IsUnitInGroup(enumU, udg_FakeHeroGroup)) and not IsUnitType(enumU, UNIT_TYPE_DEAD) and GetWidgetLife(enumU) > 0.405 then
+            call GroupAddUnit(udg_FakeHeroGroup, enumU)
+            call Strain_ApplyCurrentSkin(enumU, pId)
+        endif
+    endloop
+    call DestroyGroup(g)
+endfunction
+
+function Strain_OnUnitSummon takes nothing returns boolean
+    local unit summoned = GetSummonedUnit()
+    local integer pId = 0
+    local unit realHero = null
+
+    if summoned != null and GetUnitTypeId(summoned) == 'H004' then
+        set pId = GetPlayerId(GetOwningPlayer(summoned))
+        call GroupAddUnit(udg_FakeHeroGroup, summoned)
+        call Strain_ApplyCurrentSkin(summoned, pId)
+        set realHero = Strain_GetRealHero(pId)
+        if realHero != null and not udg_Strain_Burrowed[pId] and not udg_Strain_MimicActive[pId] then
+            call Strain_ApplyCurrentSkin(realHero, pId)
+        endif
+    endif
+    set summoned = null
+    return false
+endfunction
+
+
 
 function Strain_UpdateEvoUI takes integer pId returns nothing
     local integer devours = 0
@@ -3262,20 +3375,29 @@ function Strain_UpdateEvoUI takes integer pId returns nothing
 endfunction
 
 function Strain_CheckEvolution takes unit u, integer pId returns nothing
-    local integer devours = udg_Strain_DevourCount[pId]
-    local integer curStage = udg_Strain_EvoStage[pId]
+    local integer devours = 0
+    local integer curStage = 0
+    local unit realHero = null
 
-    if u == null or IsUnitType(u, UNIT_TYPE_DEAD) then
+    if pId < 0 or pId > 15 then
         return
     endif
+
+    set realHero = Strain_GetRealHero(pId)
+    if realHero == null or IsUnitType(realHero, UNIT_TYPE_DEAD) then
+        return
+    endif
+    set u = realHero
+
+    set devours = udg_Strain_DevourCount[pId]
+    set curStage = udg_Strain_EvoStage[pId]
 
     // Stage 1 threshold: 8 devours
     if devours >= 8 and curStage < 1 then
         set udg_Strain_EvoStage[pId] = 1
         set curStage = 1
 
-        call BlzSetUnitSkin(u, 'nano')
-        call SetUnitScale(u, 1.30, 1.30, 1.30)
+        call Strain_ApplyCurrentSkin(u, pId)
         call SetUnitMoveSpeed(u, GetUnitMoveSpeed(u) + 45.0)
         call BlzSetUnitAttackCooldown(u, BlzGetUnitAttackCooldown(u, 0) * 0.80, 0)
         call BlzSetUnitMaxHP(u, BlzGetUnitMaxHP(u) + 300)
@@ -3297,13 +3419,7 @@ function Strain_CheckEvolution takes unit u, integer pId returns nothing
         set udg_Strain_EvoStage[pId] = 2
         set curStage = 2
 
-        call BlzSetUnitSkin(u, 'zhyd')
-        call SetUnitScale(u, 1.40, 1.40, 1.40)
-        call SetUnitAcquireRange(u, 650.0)
-        call BlzSetUnitWeaponRealField(u, UNIT_WEAPON_RF_ATTACK_RANGE, 0, 500.0)
-        call BlzSetUnitWeaponRealField(u, UNIT_WEAPON_RF_ATTACK_RANGE, 1, 500.0)
-        call BlzSetUnitWeaponRealField(u, UNIT_WEAPON_RF_ATTACK_PROJECTILE_SPEED, 0, 1200.0)
-        call BlzSetUnitWeaponStringField(u, UNIT_WEAPON_SF_ATTACK_PROJECTILE_ART, 0, "Abilities\\Weapons\\ChimaeraAcidMissile\\ChimaeraAcidMissile.mdl")
+        call Strain_ApplyCurrentSkin(u, pId)
         call BlzSetUnitMaxHP(u, BlzGetUnitMaxHP(u) + 600)
         call SetWidgetLife(u, GetWidgetLife(u) + 600.0)
         call BlzSetUnitBaseDamage(u, BlzGetUnitBaseDamage(u, 0) + 45, 0)
@@ -3323,13 +3439,8 @@ function Strain_CheckEvolution takes unit u, integer pId returns nothing
         set udg_Strain_EvoStage[pId] = 3
         set curStage = 3
 
-        call BlzSetUnitSkin(u, 'Ucrl')
-        call SetUnitScale(u, 1.65, 1.65, 1.65)
-        call SetUnitVertexColor(u, 235, 200, 255, 255)
         call UnitAddAbility(u, 'ACmi')
-        call BlzSetUnitAbilityCooldown(u, 'A022', 0, 4.0)
-        call BlzSetUnitAbilityCooldown(u, 'A022', 1, 4.0)
-        call BlzSetUnitAbilityCooldown(u, 'A022', 2, 4.0)
+        call Strain_ApplyCurrentSkin(u, pId)
         call BlzSetUnitMaxHP(u, BlzGetUnitMaxHP(u) + 1200)
         call SetWidgetLife(u, GetWidgetLife(u) + 1200.0)
         call BlzSetUnitBaseDamage(u, BlzGetUnitBaseDamage(u, 0) + 80, 0)
@@ -3338,24 +3449,21 @@ function Strain_CheckEvolution takes unit u, integer pId returns nothing
         set udg_Strain_TotalBonusAtk[pId] = udg_Strain_TotalBonusAtk[pId] + 80
         set udg_Strain_TotalBonusArmor[pId] = udg_Strain_TotalBonusArmor[pId] + 10.0
 
-        if udg_Strain_Stage3Fx[pId] != null then
-            call DestroyEffect(udg_Strain_Stage3Fx[pId])
-            set udg_Strain_Stage3Fx[pId] = null
-        endif
-        set udg_Strain_Stage3Fx[pId] = AddSpecialEffectTarget("Abilities\\Spells\\Other\\GeneralAuraTarget\\GeneralAuraTarget.mdl", u, "origin")
-
         call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\Thunderclap\\ThunderClapCaster.mdl", u, "origin"))
         call DestroyEffect(AddSpecialEffectTarget("Objects\\Spawnmodels\\Human\\HumanLargeDeathExplode\\HumanLargeDeathExplode.mdl", u, "origin"))
         call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Items\\AIam\\AIamTarget.mdl", u, "origin"))
         call DisplayTimedTextToPlayer(GetOwningPlayer(u), 0, 0, 6.0, "|cffff0000【终极基因蜕壳·始祖利维坦虫皇】|r 登顶为至高无上的深渊始祖虫皇！获得永久魔免、25%深渊吸血、W技能4秒CD且1秒秒速消化、+1200生命 / +80攻击 / +10护甲！")
     endif
 
+    call Strain_SyncAllHeroAndIllusions(pId)
     call Strain_UpdateEvoUI(pId)
 endfunction
 
+
+
 function Strain_InitHero takes unit h returns nothing
     local integer pId = 0
-    if h == null then
+    if h == null or IsUnitIllusion(h) or IsUnitInGroup(h, udg_FakeHeroGroup) then
         return
     endif
     set pId = GetPlayerId(GetOwningPlayer(h))
@@ -3766,25 +3874,9 @@ function Strain_OnReplaceDialogClick takes nothing returns nothing
         return
     endif
     set pId = GetPlayerId(p)
-    set u = udg_Strain_Hero[pId]
+    set u = Strain_GetRealHero(pId)
     if u == null then
         set u = udg_AI_CustomHero[pId]
-    endif
-    if u == null then
-        set g = CreateGroup()
-        call GroupEnumUnitsOfPlayer(g, p, null)
-        loop
-            set enumU = FirstOfGroup(g)
-            exitwhen enumU == null
-            call GroupRemoveUnit(g, enumU)
-            if GetUnitTypeId(enumU) == 'H004' and not IsUnitIllusion(enumU) and not IsUnitInGroup(enumU, udg_FakeHeroGroup) then
-                set u = enumU
-                set udg_Strain_Hero[pId] = enumU
-                exitwhen true
-            endif
-        endloop
-        call DestroyGroup(g)
-        set g = null
     endif
     call DialogDisplay(p, udg_Strain_ReplaceDialog, false)
     set newAbil = udg_Strain_PendingNewAbil[pId]
@@ -3856,25 +3948,9 @@ function Strain_OnHeroDialogClick takes nothing returns nothing
         return
     endif
     set pId = GetPlayerId(p)
-    set u = udg_Strain_Hero[pId]
+    set u = Strain_GetRealHero(pId)
     if u == null then
         set u = udg_AI_CustomHero[pId]
-    endif
-    if u == null then
-        set g = CreateGroup()
-        call GroupEnumUnitsOfPlayer(g, p, null)
-        loop
-            set enumU = FirstOfGroup(g)
-            exitwhen enumU == null
-            call GroupRemoveUnit(g, enumU)
-            if GetUnitTypeId(enumU) == 'H004' and not IsUnitIllusion(enumU) and not IsUnitInGroup(enumU, udg_FakeHeroGroup) then
-                set u = enumU
-                set udg_Strain_Hero[pId] = enumU
-                exitwhen true
-            endif
-        endloop
-        call DestroyGroup(g)
-        set g = null
     endif
     call DialogDisplay(p, udg_Strain_HeroDialog, false)
     if u != null and not IsUnitType(u, UNIT_TYPE_DEAD) then
@@ -3962,25 +4038,9 @@ function Strain_OnGeneDialogClick takes nothing returns nothing
         return
     endif
     set pId = GetPlayerId(p)
-    set u = udg_Strain_Hero[pId]
+    set u = Strain_GetRealHero(pId)
     if u == null then
         set u = udg_AI_CustomHero[pId]
-    endif
-    if u == null then
-        set g = CreateGroup()
-        call GroupEnumUnitsOfPlayer(g, p, null)
-        loop
-            set enumU = FirstOfGroup(g)
-            exitwhen enumU == null
-            call GroupRemoveUnit(g, enumU)
-            if GetUnitTypeId(enumU) == 'H004' and not IsUnitIllusion(enumU) and not IsUnitInGroup(enumU, udg_FakeHeroGroup) then
-                set u = enumU
-                set udg_Strain_Hero[pId] = enumU
-                exitwhen true
-            endif
-        endloop
-        call DestroyGroup(g)
-        set g = null
     endif
     call DialogDisplay(p, udg_Strain_GeneDialog, false)
     if u != null and not IsUnitType(u, UNIT_TYPE_DEAD) then
@@ -4347,6 +4407,19 @@ function DM_StealthLoop takes nothing returns nothing
     local boolean isRevealed = false
     local real dx = 0.0
     local real dy = 0.0
+
+    // 0. Process Strain Mirror Image Sync Timer
+    set pId = 0
+    loop
+        exitwhen pId > 7
+        if udg_Strain_MirrorSyncTimer[pId] > 0.0 then
+            set udg_Strain_MirrorSyncTimer[pId] = udg_Strain_MirrorSyncTimer[pId] - 0.05
+            if udg_Strain_MirrorSyncTimer[pId] <= 0.0 then
+                call Strain_SyncAllHeroAndIllusions(pId)
+            endif
+        endif
+        set pId = pId + 1
+    endloop
 
     // 1. Process pending stealth queue
     set i = 0
@@ -7710,7 +7783,7 @@ function DM_CapTimerLoop takes nothing returns nothing
     loop
         exitwhen pId > 7
         if udg_Strain_EvoStage[pId] >= 2 then
-            set u = udg_Strain_Hero[pId]
+            set u = Strain_GetRealHero(pId)
             if u == null then
                 set u = udg_AI_CustomHero[pId]
             endif
@@ -7733,7 +7806,7 @@ function DM_CapTimerLoop takes nothing returns nothing
                     call DestroyEffect(udg_Strain_DigestFx[pId])
                     set udg_Strain_DigestFx[pId] = null
                 endif
-                set u = udg_Strain_Hero[pId]
+                set u = Strain_GetRealHero(pId)
                 if u == null then
                     set u = udg_AI_CustomHero[pId]
                 endif
@@ -7797,7 +7870,7 @@ function DM_CapTimerLoop takes nothing returns nothing
     loop
         exitwhen pId > 7
         if udg_Strain_EvoStage[pId] >= 3 then
-            set u = udg_Strain_Hero[pId]
+            set u = Strain_GetRealHero(pId)
             if u == null then
                 set u = udg_AI_CustomHero[pId]
             endif
@@ -7808,6 +7881,22 @@ function DM_CapTimerLoop takes nothing returns nothing
             endif
             set u = null
         endif
+        set pId = pId + 1
+    endloop
+
+    // 3.8. Hero #3 Skin Verification & Illusion Synchronization
+    set pId = 0
+    loop
+        exitwhen pId > 7
+        set u = Strain_GetRealHero(pId)
+        if u != null and not IsUnitType(u, UNIT_TYPE_DEAD) and GetWidgetLife(u) > 0.405 then
+            if not udg_Strain_Burrowed[pId] and not udg_Strain_MimicActive[pId] then
+                if BlzGetUnitSkin(u) == 'H004' and udg_Strain_EvoStage[pId] > 0 then
+                    call Strain_ApplyCurrentSkin(u, pId)
+                endif
+            endif
+        endif
+        set u = null
         set pId = pId + 1
     endloop
 
@@ -8091,7 +8180,9 @@ function DM_OnSpellEffect takes nothing returns boolean
         set ult = null
     elseif abil == 'A021' then
         set pId = GetPlayerId(GetOwningPlayer(caster))
-        set udg_Strain_Hero[pId] = caster
+        if not IsUnitIllusion(caster) and not IsUnitInGroup(caster, udg_FakeHeroGroup) then
+            set udg_Strain_Hero[pId] = caster
+        endif
         if udg_Strain_Burrowed[pId] then
             call Strain_Unburrow(caster, pId)
         else
@@ -8116,7 +8207,9 @@ function DM_OnSpellEffect takes nothing returns boolean
     elseif abil == 'A022' then
         set pId = GetPlayerId(GetOwningPlayer(caster))
         set ult = GetSpellTargetUnit()
-        set udg_Strain_Hero[pId] = caster
+        if not IsUnitIllusion(caster) and not IsUnitInGroup(caster, udg_FakeHeroGroup) then
+            set udg_Strain_Hero[pId] = caster
+        endif
         set udg_Strain_DigestSkillLv[pId] = IMaxBJ(1, GetUnitAbilityLevel(caster, 'A022'))
         if ult != null then
             set udg_Strain_DigestType[pId] = GetUnitTypeId(ult)
@@ -8159,7 +8252,9 @@ function DM_OnSpellEffect takes nothing returns boolean
         endif
     elseif abil == 'A023' then
         set pId = GetPlayerId(GetOwningPlayer(caster))
-        set udg_Strain_Hero[pId] = caster
+        if not IsUnitIllusion(caster) and not IsUnitInGroup(caster, udg_FakeHeroGroup) then
+            set udg_Strain_Hero[pId] = caster
+        endif
         if udg_Strain_MimicActive[pId] then
             call Strain_BreakMimicry(caster, pId)
             set udg_Strain_AmbushReady[pId] = false
@@ -8205,9 +8300,19 @@ function DM_OnSpellEffect takes nothing returns boolean
                 call DestroyEffect(AddSpecialEffect("Abilities\\Spells\\Orc\\MirrorImage\\MirrorImageCaster.mdl", GetUnitX(caster), GetUnitY(caster)))
             endif
         endif
+    elseif abil == 'AOmi' then
+        set pId = GetPlayerId(GetOwningPlayer(caster))
+        if GetUnitTypeId(caster) == 'H004' then
+            if not IsUnitIllusion(caster) and not IsUnitInGroup(caster, udg_FakeHeroGroup) then
+                set udg_Strain_Hero[pId] = caster
+            endif
+            set udg_Strain_MirrorSyncTimer[pId] = 0.60
+        endif
     elseif abil == 'A024' then
         set pId = GetPlayerId(GetOwningPlayer(caster))
-        set udg_Strain_Hero[pId] = caster
+        if not IsUnitIllusion(caster) and not IsUnitInGroup(caster, udg_FakeHeroGroup) then
+            set udg_Strain_Hero[pId] = caster
+        endif
         call Strain_ShowGeneDialog(GetOwningPlayer(caster), pId)
     elseif abil == 'A031' then
         set pId = GetPlayerId(GetOwningPlayer(caster))
@@ -8403,7 +8508,9 @@ function DM_OnDamaged takes nothing returns boolean
         // Hero #3: The Primordial Strain (H004) Damage Interactions
         if GetUnitTypeId(src) == 'H004' then
             set pId = GetPlayerId(GetOwningPlayer(src))
-            set udg_Strain_Hero[pId] = src
+            if not IsUnitIllusion(src) and not IsUnitInGroup(src, udg_FakeHeroGroup) then
+                set udg_Strain_Hero[pId] = src
+            endif
 
             // Unburrow if attacking
             if udg_Strain_Burrowed[pId] then
@@ -9036,10 +9143,11 @@ function TM_SpawnSandboxTargets takes player p returns nothing
         call DestroyEffect(udg_Strain_DigestFx[pId])
         set udg_Strain_DigestFx[pId] = null
     endif
-    if udg_Strain_Hero[pId] != null then
-        call UnitResetCooldown(udg_Strain_Hero[pId])
+    set u = Strain_GetRealHero(pId)
+    if u != null then
+        call UnitResetCooldown(u)
         set udg_Strain_DevourCount[pId] = udg_Strain_DevourCount[pId] + 4
-        call Strain_CheckEvolution(udg_Strain_Hero[pId], pId)
+        call Strain_CheckEvolution(u, pId)
         call DisplayTimedTextToPlayer(p, 0, 0, 4.0, "|cff00ff00[沙盒测试]|r 异种之源获得 +4 吞噬进度！累计: " + I2S(udg_Strain_DevourCount[pId]) + " 次")
     endif
 
@@ -9121,6 +9229,7 @@ function TM_OnChatCommand takes nothing returns nothing
     local player p = GetTriggerPlayer()
     local integer i = 0
     local integer pId = 0
+    local unit u = null
     if p == null then
         set p = udg_TM_PromptPlayer
     endif
@@ -9190,15 +9299,17 @@ function TM_OnChatCommand takes nothing returns nothing
     elseif s == "-refuge" then
         call Refuge_Relocate(p)
     elseif s == "-evo" then
-        if udg_Strain_Hero[pId] != null then
+        set u = Strain_GetRealHero(pId)
+        if u != null then
             set udg_Strain_DevourCount[pId] = udg_Strain_DevourCount[pId] + 8
-            call Strain_CheckEvolution(udg_Strain_Hero[pId], pId)
+            call Strain_CheckEvolution(u, pId)
             call DisplayTimedTextToPlayer(p, 0, 0, 4.0, "|cff00ff00[极速进化测试]|r 异种之源获得 +8 吞噬进度！累计: " + I2S(udg_Strain_DevourCount[pId]) + " 次")
         else
             call DisplayTimedTextToPlayer(p, 0, 0, 3.0, "|cffffcc00[极速进化测试]|r 未检测到异种之源英雄！")
         endif
     endif
 
+    set u = null
     set p = null
 endfunction
 
@@ -9310,6 +9421,7 @@ function DM_InitTriggers takes nothing returns nothing
     local trigger tHeroDialog = CreateTrigger()
     local trigger tReplaceDialog = CreateTrigger()
     local trigger tWildDialog = CreateTrigger()
+    local trigger tSummon = CreateTrigger()
     local timer tmrCap = CreateTimer()
     local timer tmrStealth = CreateTimer()
     local timer tmrStart = CreateTimer()
@@ -9376,6 +9488,7 @@ function DM_InitTriggers takes nothing returns nothing
         set udg_Strain_EvoTier2[i] = 0
         set udg_Strain_PendingNewAbil[i] = 0
         set udg_Strain_Hero[i] = null
+        set udg_Strain_MirrorSyncTimer[i] = 0.0
 
         set udg_Wild_Hero[i] = null
         set udg_Wild_IsMorphed[i] = false
@@ -9431,6 +9544,9 @@ function DM_InitTriggers takes nothing returns nothing
     endloop
     call TriggerAddAction(tChat, function TM_OnChatCommand)
 
+    call TriggerRegisterAnyUnitEventBJ(tSummon, EVENT_PLAYER_UNIT_SUMMON)
+    call TriggerAddCondition(tSummon, Condition(function Strain_OnUnitSummon))
+
     call TriggerRegisterAnyUnitEventBJ(tAttack, EVENT_PLAYER_UNIT_ATTACKED)
     call TriggerAddCondition(tAttack, Condition(function DM_OnUnitAttacked))
 
@@ -9482,6 +9598,7 @@ function DM_InitTriggers takes nothing returns nothing
     set tGeneDialog = null
     set tHeroDialog = null
     set tReplaceDialog = null
+    set tSummon = null
     set tmrCap = null
     set tmrStealth = null
     set tmrStart = null
