@@ -1240,7 +1240,96 @@ DataA = {1 = 65.0}
 Area = {1 = 260.0}
 Name = "地狱烈焰献祭"
 Tip = {1 = "地狱烈焰献祭"}
-Ubertip = {1 = "对周围敌方地面单位造成每秒 65 点烈焰灼烧伤害。"}"""
+Ubertip = {1 = "对周围敌方地面单位造成每秒 65 点烈焰灼烧伤害。"}
+
+[A041]
+_parent = "ANcl"
+Name = "法轮注视 · 主动解析"
+Hotkey = "Q"
+Buttonpos_1 = 0
+Buttonpos_2 = 2
+levels = 1
+hero = 0
+Cost = 20
+Cool = 6.0
+Rng = 600.0
+Art = "ReplaceableTextures\\\\CommandButtons\\\\BTNReveal.blp"
+DataA = 0.0
+DataB = 1
+DataC = 1
+DataD = 0.0
+DataE = 0
+DataF = "faeriefire"
+Order = "faeriefire"
+targs = "air,ground,enemy,neutral,organic,mechanical,vulnerable"
+Tip = "法轮注视 · 主动解析(|cffffcc00Q|r)"
+Ubertip = "将头顶八握剑法轮的因果视线锁定在一名敌方非建筑单位身上。每秒自动解析目标的攻击方式、护甲构造与技能脉络，为魔虚罗提供持续的防御适应(+2%/秒)、破甲增伤(+4%/秒)与技能抗性(+3%/秒)，并永久淬炼肉身(+8点最大生命值/秒，每2秒+1攻击力)。|n|n施法距离：600，冷却时间：6.0秒，消耗法力：20点。"
+
+[A042]
+_parent = "ANcl"
+Name = "退魔之剑 · 破界斩"
+Hotkey = "W"
+Buttonpos_1 = 1
+Buttonpos_2 = 2
+levels = 1
+hero = 0
+Cost = 40
+Cool = 8.0
+Rng = 280.0
+Art = "ReplaceableTextures\\\\CommandButtons\\\\BTNArcaniteMelee.blp"
+DataA = 0.0
+DataB = 1
+DataC = 1
+DataD = 0.0
+DataE = 0
+DataF = "cripple"
+Order = "cripple"
+targs = "air,ground,enemy,neutral,organic,mechanical,vulnerable"
+Tip = "退魔之剑 · 破界斩(|cffffcc00W|r)"
+Ubertip = "右臂凝聚充溢正能量的退魔之剑，对单一目标造成【(70 + 基础攻击力×1.5) × (1 + 对该护甲进攻适应倍率)】点英雄物理伤害。|n|n|cffffcc00【破魔特攻】|r：若目标为召唤物、幻象、克隆体、假英雄或不死族单位，此击转化为【3.0倍真实纯粹破魔伤害】，并直接斩杀生命值低于40%的普通召唤物与幻象！|n|n施法距离：280，冷却时间：8.0秒，消耗法力：40点。"
+
+[A043]
+_parent = "ANcl"
+Name = "法轮强转 · 喀嚓"
+Hotkey = "E"
+Buttonpos_1 = 2
+Buttonpos_2 = 2
+levels = 1
+hero = 0
+Cost = 50
+Cool = 14.0
+Art = "ReplaceableTextures\\\\CommandButtons\\\\BTNResurrection.blp"
+DataA = 0.0
+DataB = 0
+DataC = 1
+DataD = 0.0
+DataE = 0
+DataF = "resurrection"
+Order = "resurrection"
+Tip = "法轮强转 · 喀嚓(|cffffcc00E|r)"
+Ubertip = "强行转动头顶的因果法轮！发出清脆的命运轮转之声，瞬间净化自身全部负面状态与控制效果，恢复25%最大生命值，并强行将最近所受伤害类别、技能与Q锁定目标的适应度各推进【+12%】！|n|n冷却时间：14.0秒，消耗法力：50点。"
+
+[A044]
+_parent = "ANcl"
+Name = "八握剑法轮 · 适应总览"
+Hotkey = "R"
+Buttonpos_1 = 3
+Buttonpos_2 = 2
+levels = 1
+hero = 0
+Cost = 0
+Cool = 1.0
+Art = "ReplaceableTextures\\\\CommandButtons\\\\BTNInnerFire.blp"
+DataA = 0.0
+DataB = 0
+DataC = 1
+DataD = 0.0
+DataE = 0
+DataF = "innerfire"
+Order = "innerfire"
+Tip = "八握剑法轮 · 适应总览(|cffffcc00R|r)"
+Ubertip = "点击在屏幕上完整输出魔虚罗当前的【全维因果适应档案】（包含7大防御抗性、7大进攻破甲增伤、具体英雄战技适应度以及凤凰蛋涅槃冷却）。|n|n悬停此技能可实时查看核心战力摘要。"
+"""
 
 ini_unit = """[H002]
 _parent = "Obla"
@@ -1531,21 +1620,74 @@ requirescount = 0
 requires1 = ""
 requires2 = ""
 
+
+
+[H006]
+_parent = "Hmkg"
+Name = "异界神将·魔虚罗"
+Propernames = "魔虚罗,八握剑,异界神将"
+Tip = "召唤 异界神将·魔虚罗(|cffffcc00M|r)"
+Ubertip = "来自异界的无上神将。掌控万象因果与适应律。三围 1-1-1 极速慢行起步，但随着战斗时间的推移与伤害洗礼，将全维适应敌方一切攻击、护甲、移速与英雄战技，直至化为不可阻挡的终极存在！|n|n|cffffcc00技能：|r|n- 法轮注视 · 主动解析 (Q)|n- 退魔之剑 · 破界斩 (W)|n- 法轮强转 · 喀嚓 (E)|n- 八握剑法轮 · 适应总览 (R)"
+Revivetip = "复活 异界神将·魔虚罗(|cffffcc00M|r)"
+Awakentip = "唤醒 异界神将·魔虚罗(|cffffcc00M|r)"
+Hotkey = "M"
+Art = "ReplaceableTextures\\\\CommandButtons\\\\BTNInfernal.blp"
+file = "units\\\\demon\\\\Infernal\\\\Infernal"
+"file:hd" = "units\\\\demon\\\\Infernal\\\\Infernal"
+"file:sd" = "units\\\\demon\\\\Infernal\\\\Infernal"
+unitSound = "Infernal"
+modelScale = 1.0
+scale = 1.0
+Primary = "STR"
+primary = "STR"
+STR = 1
+AGI = 1
+INT = 1
+STRplus = 0.0
+AGIplus = 0.0
+INTplus = 0.0
+spd = 190
+HP = 300
+manaN = 250
+dmgplus1 = 10
+dice1 = 1
+sides1 = 2
+cool1 = 1.35
+rangeN1 = 128
+weapTp1 = "normal"
+atkType1 = "hero"
+defType = "hero"
+def = 1.0
+bpx = 0
+bpy = 2
+Buttonpos_1 = 0
+Buttonpos_2 = 2
+fused = 5
+goldcost = 425
+lumbercost = 100
+bldtm = 55
+heroAbilList = ""
+abilList = "AInv,A041,A042,A043,A044"
+requires = ""
+requirescount = 0
+requires1 = ""
+requires2 = ""
+
 [halt]
 _parent = "halt"
-Trains = "Hamg,Hmkg,Hpal,Hblm,H002,H003,H004,H005"
+Trains = "Hamg,Hmkg,Hpal,Hblm,H002,H003,H004,H005,H006"
 
 [oalt]
 _parent = "oalt"
-Trains = "Obla,Ofar,Otch,Oshd,H002,H003,H004,H005"
+Trains = "Obla,Ofar,Otch,Oshd,H002,H003,H004,H005,H006"
 
 [uaod]
 _parent = "uaod"
-Trains = "Udea,Ulic,Udre,Ucrl,H002,H003,H004,H005"
+Trains = "Udea,Ulic,Udre,Ucrl,H002,H003,H004,H005,H006"
 
 [eate]
 _parent = "eate"
-Trains = "Edem,Ekee,Emoo,Ewar,H002,H003,H004,H005"
+Trains = "Edem,Ekee,Emoo,Ewar,H002,H003,H004,H005,H006"
 
 [n003]
 _parent = "halt"
@@ -1565,7 +1707,7 @@ goldcost = 0
 lumbercost = 0
 bldtm = 1
 Revive = 1
-Trains = "Hamg,Hmkg,Hpal,Hblm,Obla,Ofar,Otch,Oshd,Edem,Ekee,Emoo,Ewar,Udea,Ulic,Udre,Ucrl,H002,H003,H004,H005"
+Trains = "Hamg,Hmkg,Hpal,Hblm,Obla,Ofar,Otch,Oshd,Edem,Ekee,Emoo,Ewar,Udea,Ulic,Udre,Ucrl,H002,H003,H004,H005,H006"
 """
 
 # 1. Write ini files to factory_tpl/table
@@ -1617,10 +1759,10 @@ for fn in ["war3map.w3u", "war3map.w3a"]:
 print("\n--- Verifying compiled payload files ---")
 with open(os.path.join(PAYLOAD_DIR, "war3map.w3u"), "rb") as f:
     w3u_data = f.read()
-for sym in [b'H002', b'H003', b'H004', b'H005', b'u000', b'u001', b'u002', b'u003', b'halt', b'oalt', b'uaod', b'eate', b'n003']:
+for sym in [b'H002', b'H003', b'H004', b'H005', b'H006', b'u000', b'u001', b'u002', b'u003', b'halt', b'oalt', b'uaod', b'eate', b'n003']:
     print(f"w3u contains {sym.decode('ascii')}: {sym in w3u_data}")
 
 with open(os.path.join(PAYLOAD_DIR, "war3map.w3a"), "rb") as f:
     w3a_data = f.read()
-for sym in [b'A001', b'A002', b'A003', b'A004', b'A00V', b'A011', b'A012', b'A013', b'A014', b'A015', b'A016', b'A017', b'A021', b'A022', b'A023', b'A024', b'A025', b'A026', b'A027', b'A031', b'A032', b'A033', b'A034', b'A035', b'ACbl', b'ACls', b'ACpu', b'ACct', b'ACbh', b'ACev', b'ACtb', b'ACro', b'ACif', b'ACsw', b'AChx', b'ACst', b'ACsh', b'ACfl', b'ACfn', b'ACf2', b'ACen', b'ACrj', b'ACcs', b'ACav', b'ACdv', b'A036', b'A037', b'ACmi', b'ANpi']:
+for sym in [b'A001', b'A002', b'A003', b'A004', b'A00V', b'A011', b'A012', b'A013', b'A014', b'A015', b'A016', b'A017', b'A021', b'A022', b'A023', b'A024', b'A025', b'A026', b'A027', b'A031', b'A032', b'A033', b'A034', b'A035', b'ACbl', b'ACls', b'ACpu', b'ACct', b'ACbh', b'ACev', b'ACtb', b'ACro', b'ACif', b'ACsw', b'AChx', b'ACst', b'ACsh', b'ACfl', b'ACfn', b'ACf2', b'ACen', b'ACrj', b'ACcs', b'ACav', b'ACdv', b'A036', b'A037', b'ACmi', b'ANpi', b'A041', b'A042', b'A043', b'A044']:
     print(f"w3a contains {sym.decode('ascii')}: {sym in w3a_data}")

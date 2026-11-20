@@ -244,9 +244,864 @@ globals
     integer array udg_Wild_SoulStacks
     integer array udg_Wild_ArmyBonusHP
     integer array udg_Wild_ArmyBonusDmg
+
+    // Hero #5: Mahoraga (异界神将·魔虚罗 H006) Globals
+    unit array udg_Maho_Hero
+    effect array udg_Maho_WheelFx
+    real array udg_Maho_MoveSpeed
+    real array udg_Maho_DefAdapt
+    real array udg_Maho_AtkAdapt
+    integer array udg_Maho_SkillId
+    real array udg_Maho_SkillPct
+    integer array udg_Maho_SkillCount
+    integer array udg_Maho_LastSkillId
+    real array udg_Maho_LastSkillTime
+    real array udg_Maho_CCTimer
+    boolean array udg_Maho_InEgg
+    real array udg_Maho_EggTimer
+    real array udg_Maho_EggCD
+    integer array udg_Maho_FatalCat
+    integer array udg_Maho_FatalSkill
+    unit array udg_Maho_WatchTarget
+    effect array udg_Maho_WatchFx
+    integer array udg_Maho_WheelSpins
+    integer array udg_Maho_AtkHits
+    boolean udg_Maho_DmgLock = false
+    button udg_TM_BtnMode5All = null
 endglobals
 
 function InitGlobals takes nothing returns nothing
+endfunction
+
+//===========================================================================
+// Hero #5: Mahoraga (异界神将·魔虚罗 H006) Core Logic
+//===========================================================================
+function Maho_IsUnitAlive takes unit u returns boolean
+    return u != null and not IsUnitType(u, UNIT_TYPE_DEAD) and GetWidgetLife(u) > 0.405
+endfunction
+
+function Maho_GetSkillName takes integer abilId returns string
+    if abilId == 'A001' then
+        return "镜像与潜行"
+    elseif abilId == 'A002' then
+        return "幻梦奴役"
+    elseif abilId == 'A003' then
+        return "万象皆虚"
+    elseif abilId == 'A004' then
+        return "幻界主宰"
+    elseif abilId == 'A011' then
+        return "潜行替身"
+    elseif abilId == 'A012' then
+        return "竭心光环"
+    elseif abilId == 'A013' then
+        return "他化自在"
+    elseif abilId == 'A014' then
+        return "影之多重分身"
+    elseif abilId == 'A021' then
+        return "渊潜掠影"
+    elseif abilId == 'A022' then
+        return "捕食吞噬"
+    elseif abilId == 'A023' then
+        return "拟态伪装"
+    elseif abilId == 'A024' then
+        return "异种进化"
+    elseif abilId == 'A025' then
+        return "异种甲壳进化"
+    elseif abilId == 'A026' then
+        return "异种剧毒"
+    elseif abilId == 'A027' then
+        return "剧毒突刺"
+    elseif abilId == 'A031' then
+        return "狂野巨力"
+    elseif abilId == 'A032' then
+        return "诡诈迅影"
+    elseif abilId == 'A033' then
+        return "万相灵音"
+    elseif abilId == 'A034' then
+        return "返璞归真"
+    elseif abilId == 'A035' then
+        return "众野之怒"
+    elseif abilId == 'A036' then
+        return "坚韧厚皮"
+    elseif abilId == 'A037' then
+        return "百鬼军魂"
+    elseif abilId == 'A041' then
+        return "法轮注视"
+    elseif abilId == 'A042' then
+        return "退魔之剑"
+    elseif abilId == 'A043' then
+        return "法轮强转"
+    elseif abilId == 'A044' then
+        return "八握剑法轮"
+    elseif abilId == 'AHtb' then
+        return "风暴之锤"
+    elseif abilId == 'AHtc' then
+        return "雷霆一击"
+    elseif abilId == 'AHhb' then
+        return "圣光术"
+    elseif abilId == 'AHbz' then
+        return "暴风雪"
+    elseif abilId == 'AOmi' then
+        return "镜像"
+    elseif abilId == 'AOcl' then
+        return "闪电链"
+    elseif abilId == 'AOhw' then
+        return "治疗波"
+    elseif abilId == 'AOs2' then
+        return "震荡波"
+    elseif abilId == 'AOs1' then
+        return "战争践踏"
+    elseif abilId == 'AEer' then
+        return "纠缠根须"
+    elseif abilId == 'AEfn' then
+        return "刀阵旋风"
+    elseif abilId == 'AEsh' then
+        return "暗影突袭"
+    elseif abilId == 'AUcs' then
+        return "腐臭蜂群"
+    elseif abilId == 'AUsl' then
+        return "睡眠"
+    elseif abilId == 'AUfn' then
+        return "霜冻新星"
+    elseif abilId == 'AUim' then
+        return "穿刺"
+    elseif abilId == 'AUdc' then
+        return "死亡缠绕"
+    elseif abilId == 'ACbl' then
+        return "嗜血术"
+    elseif abilId == 'ACls' then
+        return "闪电护盾"
+    elseif abilId == 'ACpu' then
+        return "净化"
+    elseif abilId == 'ACct' then
+        return "致命一击"
+    elseif abilId == 'ACbh' then
+        return "重击"
+    elseif abilId == 'ACev' then
+        return "闪避"
+    elseif abilId == 'ACtb' then
+        return "投掷巨石"
+    elseif abilId == 'ACro' then
+        return "战吼咆哮"
+    elseif abilId == 'ACif' then
+        return "心灵之火"
+    elseif abilId == 'ACsw' then
+        return "减速"
+    elseif abilId == 'AChx' then
+        return "妖术"
+    elseif abilId == 'ACst' then
+        return "战争践踏"
+    elseif abilId == 'ACsh' then
+        return "震荡波"
+    elseif abilId == 'ACfl' then
+        return "叉状闪电"
+    elseif abilId == 'ACfn' then
+        return "霜冻新星"
+    elseif abilId == 'ACf2' then
+        return "霜冻护甲"
+    elseif abilId == 'ACen' then
+        return "诱捕"
+    elseif abilId == 'ACrj' then
+        return "生命恢复"
+    elseif abilId == 'ACcs' then
+        return "诅咒"
+    elseif abilId == 'ACav' then
+        return "统御光环"
+    elseif abilId == 'ACdv' then
+        return "专注光环"
+    endif
+    return GetObjectName(abilId)
+endfunction
+
+function Maho_GetSkillPct takes integer pId, integer abilId returns real
+    local integer i = 0
+    if abilId == 0 then
+        return 0.0
+    endif
+    set i = 0
+    loop
+        exitwhen i >= udg_Maho_SkillCount[pId] or i >= 12
+        if udg_Maho_SkillId[pId * 12 + i] == abilId then
+            return udg_Maho_SkillPct[pId * 12 + i]
+        endif
+        set i = i + 1
+    endloop
+    return 0.0
+endfunction
+
+function Maho_AddSkillAdapt takes integer pId, integer abilId, real pctAdd returns nothing
+    local integer i = 0
+    local integer idx = -1
+    local integer minIdx = 0
+    local real minPct = 999.0
+
+    if abilId == 0 or abilId == 'A041' or abilId == 'A042' or abilId == 'A043' or abilId == 'A044' then
+        return
+    endif
+
+    set i = 0
+    loop
+        exitwhen i >= udg_Maho_SkillCount[pId] or i >= 12
+        if udg_Maho_SkillId[pId * 12 + i] == abilId then
+            set idx = i
+            exitwhen true
+        endif
+        if udg_Maho_SkillPct[pId * 12 + i] < minPct then
+            set minPct = udg_Maho_SkillPct[pId * 12 + i]
+            set minIdx = i
+        endif
+        set i = i + 1
+    endloop
+
+    if idx >= 0 then
+        set udg_Maho_SkillPct[pId * 12 + idx] = RMinBJ(1.00, udg_Maho_SkillPct[pId * 12 + idx] + pctAdd)
+    else
+        if udg_Maho_SkillCount[pId] < 12 then
+            set idx = udg_Maho_SkillCount[pId]
+            set udg_Maho_SkillCount[pId] = udg_Maho_SkillCount[pId] + 1
+        else
+            set idx = minIdx
+        endif
+        set udg_Maho_SkillId[pId * 12 + idx] = abilId
+        set udg_Maho_SkillPct[pId * 12 + idx] = RMinBJ(1.00, pctAdd)
+    endif
+endfunction
+
+function Maho_GetCatFromDamage takes attacktype atkType, damagetype dmgType, boolean isAttack returns integer
+    if not isAttack or dmgType == DAMAGE_TYPE_MAGIC or dmgType == DAMAGE_TYPE_SONIC or dmgType == DAMAGE_TYPE_LIGHTNING or dmgType == DAMAGE_TYPE_FIRE or dmgType == DAMAGE_TYPE_COLD or dmgType == DAMAGE_TYPE_UNKNOWN then
+        return 6
+    endif
+    if atkType == ATTACK_TYPE_NORMAL then
+        return 0
+    elseif atkType == ATTACK_TYPE_PIERCE then
+        return 1
+    elseif atkType == ATTACK_TYPE_SIEGE then
+        return 2
+    elseif atkType == ATTACK_TYPE_HERO then
+        return 3
+    elseif atkType == ATTACK_TYPE_CHAOS then
+        return 4
+    elseif atkType == ATTACK_TYPE_MAGIC then
+        return 5
+    endif
+    return 6
+endfunction
+
+function Maho_GetAtkCatFromUnit takes unit u returns integer
+    local integer rawAtk = 0
+    if u == null then
+        return 0
+    endif
+    if IsUnitType(u, UNIT_TYPE_HERO) then
+        return 3
+    endif
+    set rawAtk = BlzGetUnitWeaponIntegerField(u, UNIT_WEAPON_IF_ATTACK_ATTACK_TYPE, 0)
+    if rawAtk == 1 then
+        return 0
+    elseif rawAtk == 2 then
+        return 1
+    elseif rawAtk == 3 then
+        return 2
+    elseif rawAtk == 4 then
+        return 5
+    elseif rawAtk == 5 then
+        return 4
+    elseif rawAtk == 6 then
+        return 3
+    endif
+    return 0
+endfunction
+
+function Maho_UpdateUI takes integer pId returns nothing
+    local string tip = ""
+    local real eggCD = udg_Maho_EggCD[pId]
+    local real maxDef = 0.0
+    local real maxAtk = 0.0
+    local integer i = 0
+
+    set i = 0
+    loop
+        exitwhen i > 6
+        if udg_Maho_DefAdapt[pId * 8 + i] > maxDef then
+            set maxDef = udg_Maho_DefAdapt[pId * 8 + i]
+        endif
+        set i = i + 1
+    endloop
+
+    set i = 0
+    loop
+        exitwhen i > 7
+        if udg_Maho_AtkAdapt[pId * 8 + i] > maxAtk then
+            set maxAtk = udg_Maho_AtkAdapt[pId * 8 + i]
+        endif
+        set i = i + 1
+    endloop
+
+    set tip = "|cffffcc00【魔虚罗·全维适应概要】|r|n"
+    set tip = tip + "- 移动速度：" + I2S(R2I(udg_Maho_MoveSpeed[pId])) + "/522|n"
+    set tip = tip + "- 法轮转动次数：" + I2S(udg_Maho_WheelSpins[pId]) + "次|n"
+    if udg_Maho_InEgg[pId] then
+        set tip = tip + "- 凤凰蛋涅槃：|cffff0000正在涅槃中(" + I2S(R2I(udg_Maho_EggTimer[pId])) + "s)|r|n"
+    elseif eggCD > 0.0 then
+        set tip = tip + "- 凤凰蛋涅槃：|cffff6600冷却中(" + I2S(R2I(eggCD)) + "s)|r|n"
+    else
+        set tip = tip + "- 凤凰蛋涅槃：|cff00ff00已就绪|r|n"
+    endif
+    set tip = tip + "- 最高防御减免：" + I2S(R2I(maxDef * 100.0)) + "%|n"
+    set tip = tip + "- 最高破甲增伤：+" + I2S(R2I(maxAtk * 100.0)) + "%|n"
+    set tip = tip + "|cff99ccff点击此技能在屏幕上打印完整适应档案。|r"
+
+    if GetLocalPlayer() == Player(pId) then
+        call BlzSetAbilityExtendedTooltip('A044', tip, 0)
+    endif
+endfunction
+
+function Maho_PrintOverview takes integer pId returns nothing
+    local player p = Player(pId)
+    local string s = ""
+    local integer i = 0
+    local real eggCD = udg_Maho_EggCD[pId]
+
+    call DisplayTimedTextToPlayer(p, 0, 0, 8.0, "|cffffcc00==================================================|r")
+    call DisplayTimedTextToPlayer(p, 0, 0, 8.0, "|cffffcc00【异界神将·魔虚罗 全维因果适应档案】|r")
+    call DisplayTimedTextToPlayer(p, 0, 0, 8.0, "当前移速: " + I2S(R2I(udg_Maho_MoveSpeed[pId])) + "/522 | 法轮转动: " + I2S(udg_Maho_WheelSpins[pId]) + "次")
+    if udg_Maho_InEgg[pId] then
+        call DisplayTimedTextToPlayer(p, 0, 0, 8.0, "涅槃状态: |cffff0000正在涅槃中 (" + I2S(R2I(udg_Maho_EggTimer[pId])) + "s)|r")
+    elseif eggCD > 0.0 then
+        call DisplayTimedTextToPlayer(p, 0, 0, 8.0, "涅槃状态: |cffff6600冷却中 (" + I2S(R2I(eggCD)) + "s)|r")
+    else
+        call DisplayTimedTextToPlayer(p, 0, 0, 8.0, "涅槃状态: |cff00ff00已就绪|r")
+    endif
+
+    set s = "|cff00ffff[防御抗性]|r 普通: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 0] * 100.0)) + "% | 穿刺: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 1] * 100.0)) + "% | 攻城: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 2] * 100.0)) + "% | 英雄: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 3] * 100.0)) + "%"
+    call DisplayTimedTextToPlayer(p, 0, 0, 8.0, s)
+    set s = "|cff00ffff[防御抗性]|r 混乱: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 4] * 100.0)) + "% | 魔法: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 5] * 100.0)) + "% | 技能法术: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 6] * 100.0)) + "%"
+    call DisplayTimedTextToPlayer(p, 0, 0, 8.0, s)
+
+    set s = "|cffff9900[破甲增伤]|r 轻甲: +" + I2S(R2I(udg_Maho_AtkAdapt[pId * 8 + 0] * 100.0)) + "% | 中甲: +" + I2S(R2I(udg_Maho_AtkAdapt[pId * 8 + 1] * 100.0)) + "% | 重甲: +" + I2S(R2I(udg_Maho_AtkAdapt[pId * 8 + 2] * 100.0)) + "%"
+    call DisplayTimedTextToPlayer(p, 0, 0, 8.0, s)
+    set s = "|cffff9900[破甲增伤]|r 坚防: +" + I2S(R2I(udg_Maho_AtkAdapt[pId * 8 + 3] * 100.0)) + "% | 英雄: +" + I2S(R2I(udg_Maho_AtkAdapt[pId * 8 + 4] * 100.0)) + "% | 无甲: +" + I2S(R2I(udg_Maho_AtkAdapt[pId * 8 + 5] * 100.0)) + "%"
+    call DisplayTimedTextToPlayer(p, 0, 0, 8.0, s)
+
+    if udg_Maho_SkillCount[pId] > 0 then
+        set s = "|cffcc99ff[英雄技能深度解析]|r "
+        set i = 0
+        loop
+            exitwhen i >= udg_Maho_SkillCount[pId] or i >= 12
+            set s = s + Maho_GetSkillName(udg_Maho_SkillId[pId * 12 + i]) + ": " + I2S(R2I(udg_Maho_SkillPct[pId * 12 + i] * 100.0)) + "%  "
+            set i = i + 1
+        endloop
+        call DisplayTimedTextToPlayer(p, 0, 0, 8.0, s)
+    endif
+
+    call DisplayTimedTextToPlayer(p, 0, 0, 8.0, "|cffffcc00==================================================|r")
+    set p = null
+endfunction
+
+function Maho_InitHero takes unit h returns nothing
+    local integer pId = 0
+    if h == null then
+        return
+    endif
+    set pId = GetPlayerId(GetOwningPlayer(h))
+    set udg_Maho_Hero[pId] = h
+    set udg_Maho_MoveSpeed[pId] = 190.0
+
+    call SetHeroLevel(h, 10, false)
+    call UnitModifySkillPoints(h, -GetHeroSkillPoints(h))
+    call SetHeroStr(h, 1, true)
+    call SetHeroAgi(h, 1, true)
+    call SetHeroInt(h, 1, true)
+    call SetUnitMoveSpeed(h, 190.0)
+
+    call SetUnitVertexColor(h, 255, 215, 60, 255)
+    if udg_Maho_WheelFx[pId] != null then
+        call DestroyEffect(udg_Maho_WheelFx[pId])
+    endif
+    set udg_Maho_WheelFx[pId] = AddSpecialEffectTarget("Abilities\\Spells\\Human\\DevotionAura\\DevotionAura.mdl", h, "overhead")
+
+    call Maho_UpdateUI(pId)
+endfunction
+
+function Maho_ApplyDeathPenalty takes integer pId returns nothing
+    local integer i = 0
+    if udg_Maho_WheelFx[pId] != null then
+        call DestroyEffect(udg_Maho_WheelFx[pId])
+        set udg_Maho_WheelFx[pId] = null
+    endif
+    if udg_Maho_WatchFx[pId] != null then
+        call DestroyEffect(udg_Maho_WatchFx[pId])
+        set udg_Maho_WatchFx[pId] = null
+        set udg_Maho_WatchTarget[pId] = null
+    endif
+    set udg_Maho_InEgg[pId] = false
+    set udg_Maho_EggTimer[pId] = 0.0
+
+    set i = 0
+    loop
+        exitwhen i > 6
+        set udg_Maho_DefAdapt[pId * 8 + i] = udg_Maho_DefAdapt[pId * 8 + i] * 0.70
+        set i = i + 1
+    endloop
+
+    set i = 0
+    loop
+        exitwhen i > 7
+        set udg_Maho_AtkAdapt[pId * 8 + i] = udg_Maho_AtkAdapt[pId * 8 + i] * 0.70
+        set i = i + 1
+    endloop
+
+    set i = 0
+    loop
+        exitwhen i > 11
+        set udg_Maho_SkillPct[pId * 12 + i] = udg_Maho_SkillPct[pId * 12 + i] * 0.70
+        set i = i + 1
+    endloop
+
+    call DisplayTimedTextToPlayer(Player(pId), 0, 0, 4.0, "|cffff6600[法轮碎裂]|r 魔虚罗真正阵亡，已积累的适应进度回退 30%！")
+    call Maho_UpdateUI(pId)
+endfunction
+
+function Maho_TriggerEgg takes unit tgt, integer pId, integer fatalCat, integer fatalSkill returns nothing
+    call BlzSetEventDamage(0.0)
+    call SetWidgetLife(tgt, 1.0)
+    set udg_Maho_InEgg[pId] = true
+    set udg_Maho_EggTimer[pId] = 5.0
+    set udg_Maho_EggCD[pId] = 45.0
+    set udg_Maho_FatalCat[pId] = fatalCat
+    set udg_Maho_FatalSkill[pId] = fatalSkill
+    if udg_Maho_WheelFx[pId] != null then
+        call DestroyEffect(udg_Maho_WheelFx[pId])
+        set udg_Maho_WheelFx[pId] = null
+    endif
+    call BlzSetUnitSkin(tgt, 'hpxe')
+    call SetUnitVertexColor(tgt, 255, 220, 80, 255)
+    call SetUnitInvulnerable(tgt, true)
+    call PauseUnit(tgt, true)
+    call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\Resurrection\\ResurrectionTarget.mdl", tgt, "origin"))
+    call DisplayTimedTextToPlayer(GetLocalPlayer(), 0, 0, 4.0, "|cffffcc00【法轮轮转·涅槃破壳】|r 魔虚罗遭遇致死伤害，化身无敌金卵进入5秒命运重塑！")
+    call Maho_UpdateUI(pId)
+endfunction
+
+function Maho_OnEggComplete takes integer pId returns nothing
+    local unit h = udg_Maho_Hero[pId]
+    local integer cat = 0
+    if h != null and udg_Maho_InEgg[pId] then
+        set udg_Maho_InEgg[pId] = false
+        call SetUnitInvulnerable(h, false)
+        call PauseUnit(h, false)
+        call BlzSetUnitSkin(h, 'H006')
+        call SetUnitVertexColor(h, 255, 215, 60, 255)
+        if udg_Maho_WheelFx[pId] != null then
+            call DestroyEffect(udg_Maho_WheelFx[pId])
+        endif
+        set udg_Maho_WheelFx[pId] = AddSpecialEffectTarget("Abilities\\Spells\\Human\\DevotionAura\\DevotionAura.mdl", h, "overhead")
+        call SetWidgetLife(h, GetUnitState(h, UNIT_STATE_MAX_LIFE))
+        call SetUnitState(h, UNIT_STATE_MANA, GetUnitState(h, UNIT_STATE_MAX_MANA))
+
+        set cat = udg_Maho_FatalCat[pId]
+        if cat >= 0 and cat <= 6 then
+            set udg_Maho_DefAdapt[pId * 8 + cat] = RMinBJ(1.00, udg_Maho_DefAdapt[pId * 8 + cat] + 0.35)
+        endif
+        if udg_Maho_FatalSkill[pId] != 0 then
+            call Maho_AddSkillAdapt(pId, udg_Maho_FatalSkill[pId], 0.50)
+        endif
+
+        call BlzSetUnitMaxHP(h, BlzGetUnitMaxHP(h) + 180)
+        call BlzSetUnitBaseDamage(h, BlzGetUnitBaseDamage(h, 0) + 12, 0)
+        call BlzSetUnitArmor(h, BlzGetUnitArmor(h) + 2.0)
+        call SetWidgetLife(h, GetUnitState(h, UNIT_STATE_MAX_LIFE))
+
+        call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\Avatar\\AvatarCaster.mdl", h, "origin"))
+        call DisplayTimedTextToPlayer(GetLocalPlayer(), 0, 0, 4.0, "|cffffcc00【神将重生·破茧成神】|r 魔虚罗完成因果涅槃！抗性暴涨，身躯全面升华！")
+        call Maho_UpdateUI(pId)
+    endif
+    set h = null
+endfunction
+
+function Maho_AnalyzeTargetSkills takes integer pId, unit wt returns nothing
+    local integer uId = 0
+    if wt == null then
+        return
+    endif
+    set uId = GetUnitTypeId(wt)
+
+    if GetUnitAbilityLevel(wt, 'AHtb') > 0 or uId == 'Hmkg' then
+        call Maho_AddSkillAdapt(pId, 'AHtb', 0.03)
+    endif
+    if GetUnitAbilityLevel(wt, 'AHtc') > 0 or uId == 'Hmkg' then
+        call Maho_AddSkillAdapt(pId, 'AHtc', 0.03)
+    endif
+    if GetUnitAbilityLevel(wt, 'AHhb') > 0 or uId == 'Hpal' then
+        call Maho_AddSkillAdapt(pId, 'AHhb', 0.03)
+    endif
+    if GetUnitAbilityLevel(wt, 'AHbz') > 0 or uId == 'Hamg' then
+        call Maho_AddSkillAdapt(pId, 'AHbz', 0.03)
+    endif
+    if GetUnitAbilityLevel(wt, 'AOmi') > 0 or uId == 'Obla' then
+        call Maho_AddSkillAdapt(pId, 'AOmi', 0.03)
+    endif
+    if GetUnitAbilityLevel(wt, 'AOcl') > 0 or uId == 'Ofar' then
+        call Maho_AddSkillAdapt(pId, 'AOcl', 0.03)
+    endif
+    if GetUnitAbilityLevel(wt, 'AOhw') > 0 or uId == 'Oshd' then
+        call Maho_AddSkillAdapt(pId, 'AOhw', 0.03)
+    endif
+    if GetUnitAbilityLevel(wt, 'AOs2') > 0 or uId == 'Otch' then
+        call Maho_AddSkillAdapt(pId, 'AOs2', 0.03)
+    endif
+    if GetUnitAbilityLevel(wt, 'AOs1') > 0 or uId == 'Otch' then
+        call Maho_AddSkillAdapt(pId, 'AOs1', 0.03)
+    endif
+    if GetUnitAbilityLevel(wt, 'AEer') > 0 or uId == 'Ekee' then
+        call Maho_AddSkillAdapt(pId, 'AEer', 0.03)
+    endif
+    if GetUnitAbilityLevel(wt, 'AEfn') > 0 or uId == 'Ewar' then
+        call Maho_AddSkillAdapt(pId, 'AEfn', 0.03)
+    endif
+    if GetUnitAbilityLevel(wt, 'AEsh') > 0 or uId == 'Ewar' then
+        call Maho_AddSkillAdapt(pId, 'AEsh', 0.03)
+    endif
+    if GetUnitAbilityLevel(wt, 'AUcs') > 0 or uId == 'Udre' then
+        call Maho_AddSkillAdapt(pId, 'AUcs', 0.03)
+    endif
+    if GetUnitAbilityLevel(wt, 'AUsl') > 0 or uId == 'Udre' then
+        call Maho_AddSkillAdapt(pId, 'AUsl', 0.03)
+    endif
+    if GetUnitAbilityLevel(wt, 'AUfn') > 0 or uId == 'Ulic' then
+        call Maho_AddSkillAdapt(pId, 'AUfn', 0.03)
+    endif
+    if GetUnitAbilityLevel(wt, 'AUim') > 0 or uId == 'Ucrl' then
+        call Maho_AddSkillAdapt(pId, 'AUim', 0.03)
+    endif
+    if GetUnitAbilityLevel(wt, 'AUdc') > 0 or uId == 'Udea' then
+        call Maho_AddSkillAdapt(pId, 'AUdc', 0.03)
+    endif
+
+    if GetUnitAbilityLevel(wt, 'A001') > 0 or uId == 'H002' then
+        call Maho_AddSkillAdapt(pId, 'A001', 0.03)
+    endif
+    if GetUnitAbilityLevel(wt, 'A002') > 0 or uId == 'H002' then
+        call Maho_AddSkillAdapt(pId, 'A002', 0.03)
+    endif
+    if GetUnitAbilityLevel(wt, 'A003') > 0 or uId == 'H002' then
+        call Maho_AddSkillAdapt(pId, 'A003', 0.03)
+    endif
+    if GetUnitAbilityLevel(wt, 'A011') > 0 or uId == 'H003' then
+        call Maho_AddSkillAdapt(pId, 'A011', 0.03)
+    endif
+    if GetUnitAbilityLevel(wt, 'A014') > 0 or uId == 'H003' then
+        call Maho_AddSkillAdapt(pId, 'A014', 0.03)
+    endif
+    if GetUnitAbilityLevel(wt, 'A021') > 0 or uId == 'H004' then
+        call Maho_AddSkillAdapt(pId, 'A021', 0.03)
+    endif
+    if GetUnitAbilityLevel(wt, 'A022') > 0 or uId == 'H004' then
+        call Maho_AddSkillAdapt(pId, 'A022', 0.03)
+    endif
+    if GetUnitAbilityLevel(wt, 'A031') > 0 or uId == 'H005' then
+        call Maho_AddSkillAdapt(pId, 'A031', 0.03)
+    endif
+    if GetUnitAbilityLevel(wt, 'A032') > 0 or uId == 'H005' then
+        call Maho_AddSkillAdapt(pId, 'A032', 0.03)
+    endif
+    if GetUnitAbilityLevel(wt, 'A035') > 0 or uId == 'H005' then
+        call Maho_AddSkillAdapt(pId, 'A035', 0.03)
+    endif
+endfunction
+
+function Maho_CapTimerLoop takes nothing returns nothing
+    local integer pId = 0
+    local unit h = null
+    local unit wt = null
+    local integer atkCat = 0
+    local integer defType = 0
+    local real hx = 0.0
+    local real hy = 0.0
+    local real tx = 0.0
+    local real ty = 0.0
+    local real dist = 0.0
+
+    set pId = 0
+    loop
+        exitwhen pId > 7
+        set udg_Maho_LastSkillTime[pId] = RMaxBJ(0.0, udg_Maho_LastSkillTime[pId] - 1.0)
+        if udg_Maho_EggCD[pId] > 0.0 then
+            set udg_Maho_EggCD[pId] = RMaxBJ(0.0, udg_Maho_EggCD[pId] - 1.0)
+        endif
+
+        if udg_Maho_InEgg[pId] then
+            set udg_Maho_EggTimer[pId] = udg_Maho_EggTimer[pId] - 1.0
+            if udg_Maho_EggTimer[pId] <= 0.0 then
+                call Maho_OnEggComplete(pId)
+            endif
+        elseif udg_Maho_Hero[pId] != null and Maho_IsUnitAlive(udg_Maho_Hero[pId]) then
+            set h = udg_Maho_Hero[pId]
+
+            // Chase Speed Adaptation
+            if GetUnitCurrentOrder(h) != 0 then
+                if udg_Maho_MoveSpeed[pId] < 522.0 then
+                    set udg_Maho_MoveSpeed[pId] = udg_Maho_MoveSpeed[pId] + 3.0
+                    if udg_Maho_MoveSpeed[pId] >= 522.0 then
+                        set udg_Maho_MoveSpeed[pId] = 522.0
+                        call DisplayTimedTextToPlayer(GetLocalPlayer(), 0, 0, 4.0, "|cffffcc00【法轮转动·空间适应完成】|r 移速已达522极限！")
+                        call BlzSetUnitAttackCooldown(h, BlzGetUnitAttackCooldown(h, 0) * 0.85, 0)
+                    endif
+                    call SetUnitMoveSpeed(h, udg_Maho_MoveSpeed[pId])
+                endif
+            endif
+
+            // Q Watch Target Passive Analysis
+            if udg_Maho_WatchTarget[pId] != null then
+                set wt = udg_Maho_WatchTarget[pId]
+                set hx = GetUnitX(h)
+                set hy = GetUnitY(h)
+                set tx = GetUnitX(wt)
+                set ty = GetUnitY(wt)
+                set dist = SquareRoot((hx - tx) * (hx - tx) + (hy - ty) * (hy - ty))
+
+                if not Maho_IsUnitAlive(wt) or dist > 1600.0 then
+                    if udg_Maho_WatchFx[pId] != null then
+                        call DestroyEffect(udg_Maho_WatchFx[pId])
+                        set udg_Maho_WatchFx[pId] = null
+                    endif
+                    set udg_Maho_WatchTarget[pId] = null
+                else
+                    set atkCat = Maho_GetAtkCatFromUnit(wt)
+                    set udg_Maho_DefAdapt[pId * 8 + atkCat] = RMinBJ(1.00, udg_Maho_DefAdapt[pId * 8 + atkCat] + 0.02)
+                    set defType = BlzGetUnitIntegerField(wt, UNIT_IF_DEFENSE_TYPE)
+                    if defType < 0 or defType > 7 then
+                        set defType = 0
+                    endif
+                    set udg_Maho_AtkAdapt[pId * 8 + defType] = udg_Maho_AtkAdapt[pId * 8 + defType] + 0.04
+                    call Maho_AnalyzeTargetSkills(pId, wt)
+
+                    call BlzSetUnitMaxHP(h, BlzGetUnitMaxHP(h) + 8)
+                    if (udg_AI_CommandTick / 2) * 2 == udg_AI_CommandTick then
+                        call BlzSetUnitBaseDamage(h, BlzGetUnitBaseDamage(h, 0) + 1, 0)
+                    endif
+                    set udg_Maho_WheelSpins[pId] = udg_Maho_WheelSpins[pId] + 1
+                    call Maho_UpdateUI(pId)
+                endif
+            endif
+        endif
+        set pId = pId + 1
+    endloop
+    set h = null
+    set wt = null
+endfunction
+
+function Maho_StealthLoop takes nothing returns nothing
+    local integer pId = 0
+    local unit h = null
+    local boolean hasCC = false
+    local real ccAdapt = 0.0
+    local real lastSkillPct = 0.0
+
+    set pId = 0
+    loop
+        exitwhen pId > 7
+        set h = udg_Maho_Hero[pId]
+        if h != null and Maho_IsUnitAlive(h) and not udg_Maho_InEgg[pId] then
+            set hasCC = false
+            if UnitHasBuffBJ(h, 'BPSE') or UnitHasBuffBJ(h, 'BSTN') or UnitHasBuffBJ(h, 'BHtb') or UnitHasBuffBJ(h, 'Bslo') or UnitHasBuffBJ(h, 'Bhex') or UnitHasBuffBJ(h, 'Bens') or UnitHasBuffBJ(h, 'Bweb') or UnitHasBuffBJ(h, 'Bslp') or UnitHasBuffBJ(h, 'Bcy2') or UnitHasBuffBJ(h, 'Bcri') then
+                set hasCC = true
+            endif
+
+            if hasCC then
+                set udg_Maho_CCTimer[pId] = udg_Maho_CCTimer[pId] + 0.05
+                set lastSkillPct = 0.0
+                if udg_Maho_LastSkillId[pId] != 0 then
+                    set lastSkillPct = Maho_GetSkillPct(pId, udg_Maho_LastSkillId[pId])
+                endif
+                set ccAdapt = RMaxBJ(udg_Maho_DefAdapt[pId * 8 + 6], lastSkillPct)
+
+                if ccAdapt >= 0.99 then
+                    call UnitRemoveBuffs(h, false, true)
+                    set udg_Maho_CCTimer[pId] = 0.0
+                    call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\DispelMagic\\DispelMagicTarget.mdl", h, "origin"))
+                elseif ccAdapt >= 0.50 and udg_Maho_CCTimer[pId] >= 0.60 then
+                    call UnitRemoveBuffs(h, false, true)
+                    set udg_Maho_CCTimer[pId] = 0.0
+                    call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\DispelMagic\\DispelMagicTarget.mdl", h, "origin"))
+                elseif ccAdapt >= 0.25 and udg_Maho_CCTimer[pId] >= 1.20 then
+                    call UnitRemoveBuffs(h, false, true)
+                    set udg_Maho_CCTimer[pId] = 0.0
+                    call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\DispelMagic\\DispelMagicTarget.mdl", h, "origin"))
+                endif
+            else
+                set udg_Maho_CCTimer[pId] = 0.0
+            endif
+        endif
+        set pId = pId + 1
+    endloop
+    set h = null
+endfunction
+
+function Maho_OnAnySpellEffect takes unit caster, integer abil returns nothing
+    local integer pId = 0
+    local unit maho = null
+    local unit tgt = GetSpellTargetUnit()
+    local real tx = 0.0
+    local real ty = 0.0
+    local real dist = 0.0
+    local real mx = 0.0
+    local real my = 0.0
+
+    if caster == null or abil == 0 or abil == 'A041' or abil == 'A042' or abil == 'A043' or abil == 'A044' then
+        return
+    endif
+
+    set tx = GetSpellTargetX()
+    set ty = GetSpellTargetY()
+    if tgt == null and tx == 0.0 and ty == 0.0 then
+        set tx = GetUnitX(caster)
+        set ty = GetUnitY(caster)
+    endif
+
+    set pId = 0
+    loop
+        exitwhen pId > 7
+        set maho = udg_Maho_Hero[pId]
+        if maho != null and Maho_IsUnitAlive(maho) and not udg_Maho_InEgg[pId] and IsUnitEnemy(caster, GetOwningPlayer(maho)) then
+            if tgt == maho then
+                set udg_Maho_LastSkillId[pId] = abil
+                set udg_Maho_LastSkillTime[pId] = 2.5
+                call Maho_AddSkillAdapt(pId, abil, 0.03)
+                call Maho_UpdateUI(pId)
+            elseif tx != 0.0 or ty != 0.0 then
+                set mx = GetUnitX(maho)
+                set my = GetUnitY(maho)
+                set dist = SquareRoot((mx - tx) * (mx - tx) + (my - ty) * (my - ty))
+                if dist <= 450.0 then
+                    set udg_Maho_LastSkillId[pId] = abil
+                    set udg_Maho_LastSkillTime[pId] = 2.5
+                    call Maho_AddSkillAdapt(pId, abil, 0.03)
+                    call Maho_UpdateUI(pId)
+                endif
+            endif
+        endif
+        set pId = pId + 1
+    endloop
+    set maho = null
+    set tgt = null
+endfunction
+
+function Maho_CastQ takes unit caster, unit tgt returns nothing
+    local integer pId = 0
+    if caster == null or tgt == null then
+        return
+    endif
+    set pId = GetPlayerId(GetOwningPlayer(caster))
+    if udg_Maho_WatchFx[pId] != null then
+        call DestroyEffect(udg_Maho_WatchFx[pId])
+        set udg_Maho_WatchFx[pId] = null
+    endif
+    set udg_Maho_WatchTarget[pId] = tgt
+    set udg_Maho_WatchFx[pId] = AddSpecialEffectTarget("Abilities\\Spells\\Human\\InnerFire\\InnerFireTarget.mdl", tgt, "overhead")
+    call DisplayTimedTextToPlayer(GetOwningPlayer(caster), 0, 0, 3.0, "|cffffcc00【法轮注视】|r 已因果锁定目标 " + GetUnitName(tgt) + "，持续进行全维解析！")
+    call Maho_UpdateUI(pId)
+endfunction
+
+function Maho_CastW takes unit caster, unit tgt returns nothing
+    local integer pId = 0
+    local real baseD = 0.0
+    local integer defType = 0
+    local real bonus = 0.0
+    local real rawDmg = 0.0
+    local boolean isAntiMagic = false
+
+    if caster == null or tgt == null then
+        return
+    endif
+    set pId = GetPlayerId(GetOwningPlayer(caster))
+    set baseD = 70.0 + I2R(BlzGetUnitBaseDamage(caster, 0)) * 1.5
+    set defType = BlzGetUnitIntegerField(tgt, UNIT_IF_DEFENSE_TYPE)
+    if defType < 0 or defType > 7 then
+        set defType = 0
+    endif
+    set bonus = udg_Maho_AtkAdapt[pId * 8 + defType]
+    set rawDmg = baseD * (1.0 + bonus)
+
+    if IsUnitIllusion(tgt) or IsUnitType(tgt, UNIT_TYPE_SUMMONED) or IsUnitType(tgt, UNIT_TYPE_UNDEAD) or IsUnitInGroup(tgt, udg_FakeHeroGroup) or GetUnitTypeId(tgt) == 'u001' or GetUnitTypeId(tgt) == 'u002' or GetUnitTypeId(tgt) == 'u003' then
+        set isAntiMagic = true
+    endif
+
+    if isAntiMagic then
+        if (IsUnitIllusion(tgt) or IsUnitType(tgt, UNIT_TYPE_SUMMONED)) and not IsUnitType(tgt, UNIT_TYPE_HERO) and GetWidgetLife(tgt) <= (GetUnitState(tgt, UNIT_STATE_MAX_LIFE) * 0.40) then
+            set udg_Maho_DmgLock = true
+            call KillUnit(tgt)
+            set udg_Maho_DmgLock = false
+            call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\Banish\\BanishTarget.mdl", tgt, "origin"))
+            call DisplayTimedTextToPlayer(GetOwningPlayer(caster), 0, 0, 3.0, "|cffffcc00【退魔之剑·净化斩杀】|r 虚妄造物被正能量彻底斩灭！")
+        else
+            set udg_Maho_DmgLock = true
+            call UnitDamageTarget(caster, tgt, rawDmg * 3.0, true, false, ATTACK_TYPE_HERO, DAMAGE_TYPE_UNIVERSAL, WEAPON_TYPE_WHOKNOWS)
+            set udg_Maho_DmgLock = false
+            call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\HolyBolt\\HolyBoltSpecialArt.mdl", tgt, "origin"))
+        endif
+    else
+        set udg_Maho_DmgLock = true
+        call UnitDamageTarget(caster, tgt, rawDmg, true, false, ATTACK_TYPE_HERO, DAMAGE_TYPE_NORMAL, WEAPON_TYPE_WHOKNOWS)
+        set udg_Maho_DmgLock = false
+        call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Orc\\CriticalStrike\\CriticalStrikeTarget.mdl", tgt, "origin"))
+    endif
+
+    set udg_Maho_AtkAdapt[pId * 8 + defType] = udg_Maho_AtkAdapt[pId * 8 + defType] + 0.04
+    set udg_Maho_AtkHits[pId] = udg_Maho_AtkHits[pId] + 1
+    if udg_Maho_AtkHits[pId] >= 2 then
+        set udg_Maho_AtkHits[pId] = udg_Maho_AtkHits[pId] - 2
+        call BlzSetUnitBaseDamage(caster, BlzGetUnitBaseDamage(caster, 0) + 1, 0)
+    endif
+    call Maho_UpdateUI(pId)
+endfunction
+
+function Maho_CastE takes unit caster returns nothing
+    local integer pId = 0
+    local integer cat = 0
+    local integer defType = 0
+    local real healAmt = 0.0
+
+    if caster == null then
+        return
+    endif
+    set pId = GetPlayerId(GetOwningPlayer(caster))
+
+    call UnitRemoveBuffs(caster, false, true)
+    set udg_Maho_CCTimer[pId] = 0.0
+
+    set healAmt = GetUnitState(caster, UNIT_STATE_MAX_LIFE) * 0.25
+    call SetWidgetLife(caster, RMinBJ(GetUnitState(caster, UNIT_STATE_MAX_LIFE), GetWidgetLife(caster) + healAmt))
+
+    set cat = udg_Maho_FatalCat[pId]
+    if cat >= 0 and cat <= 6 then
+        set udg_Maho_DefAdapt[pId * 8 + cat] = RMinBJ(1.00, udg_Maho_DefAdapt[pId * 8 + cat] + 0.12)
+    endif
+
+    if udg_Maho_LastSkillId[pId] != 0 then
+        call Maho_AddSkillAdapt(pId, udg_Maho_LastSkillId[pId], 0.12)
+    endif
+
+    if udg_Maho_WatchTarget[pId] != null and Maho_IsUnitAlive(udg_Maho_WatchTarget[pId]) then
+        set defType = BlzGetUnitIntegerField(udg_Maho_WatchTarget[pId], UNIT_IF_DEFENSE_TYPE)
+        if defType >= 0 and defType <= 7 then
+            set udg_Maho_AtkAdapt[pId * 8 + defType] = udg_Maho_AtkAdapt[pId * 8 + defType] + 0.12
+        endif
+    endif
+
+    set udg_Maho_WheelSpins[pId] = udg_Maho_WheelSpins[pId] + 1
+    call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\Resurrection\\ResurrectionTarget.mdl", caster, "overhead"))
+    call DisplayTimedTextToPlayer(GetOwningPlayer(caster), 0, 0, 3.0, "|cffffcc00【法轮强转·喀嚓！】|r 净化状态，恢复25%生命，因果适应度推进 +12%！")
+    call Maho_UpdateUI(pId)
+endfunction
+
+function Maho_CastR takes unit caster returns nothing
+    local integer pId = 0
+    if caster == null then
+        return
+    endif
+    set pId = GetPlayerId(GetOwningPlayer(caster))
+    call Maho_PrintOverview(pId)
 endfunction
 
 //***************************************************************************
@@ -3737,6 +4592,10 @@ function Strain_DrainEnemyHero takes unit caster, unit victim returns nothing
 endfunction
 
 function Strain_GetAbilName takes integer abilId returns string
+    return Maho_GetSkillName(abilId)
+endfunction
+
+function Strain_GetAbilName_Legacy takes integer abilId returns string
     if abilId == 'ACbl' then
         return "嗜血术"
     elseif abilId == 'ACls' then
@@ -4600,6 +5459,9 @@ function DM_StealthLoop takes nothing returns nothing
         endif
         set pId = pId + 1
     endloop
+
+    // 4. Mahoraga CC detection and progressive dispel
+    call Maho_StealthLoop()
 endfunction
 
 //===========================================================================
@@ -6639,6 +7501,9 @@ function AI_AutoLearnSkills takes unit h returns nothing
             set learned = AI_LearnSkillForStrain(h)
         elseif uId == 'H005' then
             set learned = AI_LearnSkillForWild(h)
+        elseif uId == 'H006' then
+            call UnitModifySkillPoints(h, -GetHeroSkillPoints(h))
+            set learned = false
         endif
         if not learned then
             exitwhen true
@@ -6655,6 +7520,8 @@ function AI_SpawnCustomHeroForPlayer takes integer pId, real x, real y, real fac
         set hTypeId = 'H004'
     elseif udg_AI_HeroMode[pId] == 4 then
         set hTypeId = 'H005'
+    elseif udg_AI_HeroMode[pId] == 5 then
+        set hTypeId = 'H006'
     endif
     set h = CreateUnit(Player(pId), hTypeId, x, y, facing)
     call RemoveGuardPosition(h)
@@ -6678,6 +7545,9 @@ function AI_SpawnCustomHeroForPlayer takes integer pId, real x, real y, real fac
     elseif hTypeId == 'H005' then
         set udg_Wild_Hero[pId] = h
         call Wild_InitHero(h)
+    elseif hTypeId == 'H006' then
+        set udg_Maho_Hero[pId] = h
+        call Maho_InitHero(h)
     endif
 
     call AI_AutoLearnSkills(h)
@@ -6686,6 +7556,7 @@ function AI_SpawnCustomHeroForPlayer takes integer pId, real x, real y, real fac
     call SetPlayerTechMaxAllowed(Player(pId), 'H003', 1)
     call SetPlayerTechMaxAllowed(Player(pId), 'H004', 1)
     call SetPlayerTechMaxAllowed(Player(pId), 'H005', 1)
+    call SetPlayerTechMaxAllowed(Player(pId), 'H006', 1)
 
     call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\MassTeleport\\MassTeleportTarget.mdl", h, "origin"))
 
@@ -6956,6 +7827,14 @@ function Refuge_ProcessRevives takes nothing returns nothing
                     elseif GetUnitTypeId(u) == 'H004' then
                         call Strain_ApplyCurrentSkin(u, pId)
                         call Strain_UpdateEvoUI(pId)
+                    elseif GetUnitTypeId(u) == 'H006' then
+                        call SetUnitVertexColor(u, 255, 215, 60, 255)
+                        if udg_Maho_WheelFx[pId] != null then
+                            call DestroyEffect(udg_Maho_WheelFx[pId])
+                        endif
+                        set udg_Maho_WheelFx[pId] = AddSpecialEffectTarget("Abilities\\Spells\\Human\\DevotionAura\\DevotionAura.mdl", u, "overhead")
+                        call SetUnitMoveSpeed(u, udg_Maho_MoveSpeed[pId])
+                        call Maho_UpdateUI(pId)
                     endif
                     call DestroyEffect(AddSpecialEffect("Abilities\\Spells\\Human\\Resurrect\\ResurrectTarget.mdl", GetUnitX(ref), GetUnitY(ref) - 150.0))
                     call DisplayTimedTextToPlayer(Player(pId), 0, 0, 6.0, "|cff00ff00[避难所复活]|r 你的英雄已在无敌避难所免费自动复活！")
@@ -6967,6 +7846,14 @@ function Refuge_ProcessRevives takes nothing returns nothing
                     elseif GetUnitTypeId(u) == 'H004' then
                         call Strain_ApplyCurrentSkin(u, pId)
                         call Strain_UpdateEvoUI(pId)
+                    elseif GetUnitTypeId(u) == 'H006' then
+                        call SetUnitVertexColor(u, 255, 215, 60, 255)
+                        if udg_Maho_WheelFx[pId] != null then
+                            call DestroyEffect(udg_Maho_WheelFx[pId])
+                        endif
+                        set udg_Maho_WheelFx[pId] = AddSpecialEffectTarget("Abilities\\Spells\\Human\\DevotionAura\\DevotionAura.mdl", u, "overhead")
+                        call SetUnitMoveSpeed(u, udg_Maho_MoveSpeed[pId])
+                        call Maho_UpdateUI(pId)
                     endif
                     call DisplayTimedTextToPlayer(Player(pId), 0, 0, 6.0, "|cff00ff00[避难所复活]|r 你的英雄已在出生点复活！")
                 endif
@@ -7515,6 +8402,25 @@ function AI_TacticalLoop takes nothing returns nothing
                                 set udg_AI_CastCD_W[i] = 8.0
                             endif
                         endif
+                    elseif hTypeId == 'H006' then
+                        // Hero #5: Mahoraga Tactical AI
+                        // 1. Cast E (A043 法轮强转) if low health (<40%) or CCed
+                        if udg_AI_CastCD_E[i] <= 0.0 and (GetWidgetLife(h) < (GetUnitState(h, UNIT_STATE_MAX_LIFE) * 0.40) or udg_Maho_CCTimer[i] > 0.05) and GetUnitState(h, UNIT_STATE_MANA) >= 50.0 then
+                            call IssueImmediateOrder(h, "resurrection")
+                            set udg_AI_CastCD_E[i] = 14.0
+                        endif
+
+                        // 2. Cast Q (A041 法轮注视) on best enemy / enemy hero
+                        if udg_AI_CastCD_Q[i] <= 0.0 and bestEnemy != null and GetUnitState(h, UNIT_STATE_MANA) >= 20.0 then
+                            call IssueTargetOrder(h, "faeriefire", bestEnemy)
+                            set udg_AI_CastCD_Q[i] = 6.0
+                        endif
+
+                        // 3. Cast W (A042 退魔之剑·破界斩) on nearest enemy
+                        if udg_AI_CastCD_W[i] <= 0.0 and nearestEnemy != null and minD <= 320.0 and GetUnitState(h, UNIT_STATE_MANA) >= 40.0 then
+                            call IssueTargetOrder(h, "cripple", nearestEnemy)
+                            set udg_AI_CastCD_W[i] = 8.0
+                        endif
                     elseif hTypeId == 'H004' then
                         // Hero #3 Primordial Strain Tactical Brain
                         // 1. If burrowed and enemy is close: unburrow to knockup and strike!
@@ -7652,6 +8558,8 @@ function DM_CapTimerLoop takes nothing returns nothing
     local group auraTargets = null
     local group auraSources = null
     local unit srcU = null
+    local integer mahoPid = 0
+    local real adaptPct = 0.0
 
     // 1. Process Dream Master possession duration
     loop
@@ -7728,6 +8636,26 @@ function DM_CapTimerLoop takes nothing returns nothing
                     exitwhen enumU == null
                     call GroupRemoveUnit(auraTargets, enumU)
                     set drain = GetUnitState(enumU, UNIT_STATE_MAX_LIFE) * pct
+
+                    // Mahoraga adaptation against A012 (竭心光环)
+                    if GetUnitTypeId(enumU) == 'H006' then
+                        set mahoPid = GetPlayerId(GetOwningPlayer(enumU))
+                        if not udg_Maho_InEgg[mahoPid] then
+                            set adaptPct = Maho_GetSkillPct(mahoPid, 'A012')
+                            set drain = drain * (1.0 - adaptPct)
+                            if adaptPct < 1.0 then
+                                call Maho_AddSkillAdapt(mahoPid, 'A012', 0.06)
+                                set udg_Maho_DefAdapt[mahoPid * 8 + 6] = RMinBJ(1.00, udg_Maho_DefAdapt[mahoPid * 8 + 6] + 0.015)
+                                call BlzSetUnitMaxHP(enumU, BlzGetUnitMaxHP(enumU) + 6)
+                                set udg_Maho_WheelSpins[mahoPid] = udg_Maho_WheelSpins[mahoPid] + 1
+                                if Maho_GetSkillPct(mahoPid, 'A012') >= 1.0 then
+                                    call DisplayTimedTextToPlayer(Player(mahoPid), 0, 0, 5.0, "|cffffcc00【法轮转动 · 彻底适应】|r 魔虚罗已完全解析【竭心光环】，该光环从此对其彻底无效！")
+                                endif
+                                call Maho_UpdateUI(mahoPid)
+                            endif
+                        endif
+                    endif
+
                     set curHP = GetWidgetLife(enumU)
                     if curHP > 1.5 then
                         if curHP - drain > 1.0 then
@@ -7764,6 +8692,26 @@ function DM_CapTimerLoop takes nothing returns nothing
                     set pct = 0.02
                 endif
                 set drain = GetUnitState(u, UNIT_STATE_MAX_LIFE) * pct
+
+                // Mahoraga adaptation against A013 (他化自在)
+                if GetUnitTypeId(u) == 'H006' then
+                    set mahoPid = GetPlayerId(GetOwningPlayer(u))
+                    if not udg_Maho_InEgg[mahoPid] then
+                        set adaptPct = Maho_GetSkillPct(mahoPid, 'A013')
+                        set drain = drain * (1.0 - adaptPct)
+                        if adaptPct < 1.0 then
+                            call Maho_AddSkillAdapt(mahoPid, 'A013', 0.06)
+                            set udg_Maho_DefAdapt[mahoPid * 8 + 6] = RMinBJ(1.00, udg_Maho_DefAdapt[mahoPid * 8 + 6] + 0.015)
+                            call BlzSetUnitMaxHP(u, BlzGetUnitMaxHP(u) + 6)
+                            set udg_Maho_WheelSpins[mahoPid] = udg_Maho_WheelSpins[mahoPid] + 1
+                            if Maho_GetSkillPct(mahoPid, 'A013') >= 1.0 then
+                                call DisplayTimedTextToPlayer(Player(mahoPid), 0, 0, 5.0, "|cffffcc00【法轮转动 · 彻底适应】|r 魔虚罗已完全解析【他化自在诅咒】，该印记从此对其彻底无效！")
+                            endif
+                            call Maho_UpdateUI(mahoPid)
+                        endif
+                    endif
+                endif
+
                 set curHP = GetWidgetLife(u)
                 if curHP > 1.5 then
                     if curHP - drain > 1.0 then
@@ -7902,6 +8850,9 @@ function DM_CapTimerLoop takes nothing returns nothing
 
     // 4. Custom Hero AI Tactical Loop
     call AI_TacticalLoop()
+
+    // 5. Mahoraga (H006) 1.0s Periodic Loop
+    call Maho_CapTimerLoop()
 endfunction
 
 function Wild_CastDragonDevour takes unit caster, unit target returns nothing
@@ -8128,6 +9079,9 @@ function DM_OnSpellEffect takes nothing returns boolean
     local integer tier = 0
     local player victimP = null
 
+    // Mahoraga enemy spell tracking
+    call Maho_OnAnySpellEffect(caster, abil)
+
     if abil == 'A001' then
         call DM_OnCastMirror(caster)
     elseif abil == 'A002' then
@@ -8336,6 +9290,14 @@ function DM_OnSpellEffect takes nothing returns boolean
         set pId = GetPlayerId(GetOwningPlayer(caster))
         set udg_Wild_Hero[pId] = caster
         call Wild_RevertToAvatar(caster)
+    elseif abil == 'A041' then
+        call Maho_CastQ(caster, GetSpellTargetUnit())
+    elseif abil == 'A042' then
+        call Maho_CastW(caster, GetSpellTargetUnit())
+    elseif abil == 'A043' then
+        call Maho_CastE(caster)
+    elseif abil == 'A044' then
+        call Maho_CastR(caster)
     elseif abil == 'A035' then
         call Wild_CastWrath(caster)
     elseif abil == 'A037' then
@@ -8492,6 +9454,13 @@ function DM_OnDamaged takes nothing returns boolean
     local integer eLv = 0
     local integer tier = 0
     local unit enumU = null
+    local integer mahoPid = 0
+    local integer cat = 0
+    local real effResist = 0.0
+    local real skillPct = 0.0
+    local real finalDmg = 0.0
+    local integer defType = 0
+    local real bonus = 0.0
 
     if udg_Strain_DamageLock then
         return false
@@ -8503,6 +9472,78 @@ function DM_OnDamaged takes nothing returns boolean
         set hIdx = DM_GetHeroIndex(src)
         if hIdx >= 0 and udg_DM_InStealth[hIdx] then
             call DM_BreakInvisibility(src, tgt)
+        endif
+
+        
+        // Hero #5: Mahoraga Offensive Damage Adaptation
+        if GetUnitTypeId(src) == 'H006' and not udg_Maho_DmgLock and dmg > 0.5 then
+            set pId = GetPlayerId(GetOwningPlayer(src))
+            set defType = BlzGetUnitIntegerField(tgt, UNIT_IF_DEFENSE_TYPE)
+            if defType < 0 or defType > 7 then
+                set defType = 0
+            endif
+            set bonus = udg_Maho_AtkAdapt[pId * 8 + defType]
+            call BlzSetEventDamage(dmg * (1.0 + bonus))
+
+            set udg_Maho_AtkAdapt[pId * 8 + defType] = udg_Maho_AtkAdapt[pId * 8 + defType] + 0.04
+            set udg_Maho_AtkHits[pId] = udg_Maho_AtkHits[pId] + 1
+            if udg_Maho_AtkHits[pId] >= 2 then
+                set udg_Maho_AtkHits[pId] = udg_Maho_AtkHits[pId] - 2
+                call BlzSetUnitBaseDamage(src, BlzGetUnitBaseDamage(src, 0) + 1, 0)
+            endif
+            call Maho_UpdateUI(pId)
+        endif
+
+        // Hero #5: Mahoraga Defensive Damage Adaptation & Nirvana Egg
+        if GetUnitTypeId(tgt) == 'H006' and dmg > 0.5 then
+            set mahoPid = GetPlayerId(GetOwningPlayer(tgt))
+            if udg_Maho_InEgg[mahoPid] then
+                call BlzSetEventDamage(0.0)
+                set src = null
+                set tgt = null
+                return false
+            endif
+
+            set cat = Maho_GetCatFromDamage(BlzGetEventAttackType(), BlzGetEventDamageType(), BlzGetEventIsAttack())
+            set skillPct = 0.0
+            if udg_Maho_LastSkillId[mahoPid] != 0 and udg_Maho_LastSkillTime[mahoPid] > 0.0 and cat == 6 then
+                set skillPct = Maho_GetSkillPct(mahoPid, udg_Maho_LastSkillId[mahoPid])
+            endif
+
+            set effResist = RMaxBJ(udg_Maho_DefAdapt[mahoPid * 8 + cat], skillPct)
+            if effResist > 1.00 then
+                set effResist = 1.00
+            endif
+
+            set finalDmg = dmg * (1.0 - effResist)
+            if effResist >= 0.99 then
+                set finalDmg = 0.0
+                call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\DivineShield\\DivineShieldTarget.mdl", tgt, "origin"))
+            endif
+            call BlzSetEventDamage(finalDmg)
+
+            // Defense adaptation growth
+            set udg_Maho_DefAdapt[mahoPid * 8 + cat] = RMinBJ(1.00, udg_Maho_DefAdapt[mahoPid * 8 + cat] + 0.025)
+            if cat == 6 and udg_Maho_LastSkillId[mahoPid] != 0 then
+                call Maho_AddSkillAdapt(mahoPid, udg_Maho_LastSkillId[mahoPid], 0.08)
+            endif
+            call BlzSetUnitMaxHP(tgt, BlzGetUnitMaxHP(tgt) + 10)
+            call BlzSetUnitArmor(tgt, BlzGetUnitArmor(tgt) + 0.15)
+            set udg_Maho_WheelSpins[mahoPid] = udg_Maho_WheelSpins[mahoPid] + 1
+            call Maho_UpdateUI(mahoPid)
+
+            // Check lethal damage
+            if finalDmg >= (GetWidgetLife(tgt) - 0.5) then
+                if finalDmg >= (GetUnitState(tgt, UNIT_STATE_MAX_LIFE) * 0.70) and effResist < 0.25 then
+                    // First-encounter execution!
+                    call DisplayTimedTextToPlayer(GetLocalPlayer(), 0, 0, 5.0, "|cffff0000【初见绝杀！】|r 魔虚罗在适应完成前遭遇毁灭性爆发一击，未能开启法轮涅槃！")
+                elseif udg_Maho_EggCD[mahoPid] > 0.0 then
+                    // Egg on CD, true death
+                else
+                    // Trigger Nirvana Egg
+                    call Maho_TriggerEgg(tgt, mahoPid, cat, udg_Maho_LastSkillId[mahoPid])
+                endif
+            endif
         endif
 
         // Hero #3: The Primordial Strain (H004) Damage Interactions
@@ -8691,6 +9732,15 @@ function Wild_OnHeroReviveFinish takes nothing returns boolean
         set pId = GetPlayerId(GetOwningPlayer(rev))
         call Strain_ApplyCurrentSkin(rev, pId)
         call Strain_UpdateEvoUI(pId)
+    elseif rev != null and GetUnitTypeId(rev) == 'H006' then
+        set pId = GetPlayerId(GetOwningPlayer(rev))
+        call SetUnitVertexColor(rev, 255, 215, 60, 255)
+        if udg_Maho_WheelFx[pId] != null then
+            call DestroyEffect(udg_Maho_WheelFx[pId])
+        endif
+        set udg_Maho_WheelFx[pId] = AddSpecialEffectTarget("Abilities\\Spells\\Human\\DevotionAura\\DevotionAura.mdl", rev, "overhead")
+        call SetUnitMoveSpeed(rev, udg_Maho_MoveSpeed[pId])
+        call Maho_UpdateUI(pId)
     endif
     set rev = null
     return false
@@ -8765,6 +9815,11 @@ function DM_OnUnitDeath takes nothing returns boolean
         if udg_Wild_IsMorphed[deadPId] then
             call Wild_RevertToAvatar(dead)
         endif
+    endif
+
+    // 1.65. True death penalty for Hero #5 Mahoraga
+    if deadType == 'H006' and not isIllusion and not isFakeHero then
+        call Maho_ApplyDeathPenalty(deadPId)
     endif
 
     // 1.7. Thrall item removal on death
@@ -8918,7 +9973,7 @@ function TM_ApplyAIConfig takes nothing returns nothing
                         set u = FirstOfGroup(g)
                         exitwhen u == null
                         call GroupRemoveUnit(g, u)
-                        if IsUnitType(u, UNIT_TYPE_HERO) and GetUnitTypeId(u) != 'H002' and GetUnitTypeId(u) != 'H003' and GetUnitTypeId(u) != 'H004' and not IsUnitIllusion(u) and not IsUnitInGroup(u, udg_FakeHeroGroup) then
+                        if IsUnitType(u, UNIT_TYPE_HERO) and GetUnitTypeId(u) != 'H002' and GetUnitTypeId(u) != 'H003' and GetUnitTypeId(u) != 'H004' and GetUnitTypeId(u) != 'H005' and GetUnitTypeId(u) != 'H006' and not IsUnitIllusion(u) and not IsUnitInGroup(u, udg_FakeHeroGroup) then
                             call AI_SpawnCustomHeroForPlayer(i, GetUnitX(u), GetUnitY(u), GetUnitFacing(u))
                             call RemoveUnit(u)
                             call GroupClear(g)
@@ -8946,7 +10001,8 @@ function TM_ShowMainDialog takes player p returns nothing
     set udg_TM_BtnMode2All = DialogAddButton(udg_TM_MainDialog, "[3] 测试模式二：全部电脑出【魔音忍者】", 51)
     set udg_TM_BtnMode3All = DialogAddButton(udg_TM_MainDialog, "[4] 测试模式三：全部电脑出【异种之源】", 52)
     set udg_TM_BtnMode4All = DialogAddButton(udg_TM_MainDialog, "[5] 测试模式四：全部电脑出【万灵化身】", 53)
-    set udg_TM_BtnCustom = DialogAddButton(udg_TM_MainDialog, "[6] 精细配置：指定玩家的英雄...", 54)
+    set udg_TM_BtnMode5All = DialogAddButton(udg_TM_MainDialog, "[6] 测试模式五：全部电脑出【魔虚罗】", 54)
+    set udg_TM_BtnCustom = DialogAddButton(udg_TM_MainDialog, "[7] 精细配置：指定玩家的英雄...", 55)
     call DialogDisplay(p, udg_TM_MainDialog, true)
 endfunction
 
@@ -8972,6 +10028,8 @@ function TM_ShowSlotDialog takes player p returns nothing
                 set lbl = "玩家 " + I2S(i + 1) + "：【异种之源】 (点击切换)"
             elseif udg_AI_HeroMode[i] == 4 then
                 set lbl = "玩家 " + I2S(i + 1) + "：【万灵化身】 (点击切换)"
+            elseif udg_AI_HeroMode[i] == 5 then
+                set lbl = "玩家 " + I2S(i + 1) + "：【魔虚罗】 (点击切换)"
             else
                 set lbl = "玩家 " + I2S(i + 1) + "：【常规默认英雄】 (点击切换)"
             endif
@@ -9051,6 +10109,17 @@ function TM_OnMainDialogClicked takes nothing returns nothing
         endloop
         call DisplayTimedTextToPlayer(p, 0, 0, 6.0, "|cff00ff00[测试模式]|r 已设置测试模式四：全部电脑出【万灵化身】！(随时输入 -test 可重选)")
         call TM_ApplyAIConfig()
+    elseif b == udg_TM_BtnMode5All then
+        set i = 0
+        loop
+            exitwhen i > 7
+            if GetPlayerSlotState(Player(i)) == PLAYER_SLOT_STATE_PLAYING and GetPlayerController(Player(i)) == MAP_CONTROL_COMPUTER then
+                set udg_AI_HeroMode[i] = 5
+            endif
+            set i = i + 1
+        endloop
+        call DisplayTimedTextToPlayer(p, 0, 0, 6.0, "|cff00ff00[测试模式]|r 已设置测试模式五：全部电脑出【魔虚罗】！(随时输入 -test 可重选)")
+        call TM_ApplyAIConfig()
     elseif b == udg_TM_BtnCustom then
         call TM_ShowSlotDialog(p)
     endif
@@ -9087,6 +10156,8 @@ function TM_OnSlotDialogClicked takes nothing returns nothing
                     set udg_AI_HeroMode[i] = 3
                 elseif udg_AI_HeroMode[i] == 3 then
                     set udg_AI_HeroMode[i] = 4
+                elseif udg_AI_HeroMode[i] == 4 then
+                    set udg_AI_HeroMode[i] = 5
                 else
                     set udg_AI_HeroMode[i] = 0
                 endif
@@ -9149,6 +10220,20 @@ function TM_SpawnSandboxTargets takes player p returns nothing
         set udg_Strain_DevourCount[pId] = udg_Strain_DevourCount[pId] + 4
         call Strain_CheckEvolution(u, pId)
         call DisplayTimedTextToPlayer(p, 0, 0, 4.0, "|cff00ff00[沙盒测试]|r 异种之源获得 +4 吞噬进度！累计: " + I2S(udg_Strain_DevourCount[pId]) + " 次")
+    endif
+
+    // Mahoraga Sandbox Reset & Mountain King Dummy
+    set u = udg_Maho_Hero[pId]
+    if u != null and not IsUnitType(u, UNIT_TYPE_DEAD) then
+        call UnitResetCooldown(u)
+        set udg_Maho_EggCD[pId] = 0.0
+        call SetWidgetLife(u, GetUnitState(u, UNIT_STATE_MAX_LIFE))
+        call SetUnitState(u, UNIT_STATE_MANA, GetUnitState(u, UNIT_STATE_MAX_MANA))
+        set targetU = CreateUnit(Player(PLAYER_NEUTRAL_AGGRESSIVE), 'Hmkg', hx + 240.0, hy + 180.0, 180.0)
+        call SetHeroLevel(targetU, 5, false)
+        call UnitAddAbility(targetU, 'AHtb')
+        call UnitAddAbility(targetU, 'AHtc')
+        call DisplayTimedTextToPlayer(p, 0, 0, 4.0, "|cff00ff00[沙盒测试]|r 已为魔虚罗重置技能与涅槃冷却，并在身旁刷出会放锤子的山丘假人！")
     endif
 
     // 1. Footman (hfoo) - Melee, Defend -> A025
@@ -9294,6 +10379,17 @@ function TM_OnChatCommand takes nothing returns nothing
         endloop
         call DisplayTimedTextToPlayer(p, 0, 0, 6.0, "|cff00ff00[测试模式]|r 已设置测试模式四：全部电脑出【万灵化身】！")
         call TM_ApplyAIConfig()
+    elseif s == "-m5" then
+        set i = 0
+        loop
+            exitwhen i > 7
+            if GetPlayerSlotState(Player(i)) == PLAYER_SLOT_STATE_PLAYING and GetPlayerController(Player(i)) == MAP_CONTROL_COMPUTER then
+                set udg_AI_HeroMode[i] = 5
+            endif
+            set i = i + 1
+        endloop
+        call DisplayTimedTextToPlayer(p, 0, 0, 6.0, "|cff00ff00[测试模式]|r 已设置测试模式五：全部电脑出【魔虚罗】！")
+        call TM_ApplyAIConfig()
     elseif s == "-spawn" then
         call TM_SpawnSandboxTargets(p)
     elseif s == "-refuge" then
@@ -9365,6 +10461,9 @@ function AI_OnUnitTrainFinish takes nothing returns boolean
         elseif GetUnitTypeId(trained) == 'H005' then
             set udg_Wild_Hero[pId] = trained
             call Wild_InitHero(trained)
+        elseif GetUnitTypeId(trained) == 'H006' then
+            set udg_Maho_Hero[pId] = trained
+            call Maho_InitHero(trained)
         endif
         if GetPlayerController(p) == MAP_CONTROL_COMPUTER then
             if udg_AI_HeroMode[pId] > 0 and not IsUnitType(trained, UNIT_TYPE_PEON) then
@@ -9372,6 +10471,11 @@ function AI_OnUnitTrainFinish takes nothing returns boolean
             endif
             if GetUnitTypeId(trained) == 'H005' then
                 set udg_Wild_Hero[pId] = trained
+                set udg_AI_CustomHero[pId] = trained
+                set udg_AI_HeroSpawned[pId] = true
+                call AI_AutoLearnSkills(trained)
+            elseif GetUnitTypeId(trained) == 'H006' then
+                set udg_Maho_Hero[pId] = trained
                 set udg_AI_CustomHero[pId] = trained
                 set udg_AI_HeroSpawned[pId] = true
                 call AI_AutoLearnSkills(trained)
