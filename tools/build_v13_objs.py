@@ -1263,7 +1263,7 @@ DataF = "faeriefire"
 Order = "faeriefire"
 targs = "air,ground,enemy,neutral,organic,mechanical,vulnerable"
 Tip = "法轮注视 · 主动解析(|cffffcc00Q|r)"
-Ubertip = "将头顶八握剑法轮的因果视线锁定在一名敌方非建筑单位身上。每秒自动解析目标的攻击方式、护甲构造与技能脉络，为魔虚罗提供持续的防御适应(+2%/秒)、破甲增伤(+4%/秒)与技能抗性(+3%/秒)，并永久淬炼肉身(+8点最大生命值/秒，每2秒+1攻击力)。|n|n施法距离：600，冷却时间：6.0秒，消耗法力：20点。"
+Ubertip = "将头顶八握剑法轮的因果视线锁定在一名敌方非建筑单位身上。每秒自动解析目标的攻击方式、护甲构造与技能脉络，为魔虚罗提供持续的防御适应(+0.5%/秒，常规上限95%)、破甲增伤(+1.5%/秒)与技能抗性(+1.0%/秒)，并永久淬炼肉身(+3点最大生命值/秒，每4秒+1基础攻击力)。|n|n施法距离：600，冷却时间：6.0秒，消耗法力：20点。"
 
 [A042]
 _parent = "ANcl"
@@ -1307,7 +1307,7 @@ DataE = 0
 DataF = "resurrection"
 Order = "resurrection"
 Tip = "法轮强转 · 喀嚓(|cffffcc00E|r)"
-Ubertip = "强行转动头顶的因果法轮！发出清脆的命运轮转之声，瞬间净化自身全部负面状态与控制效果，恢复25%最大生命值，并强行将最近所受伤害类别、技能与Q锁定目标的适应度各推进【+12%】！|n|n冷却时间：14.0秒，消耗法力：50点。"
+Ubertip = "强行转动头顶的因果法轮！发出清脆的命运轮转之声，瞬间净化自身全部负面状态与控制效果，恢复20%最大生命值，并强行将最近所受伤害类别、技能与Q锁定目标的适应度各推进【+5%】！|n|n冷却时间：14.0秒，消耗法力：50点。"
 
 [A044]
 _parent = "ANcl"
@@ -1328,7 +1328,23 @@ DataE = 0
 DataF = "innerfire"
 Order = "innerfire"
 Tip = "八握剑法轮 · 适应总览(|cffffcc00R|r)"
-Ubertip = "点击在屏幕上完整输出魔虚罗当前的【全维因果适应档案】（包含7大防御抗性、7大进攻破甲增伤、具体英雄战技适应度以及凤凰蛋涅槃冷却）。|n|n悬停此技能可实时查看核心战力摘要。"
+Ubertip = "点击在屏幕上完整输出魔虚罗当前的【全维因果适应档案】（包含7大常规防御抗性封顶95%、8类护甲进攻破甲增伤、具体英雄战技适应度、对空与翼化飞行进度以及凤凰蛋涅槃冷却）。|n|n悬停此技能可实时查看核心战力摘要。"
+
+
+[A045]
+_parent = "AIfb"
+Name = "对空适应 · 破空剑气"
+Buttonpos_1 = 1
+Buttonpos_2 = 1
+Art = "ReplaceableTextures\\\\CommandButtons\\\\BTNSearingArrows.blp"
+Tip = "对空适应 · 破空剑气"
+Ubertip = "魔虚罗已解析天空法则，唤醒远程破空剑气，可以直接攻击空中目标。"
+DataA = 0.0
+DataE = 2
+Area = 0.0
+item = 0
+hero = 0
+levels = 1
 """
 
 ini_unit = """[H002]
@@ -1627,7 +1643,7 @@ _parent = "Hmkg"
 Name = "异界神将·魔虚罗"
 Propernames = "魔虚罗,八握剑,异界神将"
 Tip = "召唤 异界神将·魔虚罗(|cffffcc00M|r)"
-Ubertip = "来自异界的无上神将。掌控万象因果与适应律。三围 1-1-1 极速慢行起步，但随着战斗时间的推移与伤害洗礼，将全维适应敌方一切攻击、护甲、移速与英雄战技，直至化为不可阻挡的终极存在！|n|n|cffffcc00技能：|r|n- 法轮注视 · 主动解析 (Q)|n- 退魔之剑 · 破界斩 (W)|n- 法轮强转 · 喀嚓 (E)|n- 八握剑法轮 · 适应总览 (R)"
+Ubertip = "来自异界的无上神将。掌控万象因果与适应律。三围 1-1-1 极速慢行起步，但随着战斗时间的推移与伤害洗礼，将全维适应敌方一切攻击、护甲、移速、制空与英雄战技，达到极速后更可翼化升维翱翔高空，直至化为不可阻挡的终极存在！|n|n|cffffcc00技能：|r|n- 法轮注视 · 主动解析 (Q)|n- 退魔之剑 · 破界斩 (W)|n- 法轮强转 · 喀嚓 (E)|n- 八握剑法轮 · 适应总览 (R)"
 Revivetip = "复活 异界神将·魔虚罗(|cffffcc00M|r)"
 Awakentip = "唤醒 异界神将·魔虚罗(|cffffcc00M|r)"
 Hotkey = "M"
@@ -1656,6 +1672,26 @@ cool1 = 1.35
 rangeN1 = 128
 weapTp1 = "normal"
 atkType1 = "hero"
+targs1 = "ground,structure,debris,item,ward"
+weapsOn = 1
+weapson = 1
+targs2 = "air"
+atkType2 = "hero"
+atktype2 = "hero"
+weapTp2 = "missile"
+weaptp2 = "missile"
+Missileart2 = "Abilities\\\\Weapons\\\\PhoenixMissile\\\\Phoenix_Missile.mdl"
+missileart_2 = "Abilities\\\\Weapons\\\\PhoenixMissile\\\\Phoenix_Missile.mdl"
+Missilespeed2 = 1200
+missilespeed_2 = 1200
+rangeN2 = 600
+rangen2 = 600
+dmgplus2 = 10
+dice2 = 1
+sides2 = 4
+cool2 = 1.60
+showUI2 = 1
+showui2 = 1
 defType = "hero"
 def = 1.0
 bpx = 0
@@ -1764,5 +1800,5 @@ for sym in [b'H002', b'H003', b'H004', b'H005', b'H006', b'u000', b'u001', b'u00
 
 with open(os.path.join(PAYLOAD_DIR, "war3map.w3a"), "rb") as f:
     w3a_data = f.read()
-for sym in [b'A001', b'A002', b'A003', b'A004', b'A00V', b'A011', b'A012', b'A013', b'A014', b'A015', b'A016', b'A017', b'A021', b'A022', b'A023', b'A024', b'A025', b'A026', b'A027', b'A031', b'A032', b'A033', b'A034', b'A035', b'ACbl', b'ACls', b'ACpu', b'ACct', b'ACbh', b'ACev', b'ACtb', b'ACro', b'ACif', b'ACsw', b'AChx', b'ACst', b'ACsh', b'ACfl', b'ACfn', b'ACf2', b'ACen', b'ACrj', b'ACcs', b'ACav', b'ACdv', b'A036', b'A037', b'ACmi', b'ANpi', b'A041', b'A042', b'A043', b'A044']:
+for sym in [b'A001', b'A002', b'A003', b'A004', b'A00V', b'A011', b'A012', b'A013', b'A014', b'A015', b'A016', b'A017', b'A021', b'A022', b'A023', b'A024', b'A025', b'A026', b'A027', b'A031', b'A032', b'A033', b'A034', b'A035', b'ACbl', b'ACls', b'ACpu', b'ACct', b'ACbh', b'ACev', b'ACtb', b'ACro', b'ACif', b'ACsw', b'AChx', b'ACst', b'ACsh', b'ACfl', b'ACfn', b'ACf2', b'ACen', b'ACrj', b'ACcs', b'ACav', b'ACdv', b'A036', b'A037', b'ACmi', b'ANpi', b'A041', b'A042', b'A043', b'A044', b'A045']:
     print(f"w3a contains {sym.decode('ascii')}: {sym in w3a_data}")

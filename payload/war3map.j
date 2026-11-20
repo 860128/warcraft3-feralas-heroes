@@ -267,6 +267,10 @@ globals
     integer array udg_Maho_WheelSpins
     integer array udg_Maho_AtkHits
     boolean udg_Maho_DmgLock = false
+    integer array udg_Maho_AirHits
+    boolean array udg_Maho_AntiAirUnlocked
+    integer array udg_Maho_FlyProgress
+    boolean array udg_Maho_IsWinged
     button udg_TM_BtnMode5All = null
 endglobals
 
@@ -512,6 +516,51 @@ function Maho_GetAtkCatFromUnit takes unit u returns integer
     return 0
 endfunction
 
+function Maho_AddBaseDamage takes unit h, integer addDmg returns nothing
+    local integer newDmg = BlzGetUnitBaseDamage(h, 0) + addDmg
+    call BlzSetUnitBaseDamage(h, newDmg, 0)
+    call BlzSetUnitBaseDamage(h, newDmg, 1)
+endfunction
+
+function Maho_SetBaseDamage takes unit h, integer newDmg returns nothing
+    call BlzSetUnitBaseDamage(h, newDmg, 0)
+    call BlzSetUnitBaseDamage(h, newDmg, 1)
+endfunction
+
+function Maho_ApplyAppearance takes unit h, integer pId returns nothing
+    if h == null then
+        return
+    endif
+    if udg_Maho_IsWinged[pId] then
+        call BlzSetUnitSkin(h, 'nbal')
+        call SetUnitScale(h, 1.25, 1.25, 1.25)
+        call SetUnitVertexColor(h, 255, 215, 60, 255)
+        call UnitAddAbility(h, 'Amrf')
+        call UnitRemoveAbility(h, 'Amrf')
+        call SetUnitFlyHeight(h, 240.0, 400.0)
+        call SetUnitPathing(h, false)
+        if not udg_Maho_AntiAirUnlocked[pId] then
+            set udg_Maho_AntiAirUnlocked[pId] = true
+            call UnitAddAbility(h, 'A045')
+            call UnitMakeAbilityPermanent(h, true, 'A045')
+            call SetUnitAcquireRange(h, 650.0)
+        endif
+    else
+        call BlzSetUnitSkin(h, 'H006')
+        call SetUnitScale(h, 1.15, 1.15, 1.15)
+        call SetUnitVertexColor(h, 255, 215, 60, 255)
+        call UnitAddAbility(h, 'Amrf')
+        call UnitRemoveAbility(h, 'Amrf')
+        call SetUnitFlyHeight(h, 0.0, 400.0)
+        call SetUnitPathing(h, true)
+    endif
+    if udg_Maho_WheelFx[pId] != null then
+        call DestroyEffect(udg_Maho_WheelFx[pId])
+    endif
+    set udg_Maho_WheelFx[pId] = AddSpecialEffectTarget("Abilities\\Spells\\Human\\DevotionAura\\DevotionAura.mdl", h, "overhead")
+    call SetUnitMoveSpeed(h, udg_Maho_MoveSpeed[pId])
+endfunction
+
 function Maho_UpdateUI takes integer pId returns nothing
     local string tip = ""
     local real eggCD = udg_Maho_EggCD[pId]
@@ -547,8 +596,18 @@ function Maho_UpdateUI takes integer pId returns nothing
     else
         set tip = tip + "- 凤凰蛋涅槃：|cff00ff00已就绪|r|n"
     endif
-    set tip = tip + "- 最高防御减免：" + I2S(R2I(maxDef * 100.0)) + "%|n"
-    set tip = tip + "- 最高破甲增伤：+" + I2S(R2I(maxAtk * 100.0)) + "%|n"
+    set tip = tip + "- 最高防御减免：" + I2S(R2I(maxDef * 100.0)) + "% (常规上限95%)|n"
+    set tip = tip + "- 最高破甲增伤：+" + I2S(R2I(maxAtk * 100.0)) + "% (无上限)|n"
+    if udg_Maho_AntiAirUnlocked[pId] then
+        set tip = tip + "- 对空制空：|cff00ff00已解锁破空剑气|r|n"
+    else
+        set tip = tip + "- 对空制空：解析中(" + I2S(udg_Maho_AirHits[pId]) + "/6)|n"
+    endif
+    if udg_Maho_IsWinged[pId] then
+        set tip = tip + "- 翼化升维：|cff00ff00圣金末日神将·真飞行|r|n"
+    else
+        set tip = tip + "- 翼化升维：蓄力中(" + I2S(udg_Maho_FlyProgress[pId]) + "/20)|n"
+    endif
     set tip = tip + "|cff99ccff点击此技能在屏幕上打印完整适应档案。|r"
 
     if GetLocalPlayer() == Player(pId) then
@@ -573,14 +632,26 @@ function Maho_PrintOverview takes integer pId returns nothing
         call DisplayTimedTextToPlayer(p, 0, 0, 8.0, "涅槃状态: |cff00ff00已就绪|r")
     endif
 
-    set s = "|cff00ffff[防御抗性]|r 普通: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 0] * 100.0)) + "% | 穿刺: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 1] * 100.0)) + "% | 攻城: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 2] * 100.0)) + "% | 英雄: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 3] * 100.0)) + "%"
+    set s = "|cff00ffff[防御抗性(封顶95%)]|r 普通: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 0] * 100.0)) + "% | 穿刺: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 1] * 100.0)) + "% | 攻城: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 2] * 100.0)) + "% | 英雄: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 3] * 100.0)) + "%"
     call DisplayTimedTextToPlayer(p, 0, 0, 8.0, s)
-    set s = "|cff00ffff[防御抗性]|r 混乱: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 4] * 100.0)) + "% | 魔法: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 5] * 100.0)) + "% | 技能法术: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 6] * 100.0)) + "%"
+    set s = "|cff00ffff[防御抗性(封顶95%)]|r 混乱: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 4] * 100.0)) + "% | 魔法: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 5] * 100.0)) + "% | 技能法术: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 6] * 100.0)) + "%"
     call DisplayTimedTextToPlayer(p, 0, 0, 8.0, s)
 
-    set s = "|cffff9900[破甲增伤]|r 轻甲: +" + I2S(R2I(udg_Maho_AtkAdapt[pId * 8 + 0] * 100.0)) + "% | 中甲: +" + I2S(R2I(udg_Maho_AtkAdapt[pId * 8 + 1] * 100.0)) + "% | 重甲: +" + I2S(R2I(udg_Maho_AtkAdapt[pId * 8 + 2] * 100.0)) + "%"
+    set s = "|cffff9900[破甲增伤(无上限)]|r 轻甲(0): +" + I2S(R2I(udg_Maho_AtkAdapt[pId * 8 + 0] * 100.0)) + "% | 中甲(1): +" + I2S(R2I(udg_Maho_AtkAdapt[pId * 8 + 1] * 100.0)) + "% | 重甲(2): +" + I2S(R2I(udg_Maho_AtkAdapt[pId * 8 + 2] * 100.0)) + "% | 城甲(3): +" + I2S(R2I(udg_Maho_AtkAdapt[pId * 8 + 3] * 100.0)) + "%"
     call DisplayTimedTextToPlayer(p, 0, 0, 8.0, s)
-    set s = "|cffff9900[破甲增伤]|r 坚防: +" + I2S(R2I(udg_Maho_AtkAdapt[pId * 8 + 3] * 100.0)) + "% | 英雄: +" + I2S(R2I(udg_Maho_AtkAdapt[pId * 8 + 4] * 100.0)) + "% | 无甲: +" + I2S(R2I(udg_Maho_AtkAdapt[pId * 8 + 5] * 100.0)) + "%"
+    set s = "|cffff9900[破甲增伤(无上限)]|r 普通(4): +" + I2S(R2I(udg_Maho_AtkAdapt[pId * 8 + 4] * 100.0)) + "% | 英雄(5): +" + I2S(R2I(udg_Maho_AtkAdapt[pId * 8 + 5] * 100.0)) + "% | 神圣(6): +" + I2S(R2I(udg_Maho_AtkAdapt[pId * 8 + 6] * 100.0)) + "% | 无甲(7): +" + I2S(R2I(udg_Maho_AtkAdapt[pId * 8 + 7] * 100.0)) + "%"
+    call DisplayTimedTextToPlayer(p, 0, 0, 8.0, s)
+
+    if udg_Maho_AntiAirUnlocked[pId] then
+        set s = "|cffffff00[空战演化]|r 对空剑气: |cff00ff00已解锁 (破空远程斩击)|r"
+    else
+        set s = "|cffffff00[空战演化]|r 对空剑气: |cffffcc00解析中 (" + I2S(udg_Maho_AirHits[pId]) + "/6)|r"
+    endif
+    if udg_Maho_IsWinged[pId] then
+        set s = s + " | 翼化飞行: |cff00ff00已升维 (圣金末日神将·真高空飞行)|r"
+    else
+        set s = s + " | 翼化飞行: |cffffcc00蓄力中 (" + I2S(udg_Maho_FlyProgress[pId]) + "/20)|r"
+    endif
     call DisplayTimedTextToPlayer(p, 0, 0, 8.0, s)
 
     if udg_Maho_SkillCount[pId] > 0 then
@@ -613,13 +684,9 @@ function Maho_InitHero takes unit h returns nothing
     call SetHeroAgi(h, 1, true)
     call SetHeroInt(h, 1, true)
     call SetUnitMoveSpeed(h, 190.0)
+    call Maho_SetBaseDamage(h, 10)
 
-    call SetUnitVertexColor(h, 255, 215, 60, 255)
-    if udg_Maho_WheelFx[pId] != null then
-        call DestroyEffect(udg_Maho_WheelFx[pId])
-    endif
-    set udg_Maho_WheelFx[pId] = AddSpecialEffectTarget("Abilities\\Spells\\Human\\DevotionAura\\DevotionAura.mdl", h, "overhead")
-
+    call Maho_ApplyAppearance(h, pId)
     call Maho_UpdateUI(pId)
 endfunction
 
@@ -667,19 +734,24 @@ function Maho_TriggerEgg takes unit tgt, integer pId, integer fatalCat, integer 
     call SetWidgetLife(tgt, 1.0)
     set udg_Maho_InEgg[pId] = true
     set udg_Maho_EggTimer[pId] = 5.0
-    set udg_Maho_EggCD[pId] = 45.0
+    set udg_Maho_EggCD[pId] = 50.0
     set udg_Maho_FatalCat[pId] = fatalCat
     set udg_Maho_FatalSkill[pId] = fatalSkill
     if udg_Maho_WheelFx[pId] != null then
         call DestroyEffect(udg_Maho_WheelFx[pId])
         set udg_Maho_WheelFx[pId] = null
     endif
+    call UnitAddAbility(tgt, 'Amrf')
+    call UnitRemoveAbility(tgt, 'Amrf')
+    call SetUnitFlyHeight(tgt, 0.0, 0.0)
+    call SetUnitPathing(tgt, true)
     call BlzSetUnitSkin(tgt, 'hpxe')
+    call SetUnitScale(tgt, 1.0, 1.0, 1.0)
     call SetUnitVertexColor(tgt, 255, 220, 80, 255)
     call SetUnitInvulnerable(tgt, true)
     call PauseUnit(tgt, true)
     call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\Resurrection\\ResurrectionTarget.mdl", tgt, "origin"))
-    call DisplayTimedTextToPlayer(GetLocalPlayer(), 0, 0, 4.0, "|cffffcc00【法轮轮转·涅槃破壳】|r 魔虚罗遭遇致死伤害，化身无敌金卵进入5秒命运重塑！")
+    call DisplayTimedTextToPlayer(GetLocalPlayer(), 0, 0, 4.0, "|cffffcc00【八握剑法轮·涅槃转生】|r 魔虚罗遭遇致死伤害，化身无敌金卵进入5秒命运重塑！")
     call Maho_UpdateUI(pId)
 endfunction
 
@@ -690,30 +762,25 @@ function Maho_OnEggComplete takes integer pId returns nothing
         set udg_Maho_InEgg[pId] = false
         call SetUnitInvulnerable(h, false)
         call PauseUnit(h, false)
-        call BlzSetUnitSkin(h, 'H006')
-        call SetUnitVertexColor(h, 255, 215, 60, 255)
-        if udg_Maho_WheelFx[pId] != null then
-            call DestroyEffect(udg_Maho_WheelFx[pId])
-        endif
-        set udg_Maho_WheelFx[pId] = AddSpecialEffectTarget("Abilities\\Spells\\Human\\DevotionAura\\DevotionAura.mdl", h, "overhead")
+        call Maho_ApplyAppearance(h, pId)
         call SetWidgetLife(h, GetUnitState(h, UNIT_STATE_MAX_LIFE))
         call SetUnitState(h, UNIT_STATE_MANA, GetUnitState(h, UNIT_STATE_MAX_MANA))
 
         set cat = udg_Maho_FatalCat[pId]
         if cat >= 0 and cat <= 6 then
-            set udg_Maho_DefAdapt[pId * 8 + cat] = RMinBJ(1.00, udg_Maho_DefAdapt[pId * 8 + cat] + 0.35)
+            set udg_Maho_DefAdapt[pId * 8 + cat] = RMinBJ(0.95, udg_Maho_DefAdapt[pId * 8 + cat] + 0.18)
         endif
         if udg_Maho_FatalSkill[pId] != 0 then
-            call Maho_AddSkillAdapt(pId, udg_Maho_FatalSkill[pId], 0.50)
+            call Maho_AddSkillAdapt(pId, udg_Maho_FatalSkill[pId], 0.30)
         endif
 
-        call BlzSetUnitMaxHP(h, BlzGetUnitMaxHP(h) + 180)
-        call BlzSetUnitBaseDamage(h, BlzGetUnitBaseDamage(h, 0) + 12, 0)
-        call BlzSetUnitArmor(h, BlzGetUnitArmor(h) + 2.0)
+        call BlzSetUnitMaxHP(h, BlzGetUnitMaxHP(h) + 80)
+        call Maho_AddBaseDamage(h, 6)
+        call BlzSetUnitArmor(h, BlzGetUnitArmor(h) + 1.0)
         call SetWidgetLife(h, GetUnitState(h, UNIT_STATE_MAX_LIFE))
 
         call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\Avatar\\AvatarCaster.mdl", h, "origin"))
-        call DisplayTimedTextToPlayer(GetLocalPlayer(), 0, 0, 4.0, "|cffffcc00【神将重生·破茧成神】|r 魔虚罗完成因果涅槃！抗性暴涨，身躯全面升华！")
+        call DisplayTimedTextToPlayer(GetLocalPlayer(), 0, 0, 4.0, "|cffffcc00【神将重生·破茧成神】|r 魔虚罗完成因果涅槃！抗性跃升，身躯全面升华！")
         call Maho_UpdateUI(pId)
     endif
     set h = null
@@ -727,86 +794,86 @@ function Maho_AnalyzeTargetSkills takes integer pId, unit wt returns nothing
     set uId = GetUnitTypeId(wt)
 
     if GetUnitAbilityLevel(wt, 'AHtb') > 0 or uId == 'Hmkg' then
-        call Maho_AddSkillAdapt(pId, 'AHtb', 0.03)
+        call Maho_AddSkillAdapt(pId, 'AHtb', 0.01)
     endif
     if GetUnitAbilityLevel(wt, 'AHtc') > 0 or uId == 'Hmkg' then
-        call Maho_AddSkillAdapt(pId, 'AHtc', 0.03)
+        call Maho_AddSkillAdapt(pId, 'AHtc', 0.01)
     endif
     if GetUnitAbilityLevel(wt, 'AHhb') > 0 or uId == 'Hpal' then
-        call Maho_AddSkillAdapt(pId, 'AHhb', 0.03)
+        call Maho_AddSkillAdapt(pId, 'AHhb', 0.01)
     endif
     if GetUnitAbilityLevel(wt, 'AHbz') > 0 or uId == 'Hamg' then
-        call Maho_AddSkillAdapt(pId, 'AHbz', 0.03)
+        call Maho_AddSkillAdapt(pId, 'AHbz', 0.01)
     endif
     if GetUnitAbilityLevel(wt, 'AOmi') > 0 or uId == 'Obla' then
-        call Maho_AddSkillAdapt(pId, 'AOmi', 0.03)
+        call Maho_AddSkillAdapt(pId, 'AOmi', 0.01)
     endif
     if GetUnitAbilityLevel(wt, 'AOcl') > 0 or uId == 'Ofar' then
-        call Maho_AddSkillAdapt(pId, 'AOcl', 0.03)
+        call Maho_AddSkillAdapt(pId, 'AOcl', 0.01)
     endif
     if GetUnitAbilityLevel(wt, 'AOhw') > 0 or uId == 'Oshd' then
-        call Maho_AddSkillAdapt(pId, 'AOhw', 0.03)
+        call Maho_AddSkillAdapt(pId, 'AOhw', 0.01)
     endif
     if GetUnitAbilityLevel(wt, 'AOs2') > 0 or uId == 'Otch' then
-        call Maho_AddSkillAdapt(pId, 'AOs2', 0.03)
+        call Maho_AddSkillAdapt(pId, 'AOs2', 0.01)
     endif
     if GetUnitAbilityLevel(wt, 'AOs1') > 0 or uId == 'Otch' then
-        call Maho_AddSkillAdapt(pId, 'AOs1', 0.03)
+        call Maho_AddSkillAdapt(pId, 'AOs1', 0.01)
     endif
     if GetUnitAbilityLevel(wt, 'AEer') > 0 or uId == 'Ekee' then
-        call Maho_AddSkillAdapt(pId, 'AEer', 0.03)
+        call Maho_AddSkillAdapt(pId, 'AEer', 0.01)
     endif
     if GetUnitAbilityLevel(wt, 'AEfn') > 0 or uId == 'Ewar' then
-        call Maho_AddSkillAdapt(pId, 'AEfn', 0.03)
+        call Maho_AddSkillAdapt(pId, 'AEfn', 0.01)
     endif
     if GetUnitAbilityLevel(wt, 'AEsh') > 0 or uId == 'Ewar' then
-        call Maho_AddSkillAdapt(pId, 'AEsh', 0.03)
+        call Maho_AddSkillAdapt(pId, 'AEsh', 0.01)
     endif
     if GetUnitAbilityLevel(wt, 'AUcs') > 0 or uId == 'Udre' then
-        call Maho_AddSkillAdapt(pId, 'AUcs', 0.03)
+        call Maho_AddSkillAdapt(pId, 'AUcs', 0.01)
     endif
     if GetUnitAbilityLevel(wt, 'AUsl') > 0 or uId == 'Udre' then
-        call Maho_AddSkillAdapt(pId, 'AUsl', 0.03)
+        call Maho_AddSkillAdapt(pId, 'AUsl', 0.01)
     endif
     if GetUnitAbilityLevel(wt, 'AUfn') > 0 or uId == 'Ulic' then
-        call Maho_AddSkillAdapt(pId, 'AUfn', 0.03)
+        call Maho_AddSkillAdapt(pId, 'AUfn', 0.01)
     endif
     if GetUnitAbilityLevel(wt, 'AUim') > 0 or uId == 'Ucrl' then
-        call Maho_AddSkillAdapt(pId, 'AUim', 0.03)
+        call Maho_AddSkillAdapt(pId, 'AUim', 0.01)
     endif
     if GetUnitAbilityLevel(wt, 'AUdc') > 0 or uId == 'Udea' then
-        call Maho_AddSkillAdapt(pId, 'AUdc', 0.03)
+        call Maho_AddSkillAdapt(pId, 'AUdc', 0.01)
     endif
 
     if GetUnitAbilityLevel(wt, 'A001') > 0 or uId == 'H002' then
-        call Maho_AddSkillAdapt(pId, 'A001', 0.03)
+        call Maho_AddSkillAdapt(pId, 'A001', 0.01)
     endif
     if GetUnitAbilityLevel(wt, 'A002') > 0 or uId == 'H002' then
-        call Maho_AddSkillAdapt(pId, 'A002', 0.03)
+        call Maho_AddSkillAdapt(pId, 'A002', 0.01)
     endif
     if GetUnitAbilityLevel(wt, 'A003') > 0 or uId == 'H002' then
-        call Maho_AddSkillAdapt(pId, 'A003', 0.03)
+        call Maho_AddSkillAdapt(pId, 'A003', 0.01)
     endif
     if GetUnitAbilityLevel(wt, 'A011') > 0 or uId == 'H003' then
-        call Maho_AddSkillAdapt(pId, 'A011', 0.03)
+        call Maho_AddSkillAdapt(pId, 'A011', 0.01)
     endif
     if GetUnitAbilityLevel(wt, 'A014') > 0 or uId == 'H003' then
-        call Maho_AddSkillAdapt(pId, 'A014', 0.03)
+        call Maho_AddSkillAdapt(pId, 'A014', 0.01)
     endif
     if GetUnitAbilityLevel(wt, 'A021') > 0 or uId == 'H004' then
-        call Maho_AddSkillAdapt(pId, 'A021', 0.03)
+        call Maho_AddSkillAdapt(pId, 'A021', 0.01)
     endif
     if GetUnitAbilityLevel(wt, 'A022') > 0 or uId == 'H004' then
-        call Maho_AddSkillAdapt(pId, 'A022', 0.03)
+        call Maho_AddSkillAdapt(pId, 'A022', 0.01)
     endif
     if GetUnitAbilityLevel(wt, 'A031') > 0 or uId == 'H005' then
-        call Maho_AddSkillAdapt(pId, 'A031', 0.03)
+        call Maho_AddSkillAdapt(pId, 'A031', 0.01)
     endif
     if GetUnitAbilityLevel(wt, 'A032') > 0 or uId == 'H005' then
-        call Maho_AddSkillAdapt(pId, 'A032', 0.03)
+        call Maho_AddSkillAdapt(pId, 'A032', 0.01)
     endif
     if GetUnitAbilityLevel(wt, 'A035') > 0 or uId == 'H005' then
-        call Maho_AddSkillAdapt(pId, 'A035', 0.03)
+        call Maho_AddSkillAdapt(pId, 'A035', 0.01)
     endif
 endfunction
 
@@ -838,16 +905,26 @@ function Maho_CapTimerLoop takes nothing returns nothing
         elseif udg_Maho_Hero[pId] != null and Maho_IsUnitAlive(udg_Maho_Hero[pId]) then
             set h = udg_Maho_Hero[pId]
 
-            // Chase Speed Adaptation
+            // Chase Speed & Winged Flight Adaptation
             if GetUnitCurrentOrder(h) != 0 then
                 if udg_Maho_MoveSpeed[pId] < 522.0 then
                     set udg_Maho_MoveSpeed[pId] = udg_Maho_MoveSpeed[pId] + 3.0
                     if udg_Maho_MoveSpeed[pId] >= 522.0 then
                         set udg_Maho_MoveSpeed[pId] = 522.0
-                        call DisplayTimedTextToPlayer(GetLocalPlayer(), 0, 0, 4.0, "|cffffcc00【法轮转动·空间适应完成】|r 移速已达522极限！")
+                        call DisplayTimedTextToPlayer(Player(pId), 0, 0, 4.0, "|cffffcc00【法轮转动·空间适应完成】|r 移速已达522极限！继续奔袭将开启翼化飞升！")
                         call BlzSetUnitAttackCooldown(h, BlzGetUnitAttackCooldown(h, 0) * 0.85, 0)
+                        call BlzSetUnitAttackCooldown(h, BlzGetUnitAttackCooldown(h, 1) * 0.85, 1)
                     endif
                     call SetUnitMoveSpeed(h, udg_Maho_MoveSpeed[pId])
+                elseif not udg_Maho_IsWinged[pId] then
+                    set udg_Maho_FlyProgress[pId] = udg_Maho_FlyProgress[pId] + 1
+                    if udg_Maho_FlyProgress[pId] >= 20 then
+                        set udg_Maho_IsWinged[pId] = true
+                        call Maho_ApplyAppearance(h, pId)
+                        call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Demon\\DarkPortal\\DarkPortalTarget.mdl", h, "origin"))
+                        call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\Avatar\\AvatarCaster.mdl", h, "origin"))
+                        call DisplayTimedTextToPlayer(GetLocalPlayer(), 0, 0, 6.0, "|cffffcc00【法轮终极蜕变 · 翼化神将降临！】|r 魔虚罗突破大地束缚，背生圣金双翼升空翱翔，并彻底掌握制空权！")
+                    endif
                 endif
             endif
 
@@ -868,17 +945,17 @@ function Maho_CapTimerLoop takes nothing returns nothing
                     set udg_Maho_WatchTarget[pId] = null
                 else
                     set atkCat = Maho_GetAtkCatFromUnit(wt)
-                    set udg_Maho_DefAdapt[pId * 8 + atkCat] = RMinBJ(1.00, udg_Maho_DefAdapt[pId * 8 + atkCat] + 0.02)
+                    set udg_Maho_DefAdapt[pId * 8 + atkCat] = RMinBJ(0.95, udg_Maho_DefAdapt[pId * 8 + atkCat] + 0.005)
                     set defType = BlzGetUnitIntegerField(wt, UNIT_IF_DEFENSE_TYPE)
                     if defType < 0 or defType > 7 then
                         set defType = 0
                     endif
-                    set udg_Maho_AtkAdapt[pId * 8 + defType] = udg_Maho_AtkAdapt[pId * 8 + defType] + 0.04
+                    set udg_Maho_AtkAdapt[pId * 8 + defType] = udg_Maho_AtkAdapt[pId * 8 + defType] + 0.015
                     call Maho_AnalyzeTargetSkills(pId, wt)
 
-                    call BlzSetUnitMaxHP(h, BlzGetUnitMaxHP(h) + 8)
-                    if (udg_AI_CommandTick / 2) * 2 == udg_AI_CommandTick then
-                        call BlzSetUnitBaseDamage(h, BlzGetUnitBaseDamage(h, 0) + 1, 0)
+                    call BlzSetUnitMaxHP(h, BlzGetUnitMaxHP(h) + 3)
+                    if (udg_AI_CommandTick / 4) * 4 == udg_AI_CommandTick then
+                        call Maho_AddBaseDamage(h, 1)
                     endif
                     set udg_Maho_WheelSpins[pId] = udg_Maho_WheelSpins[pId] + 1
                     call Maho_UpdateUI(pId)
@@ -1047,11 +1124,11 @@ function Maho_CastW takes unit caster, unit tgt returns nothing
         call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Orc\\CriticalStrike\\CriticalStrikeTarget.mdl", tgt, "origin"))
     endif
 
-    set udg_Maho_AtkAdapt[pId * 8 + defType] = udg_Maho_AtkAdapt[pId * 8 + defType] + 0.04
+    set udg_Maho_AtkAdapt[pId * 8 + defType] = udg_Maho_AtkAdapt[pId * 8 + defType] + 0.015
     set udg_Maho_AtkHits[pId] = udg_Maho_AtkHits[pId] + 1
-    if udg_Maho_AtkHits[pId] >= 2 then
-        set udg_Maho_AtkHits[pId] = udg_Maho_AtkHits[pId] - 2
-        call BlzSetUnitBaseDamage(caster, BlzGetUnitBaseDamage(caster, 0) + 1, 0)
+    if udg_Maho_AtkHits[pId] >= 4 then
+        set udg_Maho_AtkHits[pId] = udg_Maho_AtkHits[pId] - 4
+        call Maho_AddBaseDamage(caster, 1)
     endif
     call Maho_UpdateUI(pId)
 endfunction
@@ -1070,28 +1147,28 @@ function Maho_CastE takes unit caster returns nothing
     call UnitRemoveBuffs(caster, false, true)
     set udg_Maho_CCTimer[pId] = 0.0
 
-    set healAmt = GetUnitState(caster, UNIT_STATE_MAX_LIFE) * 0.25
+    set healAmt = GetUnitState(caster, UNIT_STATE_MAX_LIFE) * 0.20
     call SetWidgetLife(caster, RMinBJ(GetUnitState(caster, UNIT_STATE_MAX_LIFE), GetWidgetLife(caster) + healAmt))
 
     set cat = udg_Maho_FatalCat[pId]
     if cat >= 0 and cat <= 6 then
-        set udg_Maho_DefAdapt[pId * 8 + cat] = RMinBJ(1.00, udg_Maho_DefAdapt[pId * 8 + cat] + 0.12)
+        set udg_Maho_DefAdapt[pId * 8 + cat] = RMinBJ(0.95, udg_Maho_DefAdapt[pId * 8 + cat] + 0.05)
     endif
 
     if udg_Maho_LastSkillId[pId] != 0 then
-        call Maho_AddSkillAdapt(pId, udg_Maho_LastSkillId[pId], 0.12)
+        call Maho_AddSkillAdapt(pId, udg_Maho_LastSkillId[pId], 0.05)
     endif
 
     if udg_Maho_WatchTarget[pId] != null and Maho_IsUnitAlive(udg_Maho_WatchTarget[pId]) then
         set defType = BlzGetUnitIntegerField(udg_Maho_WatchTarget[pId], UNIT_IF_DEFENSE_TYPE)
         if defType >= 0 and defType <= 7 then
-            set udg_Maho_AtkAdapt[pId * 8 + defType] = udg_Maho_AtkAdapt[pId * 8 + defType] + 0.12
+            set udg_Maho_AtkAdapt[pId * 8 + defType] = udg_Maho_AtkAdapt[pId * 8 + defType] + 0.05
         endif
     endif
 
     set udg_Maho_WheelSpins[pId] = udg_Maho_WheelSpins[pId] + 1
     call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\Resurrection\\ResurrectionTarget.mdl", caster, "overhead"))
-    call DisplayTimedTextToPlayer(GetOwningPlayer(caster), 0, 0, 3.0, "|cffffcc00【法轮强转·喀嚓！】|r 净化状态，恢复25%生命，因果适应度推进 +12%！")
+    call DisplayTimedTextToPlayer(GetOwningPlayer(caster), 0, 0, 3.0, "|cffffcc00【法轮强转·喀嚓！】|r 净化状态，恢复20%生命，因果适应度推进 +5%！")
     call Maho_UpdateUI(pId)
 endfunction
 
@@ -7828,12 +7905,7 @@ function Refuge_ProcessRevives takes nothing returns nothing
                         call Strain_ApplyCurrentSkin(u, pId)
                         call Strain_UpdateEvoUI(pId)
                     elseif GetUnitTypeId(u) == 'H006' then
-                        call SetUnitVertexColor(u, 255, 215, 60, 255)
-                        if udg_Maho_WheelFx[pId] != null then
-                            call DestroyEffect(udg_Maho_WheelFx[pId])
-                        endif
-                        set udg_Maho_WheelFx[pId] = AddSpecialEffectTarget("Abilities\\Spells\\Human\\DevotionAura\\DevotionAura.mdl", u, "overhead")
-                        call SetUnitMoveSpeed(u, udg_Maho_MoveSpeed[pId])
+                        call Maho_ApplyAppearance(u, pId)
                         call Maho_UpdateUI(pId)
                     endif
                     call DestroyEffect(AddSpecialEffect("Abilities\\Spells\\Human\\Resurrect\\ResurrectTarget.mdl", GetUnitX(ref), GetUnitY(ref) - 150.0))
@@ -7847,12 +7919,7 @@ function Refuge_ProcessRevives takes nothing returns nothing
                         call Strain_ApplyCurrentSkin(u, pId)
                         call Strain_UpdateEvoUI(pId)
                     elseif GetUnitTypeId(u) == 'H006' then
-                        call SetUnitVertexColor(u, 255, 215, 60, 255)
-                        if udg_Maho_WheelFx[pId] != null then
-                            call DestroyEffect(udg_Maho_WheelFx[pId])
-                        endif
-                        set udg_Maho_WheelFx[pId] = AddSpecialEffectTarget("Abilities\\Spells\\Human\\DevotionAura\\DevotionAura.mdl", u, "overhead")
-                        call SetUnitMoveSpeed(u, udg_Maho_MoveSpeed[pId])
+                        call Maho_ApplyAppearance(u, pId)
                         call Maho_UpdateUI(pId)
                     endif
                     call DisplayTimedTextToPlayer(Player(pId), 0, 0, 6.0, "|cff00ff00[避难所复活]|r 你的英雄已在出生点复活！")
@@ -8644,9 +8711,9 @@ function DM_CapTimerLoop takes nothing returns nothing
                             set adaptPct = Maho_GetSkillPct(mahoPid, 'A012')
                             set drain = drain * (1.0 - adaptPct)
                             if adaptPct < 1.0 then
-                                call Maho_AddSkillAdapt(mahoPid, 'A012', 0.06)
-                                set udg_Maho_DefAdapt[mahoPid * 8 + 6] = RMinBJ(1.00, udg_Maho_DefAdapt[mahoPid * 8 + 6] + 0.015)
-                                call BlzSetUnitMaxHP(enumU, BlzGetUnitMaxHP(enumU) + 6)
+                                call Maho_AddSkillAdapt(mahoPid, 'A012', 0.03)
+                                set udg_Maho_DefAdapt[mahoPid * 8 + 6] = RMinBJ(0.95, udg_Maho_DefAdapt[mahoPid * 8 + 6] + 0.005)
+                                call BlzSetUnitMaxHP(enumU, BlzGetUnitMaxHP(enumU) + 3)
                                 set udg_Maho_WheelSpins[mahoPid] = udg_Maho_WheelSpins[mahoPid] + 1
                                 if Maho_GetSkillPct(mahoPid, 'A012') >= 1.0 then
                                     call DisplayTimedTextToPlayer(Player(mahoPid), 0, 0, 5.0, "|cffffcc00【法轮转动 · 彻底适应】|r 魔虚罗已完全解析【竭心光环】，该光环从此对其彻底无效！")
@@ -8700,9 +8767,9 @@ function DM_CapTimerLoop takes nothing returns nothing
                         set adaptPct = Maho_GetSkillPct(mahoPid, 'A013')
                         set drain = drain * (1.0 - adaptPct)
                         if adaptPct < 1.0 then
-                            call Maho_AddSkillAdapt(mahoPid, 'A013', 0.06)
-                            set udg_Maho_DefAdapt[mahoPid * 8 + 6] = RMinBJ(1.00, udg_Maho_DefAdapt[mahoPid * 8 + 6] + 0.015)
-                            call BlzSetUnitMaxHP(u, BlzGetUnitMaxHP(u) + 6)
+                            call Maho_AddSkillAdapt(mahoPid, 'A013', 0.03)
+                            set udg_Maho_DefAdapt[mahoPid * 8 + 6] = RMinBJ(0.95, udg_Maho_DefAdapt[mahoPid * 8 + 6] + 0.005)
+                            call BlzSetUnitMaxHP(u, BlzGetUnitMaxHP(u) + 3)
                             set udg_Maho_WheelSpins[mahoPid] = udg_Maho_WheelSpins[mahoPid] + 1
                             if Maho_GetSkillPct(mahoPid, 'A013') >= 1.0 then
                                 call DisplayTimedTextToPlayer(Player(mahoPid), 0, 0, 5.0, "|cffffcc00【法轮转动 · 彻底适应】|r 魔虚罗已完全解析【他化自在诅咒】，该印记从此对其彻底无效！")
@@ -9461,6 +9528,7 @@ function DM_OnDamaged takes nothing returns boolean
     local real finalDmg = 0.0
     local integer defType = 0
     local real bonus = 0.0
+    local real defAdd = 0.0
 
     if udg_Strain_DamageLock then
         return false
@@ -9485,11 +9553,11 @@ function DM_OnDamaged takes nothing returns boolean
             set bonus = udg_Maho_AtkAdapt[pId * 8 + defType]
             call BlzSetEventDamage(dmg * (1.0 + bonus))
 
-            set udg_Maho_AtkAdapt[pId * 8 + defType] = udg_Maho_AtkAdapt[pId * 8 + defType] + 0.04
+            set udg_Maho_AtkAdapt[pId * 8 + defType] = udg_Maho_AtkAdapt[pId * 8 + defType] + 0.015
             set udg_Maho_AtkHits[pId] = udg_Maho_AtkHits[pId] + 1
-            if udg_Maho_AtkHits[pId] >= 2 then
-                set udg_Maho_AtkHits[pId] = udg_Maho_AtkHits[pId] - 2
-                call BlzSetUnitBaseDamage(src, BlzGetUnitBaseDamage(src, 0) + 1, 0)
+            if udg_Maho_AtkHits[pId] >= 4 then
+                set udg_Maho_AtkHits[pId] = udg_Maho_AtkHits[pId] - 4
+                call Maho_AddBaseDamage(src, 1)
             endif
             call Maho_UpdateUI(pId)
         endif
@@ -9504,31 +9572,49 @@ function DM_OnDamaged takes nothing returns boolean
                 return false
             endif
 
+            // Anti-air adaptation check
+            if IsUnitType(src, UNIT_TYPE_FLYING) and not udg_Maho_AntiAirUnlocked[mahoPid] then
+                set udg_Maho_AirHits[mahoPid] = udg_Maho_AirHits[mahoPid] + 1
+                if udg_Maho_AirHits[mahoPid] >= 6 or udg_Maho_IsWinged[mahoPid] then
+                    set udg_Maho_AntiAirUnlocked[mahoPid] = true
+                    call UnitAddAbility(tgt, 'A045')
+                    call UnitMakeAbilityPermanent(tgt, true, 'A045')
+                    call SetUnitAcquireRange(tgt, 650.0)
+                    call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\MarkOfChaos\\MarkOfChaosTarget.mdl", tgt, "origin"))
+                    call DisplayTimedTextToPlayer(Player(mahoPid), 0, 0, 5.0, "|cffffcc00【法轮转动 · 对空适应完成】|r 魔虚罗已解析制空法则，挥舞破空剑气可直接远程斩击空中单位！")
+                endif
+            endif
+
             set cat = Maho_GetCatFromDamage(BlzGetEventAttackType(), BlzGetEventDamageType(), BlzGetEventIsAttack())
             set skillPct = 0.0
             if udg_Maho_LastSkillId[mahoPid] != 0 and udg_Maho_LastSkillTime[mahoPid] > 0.0 and cat == 6 then
                 set skillPct = Maho_GetSkillPct(mahoPid, udg_Maho_LastSkillId[mahoPid])
             endif
 
-            set effResist = RMaxBJ(udg_Maho_DefAdapt[mahoPid * 8 + cat], skillPct)
-            if effResist > 1.00 then
-                set effResist = 1.00
-            endif
-
-            set finalDmg = dmg * (1.0 - effResist)
-            if effResist >= 0.99 then
+            if skillPct >= 0.99 then
                 set finalDmg = 0.0
+                set effResist = 1.00
                 call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\DivineShield\\DivineShieldTarget.mdl", tgt, "origin"))
+            else
+                set effResist = RMaxBJ(udg_Maho_DefAdapt[mahoPid * 8 + cat], skillPct)
+                if effResist > 0.95 then
+                    set effResist = 0.95
+                endif
+                set finalDmg = dmg * (1.0 - effResist)
             endif
             call BlzSetEventDamage(finalDmg)
 
             // Defense adaptation growth
-            set udg_Maho_DefAdapt[mahoPid * 8 + cat] = RMinBJ(1.00, udg_Maho_DefAdapt[mahoPid * 8 + cat] + 0.025)
-            if cat == 6 and udg_Maho_LastSkillId[mahoPid] != 0 then
-                call Maho_AddSkillAdapt(mahoPid, udg_Maho_LastSkillId[mahoPid], 0.08)
+            set defAdd = 0.006
+            if udg_Maho_DefAdapt[mahoPid * 8 + cat] >= 0.75 then
+                set defAdd = 0.003
             endif
-            call BlzSetUnitMaxHP(tgt, BlzGetUnitMaxHP(tgt) + 10)
-            call BlzSetUnitArmor(tgt, BlzGetUnitArmor(tgt) + 0.15)
+            set udg_Maho_DefAdapt[mahoPid * 8 + cat] = RMinBJ(0.95, udg_Maho_DefAdapt[mahoPid * 8 + cat] + defAdd)
+            if cat == 6 and udg_Maho_LastSkillId[mahoPid] != 0 then
+                call Maho_AddSkillAdapt(mahoPid, udg_Maho_LastSkillId[mahoPid], 0.04)
+            endif
+            call BlzSetUnitMaxHP(tgt, BlzGetUnitMaxHP(tgt) + 3)
+            call BlzSetUnitArmor(tgt, BlzGetUnitArmor(tgt) + 0.05)
             set udg_Maho_WheelSpins[mahoPid] = udg_Maho_WheelSpins[mahoPid] + 1
             call Maho_UpdateUI(mahoPid)
 
@@ -9734,12 +9820,7 @@ function Wild_OnHeroReviveFinish takes nothing returns boolean
         call Strain_UpdateEvoUI(pId)
     elseif rev != null and GetUnitTypeId(rev) == 'H006' then
         set pId = GetPlayerId(GetOwningPlayer(rev))
-        call SetUnitVertexColor(rev, 255, 215, 60, 255)
-        if udg_Maho_WheelFx[pId] != null then
-            call DestroyEffect(udg_Maho_WheelFx[pId])
-        endif
-        set udg_Maho_WheelFx[pId] = AddSpecialEffectTarget("Abilities\\Spells\\Human\\DevotionAura\\DevotionAura.mdl", rev, "overhead")
-        call SetUnitMoveSpeed(rev, udg_Maho_MoveSpeed[pId])
+        call Maho_ApplyAppearance(rev, pId)
         call Maho_UpdateUI(pId)
     endif
     set rev = null
@@ -10233,7 +10314,8 @@ function TM_SpawnSandboxTargets takes player p returns nothing
         call SetHeroLevel(targetU, 5, false)
         call UnitAddAbility(targetU, 'AHtb')
         call UnitAddAbility(targetU, 'AHtc')
-        call DisplayTimedTextToPlayer(p, 0, 0, 4.0, "|cff00ff00[沙盒测试]|r 已为魔虚罗重置技能与涅槃冷却，并在身旁刷出会放锤子的山丘假人！")
+        set targetU = CreateUnit(Player(PLAYER_NEUTRAL_AGGRESSIVE), 'echm', hx + 300.0, hy + 220.0, 180.0)
+        call DisplayTimedTextToPlayer(p, 0, 0, 4.0, "|cff00ff00[沙盒测试]|r 已为魔虚罗重置技能与涅槃冷却，并在身旁刷出山丘假人与空中奇美拉！")
     endif
 
     // 1. Footman (hfoo) - Melee, Defend -> A025
@@ -10395,13 +10477,27 @@ function TM_OnChatCommand takes nothing returns nothing
     elseif s == "-refuge" then
         call Refuge_Relocate(p)
     elseif s == "-evo" then
-        set u = Strain_GetRealHero(pId)
-        if u != null then
-            set udg_Strain_DevourCount[pId] = udg_Strain_DevourCount[pId] + 8
-            call Strain_CheckEvolution(u, pId)
-            call DisplayTimedTextToPlayer(p, 0, 0, 4.0, "|cff00ff00[极速进化测试]|r 异种之源获得 +8 吞噬进度！累计: " + I2S(udg_Strain_DevourCount[pId]) + " 次")
+        if udg_Maho_Hero[pId] != null and Maho_IsUnitAlive(udg_Maho_Hero[pId]) then
+            set u = udg_Maho_Hero[pId]
+            set udg_Maho_MoveSpeed[pId] = 522.0
+            call SetUnitMoveSpeed(u, 522.0)
+            set udg_Maho_FlyProgress[pId] = 20
+            set udg_Maho_IsWinged[pId] = true
+            set udg_Maho_AntiAirUnlocked[pId] = true
+            call Maho_ApplyAppearance(u, pId)
+            call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Demon\\DarkPortal\\DarkPortalTarget.mdl", u, "origin"))
+            call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\Avatar\\AvatarCaster.mdl", u, "origin"))
+            call DisplayTimedTextToPlayer(p, 0, 0, 5.0, "|cffffcc00[极速演化测试]|r 魔虚罗移速拉满522，背生圣金双翼升空翱翔，并完全解锁对空破空剑气！")
+            call Maho_UpdateUI(pId)
         else
-            call DisplayTimedTextToPlayer(p, 0, 0, 3.0, "|cffffcc00[极速进化测试]|r 未检测到异种之源英雄！")
+            set u = Strain_GetRealHero(pId)
+            if u != null then
+                set udg_Strain_DevourCount[pId] = udg_Strain_DevourCount[pId] + 8
+                call Strain_CheckEvolution(u, pId)
+                call DisplayTimedTextToPlayer(p, 0, 0, 4.0, "|cff00ff00[极速进化测试]|r 异种之源获得 +8 吞噬进度！累计: " + I2S(udg_Strain_DevourCount[pId]) + " 次")
+            else
+                call DisplayTimedTextToPlayer(p, 0, 0, 3.0, "|cffffcc00[极速进化测试]|r 未检测到异种之源或魔虚罗英雄！")
+            endif
         endif
     endif
 
