@@ -4617,6 +4617,9 @@ function Strain_DrainEnemyHero takes unit caster, unit victim returns nothing
     local string gainMsg = ""
     local integer idx = 0
     local integer cIdx = -1
+    local integer mahoPid = 0
+    local real mahoAdapt = 0.0
+    local real drainFactor = 1.0
 
     if caster == null or victim == null then
         return
@@ -4624,6 +4627,89 @@ function Strain_DrainEnemyHero takes unit caster, unit victim returns nothing
     set pId = GetPlayerId(GetOwningPlayer(caster))
     set wLv = IMaxBJ(1, GetUnitAbilityLevel(caster, 'A022'))
     set maxK = 4 + wLv * 2
+
+    // Special Drain Calculation for Mahoraga (H006)
+    if GetUnitTypeId(victim) == 'H006' then
+        set mahoPid = GetPlayerId(GetOwningPlayer(victim))
+        set mahoAdapt = Maho_GetSkillPct(mahoPid, 'A022')
+        set drainFactor = RMaxBJ(0.0, 1.0 - mahoAdapt)
+
+        set curMaxHP = BlzGetUnitMaxHP(victim)
+        set heroBaseAtk = BlzGetUnitBaseDamage(victim, 0)
+        set heroDrainHP = R2I(I2R(curMaxHP) * 0.15 * drainFactor)
+        set heroDrainAtk = R2I(I2R(heroBaseAtk) * 0.10 * drainFactor)
+
+        if heroDrainHP < 1 and drainFactor > 0.01 and curMaxHP > 1 then
+            set heroDrainHP = 1
+        elseif drainFactor <= 0.01 then
+            set heroDrainHP = 0
+        endif
+
+        if heroDrainAtk < 1 and drainFactor > 0.01 and heroBaseAtk > 1 then
+            set heroDrainAtk = 1
+        elseif drainFactor <= 0.01 then
+            set heroDrainAtk = 0
+        endif
+
+        if curMaxHP > heroDrainHP then
+            call BlzSetUnitMaxHP(victim, curMaxHP - heroDrainHP)
+        else
+            call BlzSetUnitMaxHP(victim, 1)
+            set heroDrainHP = IMaxBJ(0, curMaxHP - 1)
+        endif
+
+        if heroBaseAtk > heroDrainAtk then
+            call Maho_SetBaseDamage(victim, heroBaseAtk - heroDrainAtk)
+        else
+            call Maho_SetBaseDamage(victim, 1)
+            set heroDrainAtk = IMaxBJ(0, heroBaseAtk - 1)
+        endif
+
+        call BlzSetUnitMaxHP(caster, BlzGetUnitMaxHP(caster) + heroDrainHP)
+        call BlzSetUnitBaseDamage(caster, BlzGetUnitBaseDamage(caster, 0) + heroDrainAtk, 0)
+        set udg_Strain_TotalBonusHP[pId] = udg_Strain_TotalBonusHP[pId] + heroDrainHP
+        set udg_Strain_TotalBonusAtk[pId] = udg_Strain_TotalBonusAtk[pId] + heroDrainAtk
+        set totalDrainHP = heroDrainHP
+
+        // Devour Count +3 for devouring an enemy hero
+        set udg_Strain_DevourCount[pId] = udg_Strain_DevourCount[pId] + 3
+        call Strain_CheckEvolution(caster, pId)
+
+        // Track crippled hero
+        set idx = 0
+        loop
+            exitwhen idx >= udg_Strain_CrippledCount
+            if udg_Strain_CrippledHero[idx] == victim then
+                set cIdx = idx
+                exitwhen true
+            endif
+            set idx = idx + 1
+        endloop
+        if cIdx == -1 and udg_Strain_CrippledCount < 64 then
+            set cIdx = udg_Strain_CrippledCount
+            set udg_Strain_CrippledHero[cIdx] = victim
+            set udg_Strain_CrippledCount = udg_Strain_CrippledCount + 1
+        endif
+        if cIdx != -1 then
+            set udg_Strain_CrippledHP[cIdx] = BlzGetUnitMaxHP(victim)
+            set udg_Strain_CrippledMana[cIdx] = BlzGetUnitMaxMana(victim)
+        endif
+
+        // Visual effect
+        call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Items\\AIam\\AIamTarget.mdl", caster, "origin"))
+
+        set gainMsg = ""
+        if totalDrainHP > 0 then
+            set gainMsg = gainMsg + " 生命+" + I2S(totalDrainHP)
+        endif
+        if heroDrainAtk > 0 then
+            set gainMsg = gainMsg + " 攻击+" + I2S(heroDrainAtk)
+        endif
+
+        call DisplayTimedTextToPlayer(GetOwningPlayer(caster), 0, 0, 5.0, "|cff00ff00[顶端掠食-神将蚕食]|r 夺取魔虚罗生命与攻击：" + gainMsg + "！(抗性减免: " + I2S(R2I(mahoAdapt * 100.0)) + "%, 蜕壳进度+3)")
+        call DisplayTimedTextToPlayer(GetOwningPlayer(caster), 0, 0, 5.0, "|cffff3333[目标残废状态]|r 魔虚罗当前：" + I2S(BlzGetUnitMaxHP(victim)) + "血 / " + I2S(BlzGetUnitBaseDamage(victim, 0)) + "攻")
+        return
+    endif
 
     // 1. Cascading drain (4 + wLv*2) points: Agi -> Str -> Int -> Max HP/Mana down to 1
     // Mirror Gain: whatever is drained from enemy is permanently added to H004
@@ -4755,6 +4841,33 @@ function Strain_DrainEnemyHero takes unit caster, unit victim returns nothing
 
     call DisplayTimedTextToPlayer(GetOwningPlayer(caster), 0, 0, 5.0, "|cff00ff00[顶端掠食-镜像翻倍获得]|r 成功蚕食敌方英雄，永久夺取：" + gainMsg + "！(蜕壳进度+3，累计: " + I2S(udg_Strain_DevourCount[pId]) + "次)")
     call DisplayTimedTextToPlayer(GetOwningPlayer(caster), 0, 0, 5.0, "|cffff3333[目标残废状态]|r 敌方当前：" + I2S(GetHeroAgi(victim, false)) + "敏 / " + I2S(GetHeroStr(victim, false)) + "力 / " + I2S(GetHeroInt(victim, false)) + "智 / " + I2S(BlzGetUnitMaxHP(victim)) + "血 / " + I2S(BlzGetUnitMaxMana(victim)) + "蓝")
+endfunction
+
+function Strain_ApplyCrippledClampOnRevive takes unit u returns nothing
+    local integer i = 0
+    if u == null then
+        return
+    endif
+    set i = 0
+    loop
+        exitwhen i >= udg_Strain_CrippledCount
+        if udg_Strain_CrippledHero[i] == u then
+            if udg_Strain_CrippledHP[i] > 0 and BlzGetUnitMaxHP(u) > udg_Strain_CrippledHP[i] then
+                call BlzSetUnitMaxHP(u, udg_Strain_CrippledHP[i])
+                if GetWidgetLife(u) > I2R(udg_Strain_CrippledHP[i]) then
+                    call SetWidgetLife(u, I2R(udg_Strain_CrippledHP[i]))
+                endif
+            endif
+            if udg_Strain_CrippledMana[i] > 0 and BlzGetUnitMaxMana(u) > udg_Strain_CrippledMana[i] then
+                call BlzSetUnitMaxMana(u, udg_Strain_CrippledMana[i])
+                if GetUnitState(u, UNIT_STATE_MANA) > I2R(udg_Strain_CrippledMana[i]) then
+                    call SetUnitState(u, UNIT_STATE_MANA, I2R(udg_Strain_CrippledMana[i]))
+                endif
+            endif
+            return
+        endif
+        set i = i + 1
+    endloop
 endfunction
 
 function Strain_GetAbilName takes integer abilId returns string
@@ -7987,6 +8100,7 @@ function Refuge_ProcessRevives takes nothing returns nothing
                 set ref = udg_RefugeBuilding[pId]
                 if ref != null and not IsUnitType(ref, UNIT_TYPE_DEAD) and GetWidgetLife(ref) > 0.405 then
                     call ReviveHero(u, GetUnitX(ref), GetUnitY(ref) - 150.0, true)
+                    call Strain_ApplyCrippledClampOnRevive(u)
                     if GetUnitTypeId(u) == 'H005' then
                         call Wild_ClearMorphAbil(u, pId)
                         call Wild_RevertToAvatar(u)
@@ -8001,6 +8115,7 @@ function Refuge_ProcessRevives takes nothing returns nothing
                     call DisplayTimedTextToPlayer(Player(pId), 0, 0, 6.0, "|cff00ff00[避难所复活]|r 你的英雄已在无敌避难所免费自动复活！")
                 else
                     call ReviveHero(u, GetStartLocationX(GetPlayerStartLocation(Player(pId))), GetStartLocationY(GetPlayerStartLocation(Player(pId))), true)
+                    call Strain_ApplyCrippledClampOnRevive(u)
                     if GetUnitTypeId(u) == 'H005' then
                         call Wild_ClearMorphAbil(u, pId)
                         call Wild_RevertToAvatar(u)
@@ -8523,6 +8638,7 @@ function AI_TacticalLoop takes nothing returns nothing
                     if altar != null then
                         if udg_AI_DeadTimer[i] >= 20.0 then
                             call ReviveHero(h, GetUnitX(altar) + 100.0, GetUnitY(altar), true)
+                            call Strain_ApplyCrippledClampOnRevive(h)
                             if GetUnitTypeId(h) == 'H005' then
                                 call Wild_ClearMorphAbil(h, i)
                                 call Wild_RevertToAvatar(h)
@@ -8533,6 +8649,7 @@ function AI_TacticalLoop takes nothing returns nothing
                     else
                         if udg_AI_DeadTimer[i] >= 35.0 then
                             call ReviveHero(h, GetStartLocationX(GetPlayerStartLocation(Player(i))), GetStartLocationY(GetPlayerStartLocation(Player(i))), true)
+                            call Strain_ApplyCrippledClampOnRevive(h)
                             if GetUnitTypeId(h) == 'H005' then
                                 call Wild_ClearMorphAbil(h, i)
                                 call Wild_RevertToAvatar(h)
@@ -9106,28 +9223,7 @@ function DM_CapTimerLoop takes nothing returns nothing
         set pId = pId + 1
     endloop
 
-    // 3.6. Enforce Crippled Heroes Max HP and Mana clamp
-    set i = 0
-    loop
-        exitwhen i >= udg_Strain_CrippledCount
-        set u = udg_Strain_CrippledHero[i]
-        if u != null and not IsUnitType(u, UNIT_TYPE_DEAD) then
-            if BlzGetUnitMaxHP(u) > udg_Strain_CrippledHP[i] then
-                call BlzSetUnitMaxHP(u, udg_Strain_CrippledHP[i])
-                if GetWidgetLife(u) > I2R(udg_Strain_CrippledHP[i]) then
-                    call SetWidgetLife(u, I2R(udg_Strain_CrippledHP[i]))
-                endif
-            endif
-            if BlzGetUnitMaxMana(u) > udg_Strain_CrippledMana[i] then
-                call BlzSetUnitMaxMana(u, udg_Strain_CrippledMana[i])
-                if GetUnitState(u, UNIT_STATE_MANA) > I2R(udg_Strain_CrippledMana[i]) then
-                    call SetUnitState(u, UNIT_STATE_MANA, I2R(udg_Strain_CrippledMana[i]))
-                endif
-            endif
-        endif
-        set u = null
-        set i = i + 1
-    endloop
+    // 3.6. Crippled heroes clamp is now event-driven on revive (Strain_ApplyCrippledClampOnRevive), avoiding deadlocks on growth
 
     // 3.8. Process Human Player Refuge Dead Hero Auto-Revival
     call Refuge_ProcessRevives()
@@ -9412,6 +9508,9 @@ function DM_OnSpellEffect takes nothing returns boolean
     local unit ult = null
     local integer tier = 0
     local player victimP = null
+    local integer mahoPid = 0
+    local real mahoAdapt = 0.0
+    local real mahoDmg = 0.0
 
     // Mahoraga enemy spell tracking
     call Maho_OnAnySpellEffect(caster, abil)
@@ -9500,43 +9599,98 @@ function DM_OnSpellEffect takes nothing returns boolean
         endif
         set udg_Strain_DigestSkillLv[pId] = IMaxBJ(1, GetUnitAbilityLevel(caster, 'A022'))
         if ult != null then
-            set udg_Strain_DigestType[pId] = GetUnitTypeId(ult)
-            set udg_Strain_DigestOwner[pId] = GetOwningPlayer(ult)
-            set udg_Strain_DigestIsHero[pId] = IsUnitType(ult, UNIT_TYPE_HERO) or IsHeroUnitId(GetUnitTypeId(ult))
-            set udg_Strain_DigestVictimLv[pId] = IMaxBJ(1, GetUnitLevel(ult))
-            if not udg_Strain_DigestIsHero[pId] then
-                if GetUnitState(ult, UNIT_STATE_MAX_MANA) > 0.5 then
-                    set udg_Strain_DigestFeedType[pId] = 3
-                elseif IsUnitType(ult, UNIT_TYPE_RANGED_ATTACKER) then
-                    set udg_Strain_DigestFeedType[pId] = 2
+            if GetUnitTypeId(ult) == 'H006' then
+                set mahoPid = GetPlayerId(GetOwningPlayer(ult))
+                if udg_Maho_InEgg[mahoPid] then
+                    call DisplayTimedTextToPlayer(GetOwningPlayer(caster), 0, 0, 4.0, "|cffffcc00[吞噬无效]|r 魔虚罗正处于因果涅槃金卵状态，无法被捕食！")
+                    set ult = null
                 else
-                    set udg_Strain_DigestFeedType[pId] = 1
+                    set mahoAdapt = Maho_GetSkillPct(mahoPid, 'A022')
+                    if mahoAdapt >= 0.9999 then
+                        call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\DivineShield\\DivineShieldTarget.mdl", ult, "origin"))
+                        call DisplayTimedTextToPlayer(GetLocalPlayer(), 0, 0, 5.0, "|cffffcc00【法轮转动 · 彻底免疫！】|r 魔虚罗已完全适应【捕食吞噬】，虫皇的吞噬对其彻底无效！")
+                        set ult = null
+                    else
+                        // Situation B: mahoAdapt < 0.9999
+                        call Maho_AddSkillAdapt(mahoPid, 'A022', 0.15)
+                        set udg_Maho_LastSkillId[mahoPid] = 'A022'
+                        set udg_Maho_LastSkillTime[mahoPid] = 3.0
+                        set mahoDmg = I2R(BlzGetUnitMaxHP(ult)) * 1.25 * (1.0 - mahoAdapt)
+                        if mahoDmg < 1.0 then
+                            set mahoDmg = 1.0
+                        endif
+
+                        set udg_Strain_DigestType[pId] = 'H006'
+                        set udg_Strain_DigestOwner[pId] = GetOwningPlayer(ult)
+                        set udg_Strain_DigestIsHero[pId] = true
+                        set udg_Strain_DigestVictimLv[pId] = IMaxBJ(1, GetUnitLevel(ult))
+                        set udg_Strain_DigestFeedType[pId] = 0
+
+                        call Strain_DrainEnemyHero(caster, ult)
+
+                        if udg_Strain_EvoStage[pId] >= 3 then
+                            set udg_Strain_DigestTimer[pId] = 1.0
+                            call BlzSetUnitAbilityCooldown(caster, 'A022', 0, 4.0)
+                            call BlzSetUnitAbilityCooldown(caster, 'A022', 1, 4.0)
+                            call BlzSetUnitAbilityCooldown(caster, 'A022', 2, 4.0)
+                            call BlzStartUnitAbilityCooldown(caster, 'A022', 4.0)
+                        else
+                            set udg_Strain_DigestTimer[pId] = 8.0 - 1.5 * I2R(GetUnitAbilityLevel(caster, 'A022'))
+                        endif
+                        call DestroyEffect(AddSpecialEffect("Abilities\\Spells\\Orc\\Devour\\DevourEffectArt.mdl", GetUnitX(ult), GetUnitY(ult)))
+                        call DestroyEffect(AddSpecialEffect("Objects\\Spawnmodels\\Human\\HumanLargeDeathExplode\\HumanLargeDeathExplode.mdl", GetUnitX(ult), GetUnitY(ult)))
+
+                        // Deal scalable damage, letting DM_OnDamaged handle Mahoraga adaptation and Phoenix Egg!
+                        call UnitDamageTarget(caster, ult, mahoDmg, false, false, ATTACK_TYPE_HERO, DAMAGE_TYPE_MAGIC, WEAPON_TYPE_WHOKNOWS)
+
+                        if udg_Strain_DigestFx[pId] != null then
+                            call DestroyEffect(udg_Strain_DigestFx[pId])
+                            set udg_Strain_DigestFx[pId] = null
+                        endif
+                        set udg_Strain_DigestFx[pId] = AddSpecialEffectTarget("Abilities\\Spells\\Items\\AIhe\\AIheTarget.mdl", caster, "origin")
+                        set ult = null
+                    endif
                 endif
-                call Strain_CaptureRealUnitSkills(pId, ult)
             else
-                set udg_Strain_DigestFeedType[pId] = 0
-                // Execute cascading attribute and HP/Mana drain BEFORE killing target hero!
-                call Strain_DrainEnemyHero(caster, ult)
+                // Normal handling for all other units and heroes:
+                set udg_Strain_DigestType[pId] = GetUnitTypeId(ult)
+                set udg_Strain_DigestOwner[pId] = GetOwningPlayer(ult)
+                set udg_Strain_DigestIsHero[pId] = IsUnitType(ult, UNIT_TYPE_HERO) or IsHeroUnitId(GetUnitTypeId(ult))
+                set udg_Strain_DigestVictimLv[pId] = IMaxBJ(1, GetUnitLevel(ult))
+                if not udg_Strain_DigestIsHero[pId] then
+                    if GetUnitState(ult, UNIT_STATE_MAX_MANA) > 0.5 then
+                        set udg_Strain_DigestFeedType[pId] = 3
+                    elseif IsUnitType(ult, UNIT_TYPE_RANGED_ATTACKER) then
+                        set udg_Strain_DigestFeedType[pId] = 2
+                    else
+                        set udg_Strain_DigestFeedType[pId] = 1
+                    endif
+                    call Strain_CaptureRealUnitSkills(pId, ult)
+                else
+                    set udg_Strain_DigestFeedType[pId] = 0
+                    // Execute cascading attribute and HP/Mana drain BEFORE killing target hero!
+                    call Strain_DrainEnemyHero(caster, ult)
+                endif
+                if udg_Strain_EvoStage[pId] >= 3 then
+                    set udg_Strain_DigestTimer[pId] = 1.0
+                    call BlzSetUnitAbilityCooldown(caster, 'A022', 0, 4.0)
+                    call BlzSetUnitAbilityCooldown(caster, 'A022', 1, 4.0)
+                    call BlzSetUnitAbilityCooldown(caster, 'A022', 2, 4.0)
+                    call BlzStartUnitAbilityCooldown(caster, 'A022', 4.0)
+                else
+                    set udg_Strain_DigestTimer[pId] = 8.0 - 1.5 * I2R(GetUnitAbilityLevel(caster, 'A022'))
+                endif
+                call DestroyEffect(AddSpecialEffect("Abilities\\Spells\\Orc\\Devour\\DevourEffectArt.mdl", GetUnitX(ult), GetUnitY(ult)))
+                call DestroyEffect(AddSpecialEffect("Objects\\Spawnmodels\\Human\\HumanLargeDeathExplode\\HumanLargeDeathExplode.mdl", GetUnitX(ult), GetUnitY(ult)))
+                call SetUnitExploded(ult, true)
+                call UnitDamageTarget(caster, ult, 999999.0, true, false, ATTACK_TYPE_CHAOS, DAMAGE_TYPE_UNIVERSAL, WEAPON_TYPE_WHOKNOWS)
+                if udg_Strain_DigestFx[pId] != null then
+                    call DestroyEffect(udg_Strain_DigestFx[pId])
+                    set udg_Strain_DigestFx[pId] = null
+                endif
+                set udg_Strain_DigestFx[pId] = AddSpecialEffectTarget("Abilities\\Spells\\Items\\AIhe\\AIheTarget.mdl", caster, "origin")
+                set ult = null
             endif
-            if udg_Strain_EvoStage[pId] >= 3 then
-                set udg_Strain_DigestTimer[pId] = 1.0
-                call BlzSetUnitAbilityCooldown(caster, 'A022', 0, 4.0)
-                call BlzSetUnitAbilityCooldown(caster, 'A022', 1, 4.0)
-                call BlzSetUnitAbilityCooldown(caster, 'A022', 2, 4.0)
-                call BlzStartUnitAbilityCooldown(caster, 'A022', 4.0)
-            else
-                set udg_Strain_DigestTimer[pId] = 8.0 - 1.5 * I2R(GetUnitAbilityLevel(caster, 'A022'))
-            endif
-            call DestroyEffect(AddSpecialEffect("Abilities\\Spells\\Orc\\Devour\\DevourEffectArt.mdl", GetUnitX(ult), GetUnitY(ult)))
-            call DestroyEffect(AddSpecialEffect("Objects\\Spawnmodels\\Human\\HumanLargeDeathExplode\\HumanLargeDeathExplode.mdl", GetUnitX(ult), GetUnitY(ult)))
-            call SetUnitExploded(ult, true)
-            call UnitDamageTarget(caster, ult, 999999.0, true, false, ATTACK_TYPE_CHAOS, DAMAGE_TYPE_UNIVERSAL, WEAPON_TYPE_WHOKNOWS)
-            if udg_Strain_DigestFx[pId] != null then
-                call DestroyEffect(udg_Strain_DigestFx[pId])
-                set udg_Strain_DigestFx[pId] = null
-            endif
-            set udg_Strain_DigestFx[pId] = AddSpecialEffectTarget("Abilities\\Spells\\Items\\AIhe\\AIheTarget.mdl", caster, "origin")
-            set ult = null
         endif
     elseif abil == 'A023' then
         set pId = GetPlayerId(GetOwningPlayer(caster))
@@ -10069,6 +10223,9 @@ function Wild_OnHeroReviveFinish takes nothing returns boolean
     local integer pId = 0
     if rev == null then
         set rev = GetTriggerUnit()
+    endif
+    if rev != null then
+        call Strain_ApplyCrippledClampOnRevive(rev)
     endif
     if rev != null and GetUnitTypeId(rev) == 'H005' then
         set pId = GetPlayerId(GetOwningPlayer(rev))
