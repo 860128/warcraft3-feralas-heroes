@@ -561,6 +561,89 @@ function Maho_ApplyAppearance takes unit h, integer pId returns nothing
     call SetUnitMoveSpeed(h, udg_Maho_MoveSpeed[pId])
 endfunction
 
+function Maho_GetCatName takes integer cat returns string
+    if cat == 0 then
+        return "普通"
+    elseif cat == 1 then
+        return "穿刺"
+    elseif cat == 2 then
+        return "攻城"
+    elseif cat == 3 then
+        return "英雄物理"
+    elseif cat == 4 then
+        return "混乱"
+    elseif cat == 5 then
+        return "魔法"
+    elseif cat == 6 then
+        return "技能法术"
+    endif
+    return "未知"
+endfunction
+
+function Maho_AddDefAdapt takes integer pId, integer cat, real rawAdd returns nothing
+    local real cur = 0.0
+    local real rem = rawAdd
+    local real cap = 0.0
+    local real rate = 1.0
+    local real maxInStage = 0.0
+    local real rawNeeded = 0.0
+
+    if pId < 0 or pId > 7 or cat < 0 or cat > 6 or rawAdd <= 0.0 then
+        return
+    endif
+
+    set cur = udg_Maho_DefAdapt[pId * 8 + cat]
+    if cur >= 1.00 then
+        return
+    endif
+
+    loop
+        exitwhen rem <= 0.00001 or cur >= 1.00
+        if cur < 0.75 then
+            set cap = 0.75
+            set rate = 1.00
+        elseif cur < 0.90 then
+            set cap = 0.90
+            set rate = 0.50
+        elseif cur < 0.95 then
+            set cap = 0.95
+            set rate = 0.20
+        else
+            set cap = 1.00
+            set rate = 0.05
+        endif
+
+        set maxInStage = cap - cur
+        set rawNeeded = maxInStage / rate
+
+        if rem >= rawNeeded then
+            set cur = cap
+            set rem = rem - rawNeeded
+        else
+            set cur = cur + rem * rate
+            set rem = 0.0
+        endif
+    endloop
+
+    if cur >= 0.9999 then
+        set cur = 1.00
+        set udg_Maho_DefAdapt[pId * 8 + cat] = 1.00
+        call DisplayTimedTextToPlayer(GetLocalPlayer(), 0, 0, 6.0, "|cffffcc00【八握剑法轮·绝对免疫达成！】|r 魔虚罗已完全适应【" + Maho_GetCatName(cat) + "攻击】，该类攻击从此对其彻底无效！")
+    else
+        set udg_Maho_DefAdapt[pId * 8 + cat] = cur
+    endif
+endfunction
+
+function Maho_FormatDefPct takes real val returns string
+    if val >= 0.9999 then
+        return "|cff00ff00100%[免疫]|r"
+    elseif val >= 0.95 then
+        return R2SW(val * 100.0, 1, 1) + "%"
+    else
+        return I2S(R2I(val * 100.0)) + "%"
+    endif
+endfunction
+
 function Maho_UpdateUI takes integer pId returns nothing
     local string tip = ""
     local real eggCD = udg_Maho_EggCD[pId]
@@ -596,7 +679,13 @@ function Maho_UpdateUI takes integer pId returns nothing
     else
         set tip = tip + "- 凤凰蛋涅槃：|cff00ff00已就绪|r|n"
     endif
-    set tip = tip + "- 最高防御减免：" + I2S(R2I(maxDef * 100.0)) + "% (常规上限95%)|n"
+    if maxDef >= 0.9999 then
+        set tip = tip + "- 最高防御减免：|cff00ff00100%[完全免疫]|r|n"
+    elseif maxDef >= 0.95 then
+        set tip = tip + "- 最高防御减免：" + R2SW(maxDef * 100.0, 1, 1) + "% (登神天堑中)|n"
+    else
+        set tip = tip + "- 最高防御减免：" + I2S(R2I(maxDef * 100.0)) + "%|n"
+    endif
     set tip = tip + "- 最高破甲增伤：+" + I2S(R2I(maxAtk * 100.0)) + "% (无上限)|n"
     if udg_Maho_AntiAirUnlocked[pId] then
         set tip = tip + "- 对空制空：|cff00ff00已解锁破空剑气|r|n"
@@ -632,9 +721,9 @@ function Maho_PrintOverview takes integer pId returns nothing
         call DisplayTimedTextToPlayer(p, 0, 0, 8.0, "涅槃状态: |cff00ff00已就绪|r")
     endif
 
-    set s = "|cff00ffff[防御抗性(封顶95%)]|r 普通: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 0] * 100.0)) + "% | 穿刺: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 1] * 100.0)) + "% | 攻城: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 2] * 100.0)) + "% | 英雄: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 3] * 100.0)) + "%"
+    set s = "|cff00ffff[防御抗性(登神曲线)]|r 普通: " + Maho_FormatDefPct(udg_Maho_DefAdapt[pId * 8 + 0]) + " | 穿刺: " + Maho_FormatDefPct(udg_Maho_DefAdapt[pId * 8 + 1]) + " | 攻城: " + Maho_FormatDefPct(udg_Maho_DefAdapt[pId * 8 + 2]) + " | 英雄: " + Maho_FormatDefPct(udg_Maho_DefAdapt[pId * 8 + 3])
     call DisplayTimedTextToPlayer(p, 0, 0, 8.0, s)
-    set s = "|cff00ffff[防御抗性(封顶95%)]|r 混乱: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 4] * 100.0)) + "% | 魔法: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 5] * 100.0)) + "% | 技能法术: " + I2S(R2I(udg_Maho_DefAdapt[pId * 8 + 6] * 100.0)) + "%"
+    set s = "|cff00ffff[防御抗性(登神曲线)]|r 混乱: " + Maho_FormatDefPct(udg_Maho_DefAdapt[pId * 8 + 4]) + " | 魔法: " + Maho_FormatDefPct(udg_Maho_DefAdapt[pId * 8 + 5]) + " | 技能法术: " + Maho_FormatDefPct(udg_Maho_DefAdapt[pId * 8 + 6])
     call DisplayTimedTextToPlayer(p, 0, 0, 8.0, s)
 
     set s = "|cffff9900[破甲增伤(无上限)]|r 轻甲(0): +" + I2S(R2I(udg_Maho_AtkAdapt[pId * 8 + 0] * 100.0)) + "% | 中甲(1): +" + I2S(R2I(udg_Maho_AtkAdapt[pId * 8 + 1] * 100.0)) + "% | 重甲(2): +" + I2S(R2I(udg_Maho_AtkAdapt[pId * 8 + 2] * 100.0)) + "% | 城甲(3): +" + I2S(R2I(udg_Maho_AtkAdapt[pId * 8 + 3] * 100.0)) + "%"
@@ -768,7 +857,7 @@ function Maho_OnEggComplete takes integer pId returns nothing
 
         set cat = udg_Maho_FatalCat[pId]
         if cat >= 0 and cat <= 6 then
-            set udg_Maho_DefAdapt[pId * 8 + cat] = RMinBJ(0.95, udg_Maho_DefAdapt[pId * 8 + cat] + 0.18)
+            call Maho_AddDefAdapt(pId, cat, 0.18)
         endif
         if udg_Maho_FatalSkill[pId] != 0 then
             call Maho_AddSkillAdapt(pId, udg_Maho_FatalSkill[pId], 0.30)
@@ -945,7 +1034,7 @@ function Maho_CapTimerLoop takes nothing returns nothing
                     set udg_Maho_WatchTarget[pId] = null
                 else
                     set atkCat = Maho_GetAtkCatFromUnit(wt)
-                    set udg_Maho_DefAdapt[pId * 8 + atkCat] = RMinBJ(0.95, udg_Maho_DefAdapt[pId * 8 + atkCat] + 0.005)
+                    call Maho_AddDefAdapt(pId, atkCat, 0.005)
                     set defType = BlzGetUnitIntegerField(wt, UNIT_IF_DEFENSE_TYPE)
                     if defType < 0 or defType > 7 then
                         set defType = 0
@@ -1152,7 +1241,7 @@ function Maho_CastE takes unit caster returns nothing
 
     set cat = udg_Maho_FatalCat[pId]
     if cat >= 0 and cat <= 6 then
-        set udg_Maho_DefAdapt[pId * 8 + cat] = RMinBJ(0.95, udg_Maho_DefAdapt[pId * 8 + cat] + 0.05)
+        call Maho_AddDefAdapt(pId, cat, 0.05)
     endif
 
     if udg_Maho_LastSkillId[pId] != 0 then
@@ -8712,7 +8801,7 @@ function DM_CapTimerLoop takes nothing returns nothing
                             set drain = drain * (1.0 - adaptPct)
                             if adaptPct < 1.0 then
                                 call Maho_AddSkillAdapt(mahoPid, 'A012', 0.03)
-                                set udg_Maho_DefAdapt[mahoPid * 8 + 6] = RMinBJ(0.95, udg_Maho_DefAdapt[mahoPid * 8 + 6] + 0.005)
+                                call Maho_AddDefAdapt(mahoPid, 6, 0.005)
                                 call BlzSetUnitMaxHP(enumU, BlzGetUnitMaxHP(enumU) + 3)
                                 set udg_Maho_WheelSpins[mahoPid] = udg_Maho_WheelSpins[mahoPid] + 1
                                 if Maho_GetSkillPct(mahoPid, 'A012') >= 1.0 then
@@ -8768,7 +8857,7 @@ function DM_CapTimerLoop takes nothing returns nothing
                         set drain = drain * (1.0 - adaptPct)
                         if adaptPct < 1.0 then
                             call Maho_AddSkillAdapt(mahoPid, 'A013', 0.03)
-                            set udg_Maho_DefAdapt[mahoPid * 8 + 6] = RMinBJ(0.95, udg_Maho_DefAdapt[mahoPid * 8 + 6] + 0.005)
+                            call Maho_AddDefAdapt(mahoPid, 6, 0.005)
                             call BlzSetUnitMaxHP(u, BlzGetUnitMaxHP(u) + 3)
                             set udg_Maho_WheelSpins[mahoPid] = udg_Maho_WheelSpins[mahoPid] + 1
                             if Maho_GetSkillPct(mahoPid, 'A013') >= 1.0 then
@@ -9591,25 +9680,18 @@ function DM_OnDamaged takes nothing returns boolean
                 set skillPct = Maho_GetSkillPct(mahoPid, udg_Maho_LastSkillId[mahoPid])
             endif
 
-            if skillPct >= 0.99 then
+            set effResist = RMaxBJ(udg_Maho_DefAdapt[mahoPid * 8 + cat], skillPct)
+            if effResist >= 0.9999 then
                 set finalDmg = 0.0
                 set effResist = 1.00
                 call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\DivineShield\\DivineShieldTarget.mdl", tgt, "origin"))
             else
-                set effResist = RMaxBJ(udg_Maho_DefAdapt[mahoPid * 8 + cat], skillPct)
-                if effResist > 0.95 then
-                    set effResist = 0.95
-                endif
                 set finalDmg = dmg * (1.0 - effResist)
             endif
             call BlzSetEventDamage(finalDmg)
 
-            // Defense adaptation growth
-            set defAdd = 0.006
-            if udg_Maho_DefAdapt[mahoPid * 8 + cat] >= 0.75 then
-                set defAdd = 0.003
-            endif
-            set udg_Maho_DefAdapt[mahoPid * 8 + cat] = RMinBJ(0.95, udg_Maho_DefAdapt[mahoPid * 8 + cat] + defAdd)
+            // Defense adaptation growth (Four-Stage Asymptotic Diminishing Returns Curve)
+            call Maho_AddDefAdapt(mahoPid, cat, 0.006)
             if cat == 6 and udg_Maho_LastSkillId[mahoPid] != 0 then
                 call Maho_AddSkillAdapt(mahoPid, udg_Maho_LastSkillId[mahoPid], 0.04)
             endif
