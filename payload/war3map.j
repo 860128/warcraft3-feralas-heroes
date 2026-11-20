@@ -258,6 +258,8 @@ globals
     real array udg_Maho_LastSkillTime
     real array udg_Maho_CCTimer
     boolean array udg_Maho_InEgg
+    boolean array udg_Maho_PendingEggEnter
+    unit array udg_Maho_EggUnit
     real array udg_Maho_EggTimer
     real array udg_Maho_EggCD
     integer array udg_Maho_FatalCat
@@ -781,6 +783,12 @@ endfunction
 
 function Maho_ApplyDeathPenalty takes integer pId returns nothing
     local integer i = 0
+    if udg_Maho_EggUnit[pId] != null then
+        call RemoveUnit(udg_Maho_EggUnit[pId])
+        set udg_Maho_EggUnit[pId] = null
+    endif
+    set udg_Maho_InEgg[pId] = false
+    set udg_Maho_PendingEggEnter[pId] = false
     if udg_Maho_WheelFx[pId] != null then
         call DestroyEffect(udg_Maho_WheelFx[pId])
         set udg_Maho_WheelFx[pId] = null
@@ -822,25 +830,11 @@ function Maho_TriggerEgg takes unit tgt, integer pId, integer fatalCat, integer 
     call BlzSetEventDamage(0.0)
     call SetWidgetLife(tgt, 1.0)
     set udg_Maho_InEgg[pId] = true
+    set udg_Maho_PendingEggEnter[pId] = true
     set udg_Maho_EggTimer[pId] = 5.0
     set udg_Maho_EggCD[pId] = 50.0
     set udg_Maho_FatalCat[pId] = fatalCat
     set udg_Maho_FatalSkill[pId] = fatalSkill
-    if udg_Maho_WheelFx[pId] != null then
-        call DestroyEffect(udg_Maho_WheelFx[pId])
-        set udg_Maho_WheelFx[pId] = null
-    endif
-    call UnitAddAbility(tgt, 'Amrf')
-    call UnitRemoveAbility(tgt, 'Amrf')
-    call SetUnitFlyHeight(tgt, 0.0, 0.0)
-    call SetUnitPathing(tgt, true)
-    call BlzSetUnitSkin(tgt, 'hpxe')
-    call SetUnitScale(tgt, 1.0, 1.0, 1.0)
-    call SetUnitVertexColor(tgt, 255, 220, 80, 255)
-    call SetUnitInvulnerable(tgt, true)
-    call PauseUnit(tgt, true)
-    call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\Resurrection\\ResurrectionTarget.mdl", tgt, "origin"))
-    call DisplayTimedTextToPlayer(GetLocalPlayer(), 0, 0, 4.0, "|cffffcc00【八握剑法轮·涅槃转生】|r 魔虚罗遭遇致死伤害，化身无敌金卵进入5秒命运重塑！")
     call Maho_UpdateUI(pId)
 endfunction
 
@@ -849,12 +843,21 @@ function Maho_OnEggComplete takes integer pId returns nothing
     local integer cat = 0
     if h != null and udg_Maho_InEgg[pId] then
         set udg_Maho_InEgg[pId] = false
+
+        // 1. Remove and cleanup golden egg unit
+        if udg_Maho_EggUnit[pId] != null then
+            call RemoveUnit(udg_Maho_EggUnit[pId])
+            set udg_Maho_EggUnit[pId] = null
+        endif
+
+        // 2. Unpause, remove invulnerability, and restore appearance
         call SetUnitInvulnerable(h, false)
         call PauseUnit(h, false)
         call Maho_ApplyAppearance(h, pId)
         call SetWidgetLife(h, GetUnitState(h, UNIT_STATE_MAX_LIFE))
         call SetUnitState(h, UNIT_STATE_MANA, GetUnitState(h, UNIT_STATE_MAX_MANA))
 
+        // 3. Stat & adaptation growth
         set cat = udg_Maho_FatalCat[pId]
         if cat >= 0 and cat <= 6 then
             call Maho_AddDefAdapt(pId, cat, 0.18)
@@ -871,6 +874,10 @@ function Maho_OnEggComplete takes integer pId returns nothing
         call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\Avatar\\AvatarCaster.mdl", h, "origin"))
         call DisplayTimedTextToPlayer(GetLocalPlayer(), 0, 0, 4.0, "|cffffcc00【神将重生·破茧成神】|r 魔虚罗完成因果涅槃！抗性跃升，身躯全面升华！")
         call Maho_UpdateUI(pId)
+
+        if GetLocalPlayer() == Player(pId) then
+            call SelectUnit(h, true)
+        endif
     endif
     set h = null
 endfunction
@@ -1063,10 +1070,41 @@ function Maho_StealthLoop takes nothing returns nothing
     local boolean hasCC = false
     local real ccAdapt = 0.0
     local real lastSkillPct = 0.0
+    local unit egg = null
 
     set pId = 0
     loop
         exitwhen pId > 7
+        // Deferred Egg Enter (100% outside of DealDamage callback stack!)
+        if udg_Maho_PendingEggEnter[pId] then
+            set udg_Maho_PendingEggEnter[pId] = false
+            set h = udg_Maho_Hero[pId]
+            if h != null and Maho_IsUnitAlive(h) then
+                if udg_Maho_WheelFx[pId] != null then
+                    call DestroyEffect(udg_Maho_WheelFx[pId])
+                    set udg_Maho_WheelFx[pId] = null
+                endif
+                call SetUnitInvulnerable(h, true)
+                call PauseUnit(h, true)
+                call SetUnitVertexColor(h, 255, 255, 255, 0)
+
+                if udg_Maho_EggUnit[pId] != null then
+                    call RemoveUnit(udg_Maho_EggUnit[pId])
+                    set udg_Maho_EggUnit[pId] = null
+                endif
+
+                set egg = CreateUnit(Player(pId), 'u004', GetUnitX(h), GetUnitY(h), 270.0)
+                call SetUnitVertexColor(egg, 255, 220, 80, 255)
+                call SetUnitInvulnerable(egg, true)
+                set udg_Maho_EggUnit[pId] = egg
+
+                call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\Resurrect\\ResurrectTarget.mdl", egg, "origin"))
+                call DisplayTimedTextToPlayer(GetLocalPlayer(), 0, 0, 4.0, "|cffffcc00【八握剑法轮·涅槃转生】|r 魔虚罗遭遇致死伤害，化身无敌金卵进入5秒命运重塑！")
+                call Maho_UpdateUI(pId)
+                set egg = null
+            endif
+        endif
+
         set h = udg_Maho_Hero[pId]
         if h != null and Maho_IsUnitAlive(h) and not udg_Maho_InEgg[pId] then
             set hasCC = false
@@ -1256,7 +1294,7 @@ function Maho_CastE takes unit caster returns nothing
     endif
 
     set udg_Maho_WheelSpins[pId] = udg_Maho_WheelSpins[pId] + 1
-    call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\Resurrection\\ResurrectionTarget.mdl", caster, "overhead"))
+    call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\Resurrect\\ResurrectTarget.mdl", caster, "overhead"))
     call DisplayTimedTextToPlayer(GetOwningPlayer(caster), 0, 0, 3.0, "|cffffcc00【法轮强转·喀嚓！】|r 净化状态，恢复20%生命，因果适应度推进 +5%！")
     call Maho_UpdateUI(pId)
 endfunction
@@ -9913,7 +9951,9 @@ function DM_OnUnitAttacked takes nothing returns boolean
                 set dy = GetUnitY(target) - GetUnitY(attacker)
                 set dist = SquareRoot(dx * dx + dy * dy)
                 if dist > 160.0 then
-                    call DestroyEffect(AddSpecialEffectTarget(Wild_GetCreepMissileArt(BlzGetUnitSkin(attacker)), target, "chest"))
+                    if Wild_GetCreepMissileArt(BlzGetUnitSkin(attacker)) != "" and Wild_GetCreepMissileArt(BlzGetUnitSkin(attacker)) != null then
+                        call DestroyEffect(AddSpecialEffectTarget(Wild_GetCreepMissileArt(BlzGetUnitSkin(attacker)), target, "chest"))
+                    endif
                 endif
             endif
         endif
@@ -10723,6 +10763,15 @@ function TM_SpawnSandboxTargets takes player p returns nothing
     // Mahoraga Sandbox Reset & Mountain King Dummy
     set u = udg_Maho_Hero[pId]
     if u != null and not IsUnitType(u, UNIT_TYPE_DEAD) then
+        if udg_Maho_EggUnit[pId] != null then
+            call RemoveUnit(udg_Maho_EggUnit[pId])
+            set udg_Maho_EggUnit[pId] = null
+        endif
+        set udg_Maho_InEgg[pId] = false
+        set udg_Maho_PendingEggEnter[pId] = false
+        call SetUnitInvulnerable(u, false)
+        call PauseUnit(u, false)
+        call Maho_ApplyAppearance(u, pId)
         call UnitResetCooldown(u)
         set udg_Maho_EggCD[pId] = 0.0
         call SetWidgetLife(u, GetUnitState(u, UNIT_STATE_MAX_LIFE))

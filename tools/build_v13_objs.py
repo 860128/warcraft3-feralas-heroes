@@ -1540,6 +1540,27 @@ abilList = "AInv"
 foodCost = 0
 level = 6
 
+[u004]
+_parent = "hpxe"
+Name = "【魔虚罗·涅槃金卵】"
+file = "units\\\\human\\\\Phoenix\\\\PhoenixEgg"
+"file:hd" = "units\\\\human\\\\Phoenix\\\\PhoenixEgg"
+"file:sd" = "units\\\\human\\\\Phoenix\\\\PhoenixEgg"
+Art = "ReplaceableTextures\\\\CommandButtons\\\\BTNPhoenixEgg.blp"
+unitSound = "PhoenixEgg"
+modelScale = 1.35
+HP = 99999
+regenHP = 0.0
+def = 99.0
+defType = "divine"
+spd = 0
+movetp = ""
+weapsOn = 0
+abilList = "Avul"
+abilSkinList = ""
+foodCost = 0
+level = 10
+
 [H004]
 _parent = "Ucrl"
 Name = "异种之源"
