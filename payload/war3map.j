@@ -8191,8 +8191,8 @@ function AI_CommandArmyForPlayer takes integer pId returns nothing
         if heroAlive then
             call RemoveGuardPosition(h)
             set ord = GetUnitCurrentOrder(h)
-            // Only if h is NOT currently casting our custom spells (852089 blizzard, 852579 charm, 852123 mirrorimage, 852594 summongrizzly)
-            if not (ord == 852089 or ord == 852579 or ord == 852123 or ord == 852594) then
+            // Only if h is NOT currently casting custom spells (blizzard, charm, mirrorimage, summongrizzly, devour, starfall, soulburn, windwalk, ambush, faeriefire, cripple, resurrection)
+            if not (ord == 852089 or ord == 852579 or ord == 852123 or ord == 852594 or ord == OrderId("devour") or ord == OrderId("starfall") or ord == OrderId("soulburn") or ord == OrderId("windwalk") or ord == OrderId("ambush") or ord == OrderId("faeriefire") or ord == OrderId("cripple") or ord == OrderId("resurrection")) then
                 // NOT fleeing at low HP (GetWidgetLife(h) > MaxLife * 0.25 or H003)
                 if (GetWidgetLife(h) > GetUnitState(h, UNIT_STATE_MAX_LIFE) * 0.25 or GetUnitTypeId(h) == 'H003') then
                     // Only issue order if not fighting AND (not already attacking OR target changed)
@@ -8236,6 +8236,179 @@ function AI_CommandArmyForPlayer takes integer pId returns nothing
     set enumU = null
 endfunction
 
+function AI_CastStolenSkill takes unit h, integer abil, unit nearestEnemy returns boolean
+    if h == null or abil == 0 or nearestEnemy == null then
+        return false
+    endif
+    if abil == 'AHtb' then
+        return IssueTargetOrder(h, "thunderbolt", nearestEnemy)
+    elseif abil == 'AHtc' then
+        return IssueImmediateOrder(h, "thundercap")
+    elseif abil == 'AOww' then
+        return IssueImmediateOrder(h, "windwalk")
+    elseif abil == 'AOcl' then
+        return IssueTargetOrder(h, "chainlightning", nearestEnemy)
+    elseif abil == 'AOmi' or abil == 'A001' then
+        return IssueImmediateOrder(h, "mirrorimage")
+    elseif abil == 'A014' then
+        return IssueImmediateOrder(h, "summongrizzly")
+    elseif abil == 'ACbl' then
+        return IssueTargetOrder(h, "bloodlust", h)
+    elseif abil == 'ACls' then
+        return IssueTargetOrder(h, "lightningshield", h)
+    elseif abil == 'ACpu' then
+        return IssueTargetOrder(h, "purge", nearestEnemy)
+    elseif abil == 'ACro' then
+        return IssueImmediateOrder(h, "roar")
+    elseif abil == 'ACif' then
+        return IssueTargetOrder(h, "innerfire", h)
+    elseif abil == 'ACsw' then
+        return IssueTargetOrder(h, "slow", nearestEnemy)
+    elseif abil == 'AChx' then
+        return IssueTargetOrder(h, "hex", nearestEnemy)
+    elseif abil == 'ACsh' then
+        return IssuePointOrder(h, "shockwave", GetUnitX(nearestEnemy), GetUnitY(nearestEnemy))
+    elseif abil == 'ACfl' then
+        return IssueTargetOrder(h, "forkedlightning", nearestEnemy)
+    elseif abil == 'ACfn' then
+        return IssueTargetOrder(h, "frostnova", nearestEnemy)
+    elseif abil == 'ACf2' then
+        return IssueTargetOrder(h, "frostarmor", h)
+    elseif abil == 'ACen' then
+        return IssueTargetOrder(h, "ensnare", nearestEnemy)
+    elseif abil == 'ACrj' then
+        return IssueTargetOrder(h, "rejuvenation", h)
+    elseif abil == 'ACcs' then
+        return IssueTargetOrder(h, "curse", nearestEnemy)
+    elseif abil == 'ACst' then
+        return IssueImmediateOrder(h, "stomp")
+    elseif abil == 'ACtb' then
+        return IssueTargetOrder(h, "thunderbolt", nearestEnemy)
+    endif
+    return false
+endfunction
+
+function AI_CastWildFormSkill takes unit h, unit nearestEnemy returns boolean
+    local group g = null
+    local unit enumU = null
+    local real hx = 0.0
+    local real hy = 0.0
+
+    if h == null then
+        return false
+    endif
+    set hx = GetUnitX(h)
+    set hy = GetUnitY(h)
+
+    // 1. Dragon Devour (A037): 10-level dragon execution & heal on enemy non-hero
+    if GetUnitAbilityLevel(h, 'A037') > 0 and GetWidgetLife(h) < (GetUnitState(h, UNIT_STATE_MAX_LIFE) * 0.85) then
+        set g = CreateGroup()
+        call GroupEnumUnitsInRange(g, hx, hy, 600.0, null)
+        loop
+            set enumU = FirstOfGroup(g)
+            exitwhen enumU == null
+            call GroupRemoveUnit(g, enumU)
+            if IsUnitEnemy(enumU, GetOwningPlayer(h)) and not IsUnitType(enumU, UNIT_TYPE_DEAD) and not IsUnitType(enumU, UNIT_TYPE_HERO) and not IsUnitType(enumU, UNIT_TYPE_STRUCTURE) and not Refuge_IsInvulnerable(enumU) then
+                if IssueTargetOrder(h, "soulburn", enumU) then
+                    call DestroyGroup(g)
+                    set g = null
+                    set enumU = null
+                    return true
+                endif
+            endif
+        endloop
+        call DestroyGroup(g)
+        set g = null
+    endif
+
+    if nearestEnemy == null then
+        return false
+    endif
+
+    // 2. Active form abilities
+    if GetUnitAbilityLevel(h, 'ACtb') > 0 then
+        if IssueTargetOrder(h, "thunderbolt", nearestEnemy) then
+            return true
+        endif
+    endif
+    if GetUnitAbilityLevel(h, 'AChx') > 0 then
+        if IssueTargetOrder(h, "hex", nearestEnemy) then
+            return true
+        endif
+    endif
+    if GetUnitAbilityLevel(h, 'ACst') > 0 then
+        if IssueImmediateOrder(h, "stomp") then
+            return true
+        endif
+    endif
+    if GetUnitAbilityLevel(h, 'ACsh') > 0 then
+        if IssuePointOrder(h, "shockwave", GetUnitX(nearestEnemy), GetUnitY(nearestEnemy)) then
+            return true
+        endif
+    endif
+    if GetUnitAbilityLevel(h, 'ACfl') > 0 then
+        if IssueTargetOrder(h, "forkedlightning", nearestEnemy) then
+            return true
+        endif
+    endif
+    if GetUnitAbilityLevel(h, 'ACfn') > 0 then
+        if IssueTargetOrder(h, "frostnova", nearestEnemy) then
+            return true
+        endif
+    endif
+    if GetUnitAbilityLevel(h, 'ACro') > 0 then
+        if IssueImmediateOrder(h, "roar") then
+            return true
+        endif
+    endif
+    if GetUnitAbilityLevel(h, 'ACen') > 0 then
+        if IssueTargetOrder(h, "ensnare", nearestEnemy) then
+            return true
+        endif
+    endif
+    if GetUnitAbilityLevel(h, 'ACsw') > 0 then
+        if IssueTargetOrder(h, "slow", nearestEnemy) then
+            return true
+        endif
+    endif
+    if GetUnitAbilityLevel(h, 'ACpu') > 0 then
+        if IssueTargetOrder(h, "purge", nearestEnemy) then
+            return true
+        endif
+    endif
+    if GetUnitAbilityLevel(h, 'ACls') > 0 then
+        if IssueTargetOrder(h, "lightningshield", h) then
+            return true
+        endif
+    endif
+    if GetUnitAbilityLevel(h, 'ACbl') > 0 then
+        if IssueTargetOrder(h, "bloodlust", h) then
+            return true
+        endif
+    endif
+    if GetUnitAbilityLevel(h, 'ACf2') > 0 then
+        if IssueTargetOrder(h, "frostarmor", h) then
+            return true
+        endif
+    endif
+    if GetUnitAbilityLevel(h, 'ACif') > 0 then
+        if IssueTargetOrder(h, "innerfire", h) then
+            return true
+        endif
+    endif
+    if GetUnitAbilityLevel(h, 'ACcs') > 0 then
+        if IssueTargetOrder(h, "curse", nearestEnemy) then
+            return true
+        endif
+    endif
+    if GetUnitAbilityLevel(h, 'ACrj') > 0 and GetWidgetLife(h) < (GetUnitState(h, UNIT_STATE_MAX_LIFE) * 0.70) then
+        if IssueTargetOrder(h, "rejuvenation", h) then
+            return true
+        endif
+    endif
+    return false
+endfunction
+
 function AI_TacticalLoop takes nothing returns nothing
     local integer i = 0
     local unit h = null
@@ -8260,6 +8433,11 @@ function AI_TacticalLoop takes nothing returns nothing
     local integer curOrder = 0
     local boolean doCommand = false
     local integer abil = 0
+    local unit devourTgt = null
+    local boolean devourIsHero = false
+    local boolean shouldCastD = false
+    local real wrathCD = 110.0
+    local boolean castSuccess = false
 
     set udg_AI_CommandTick = udg_AI_CommandTick + 1
     if udg_AI_CommandTick >= 4 then
@@ -8303,7 +8481,7 @@ function AI_TacticalLoop takes nothing returns nothing
                         set enumU = FirstOfGroup(g)
                         exitwhen enumU == null
                         call GroupRemoveUnit(g, enumU)
-                        if IsUnitType(enumU, UNIT_TYPE_HERO) and GetUnitTypeId(enumU) != 'H002' and GetUnitTypeId(enumU) != 'H003' and GetUnitTypeId(enumU) != 'H004' and GetUnitTypeId(enumU) != 'H005' and not IsUnitIllusion(enumU) and not IsUnitInGroup(enumU, udg_FakeHeroGroup) then
+                        if IsUnitType(enumU, UNIT_TYPE_HERO) and GetUnitTypeId(enumU) != 'H002' and GetUnitTypeId(enumU) != 'H003' and GetUnitTypeId(enumU) != 'H004' and GetUnitTypeId(enumU) != 'H005' and GetUnitTypeId(enumU) != 'H006' and not IsUnitIllusion(enumU) and not IsUnitInGroup(enumU, udg_FakeHeroGroup) then
                             set hx = GetUnitX(enumU)
                             set hy = GetUnitY(enumU)
                             set d = GetUnitFacing(enumU)
@@ -8321,32 +8499,30 @@ function AI_TacticalLoop takes nothing returns nothing
                         if altar != null then
                             set udg_AI_AltarTimer[i] = udg_AI_AltarTimer[i] + 1.0
                             if udg_AI_AltarTimer[i] >= 20.0 then
-                                call AI_SpawnCustomHeroForPlayer(i, GetUnitX(altar), GetUnitY(altar) - 150.0, 270.0)
+                                call AI_SpawnCustomHeroForPlayer(i, GetUnitX(altar) + 120.0, GetUnitY(altar), 270.0)
                             endif
                         else
-                            set udg_AI_WaitTimer[i] = udg_AI_WaitTimer[i] + 1.0
-                            if udg_AI_WaitTimer[i] >= 60.0 then
-                                set th = AI_GetPlayerTownHall(Player(i))
-                                if th != null then
+                            set th = AI_GetPlayerTownHall(Player(i))
+                            if th != null then
+                                set udg_AI_WaitTimer[i] = udg_AI_WaitTimer[i] + 1.0
+                                if udg_AI_WaitTimer[i] >= 60.0 then
                                     call AI_SpawnCustomHeroForPlayer(i, GetUnitX(th) + 150.0, GetUnitY(th), 270.0)
-                                else
-                                    call AI_SpawnCustomHeroForPlayer(i, GetStartLocationX(GetPlayerStartLocation(Player(i))), GetStartLocationY(GetPlayerStartLocation(Player(i))), 270.0)
                                 endif
-                                set th = null
                             endif
+                            set th = null
                         endif
                         set altar = null
                     endif
                 endif
 
-                // 2. Check if hero is dead & manage revival
+                // 2. Check if hero needs revival (Standard Altars or Emergency Fallback)
                 set h = udg_AI_CustomHero[i]
                 if h != null and (IsUnitType(h, UNIT_TYPE_DEAD) or GetWidgetLife(h) <= 0.405) then
                     set udg_AI_DeadTimer[i] = udg_AI_DeadTimer[i] + 1.0
                     set altar = AI_GetPlayerAltar(Player(i))
                     if altar != null then
-                        if udg_AI_DeadTimer[i] >= 25.0 then
-                            call ReviveHero(h, GetUnitX(altar), GetUnitY(altar) - 150.0, true)
+                        if udg_AI_DeadTimer[i] >= 20.0 then
+                            call ReviveHero(h, GetUnitX(altar) + 100.0, GetUnitY(altar), true)
                             if GetUnitTypeId(h) == 'H005' then
                                 call Wild_ClearMorphAbil(h, i)
                                 call Wild_RevertToAvatar(h)
@@ -8422,26 +8598,25 @@ function AI_TacticalLoop takes nothing returns nothing
                     endloop
 
                     if hTypeId == 'H002' then
-                        // Dream Master Tactical Brain
-                        // Cast E: A003 Mass Illusion
+                        // Hero #1: Dream Master Tactical Brain
                         if GetUnitAbilityLevel(h, 'A003') > 0 and udg_AI_CastCD_E[i] <= 0.0 and GetUnitState(h, UNIT_STATE_MANA) >= 80.0 and clusterEnemy != null then
-                            call IssuePointOrder(h, "cloudoffog", GetUnitX(clusterEnemy), GetUnitY(clusterEnemy))
-                            set udg_AI_CastCD_E[i] = 14.0
+                            if IssuePointOrder(h, "cloudoffog", GetUnitX(clusterEnemy), GetUnitY(clusterEnemy)) then
+                                set udg_AI_CastCD_E[i] = 14.0
+                            endif
                         endif
 
-                        // Cast W: A002 Possession
                         if GetUnitAbilityLevel(h, 'A002') > 0 and udg_AI_CastCD_W[i] <= 0.0 and GetUnitState(h, UNIT_STATE_MANA) >= 70.0 and bestEnemy != null then
-                            call IssueTargetOrder(h, "charm", bestEnemy)
-                            set udg_AI_CastCD_W[i] = 18.0
+                            if IssueTargetOrder(h, "charm", bestEnemy) then
+                                set udg_AI_CastCD_W[i] = 18.0
+                            endif
                         endif
 
-                        // Cast Q: A001 Mirror Image
-                        if GetUnitAbilityLevel(h, 'A001') > 0 and udg_AI_CastCD_Q[i] <= 0.0 and GetUnitState(h, UNIT_STATE_MANA) >= 100.0 and (enemyCount >= 1 or GetWidgetLife(h) < GetUnitState(h, UNIT_STATE_MAX_LIFE) * 0.75) then
-                            call IssueImmediateOrder(h, "mirrorimage")
-                            set udg_AI_CastCD_Q[i] = 16.0
+                        if GetUnitAbilityLevel(h, 'A001') > 0 and udg_AI_CastCD_Q[i] <= 0.0 and GetUnitState(h, UNIT_STATE_MANA) >= 50.0 and (enemyCount >= 2 or GetWidgetLife(h) < (GetUnitState(h, UNIT_STATE_MAX_LIFE) * 0.50)) then
+                            if IssueImmediateOrder(h, "mirrorimage") then
+                                set udg_AI_CastCD_Q[i] = 15.0
+                            endif
                         endif
 
-                        // Command nearby clones to fight
                         if nearestEnemy != null then
                             call GroupClear(udg_EnumGroup)
                             call GroupEnumUnitsInRange(udg_EnumGroup, hx, hy, 1000.0, null)
@@ -8450,7 +8625,7 @@ function AI_TacticalLoop takes nothing returns nothing
                                 exitwhen enumU == null
                                 call GroupRemoveUnit(udg_EnumGroup, enumU)
                                 if GetOwningPlayer(enumU) == Player(i) and enumU != h and not IsUnitType(enumU, UNIT_TYPE_DEAD) and GetWidgetLife(enumU) > 0.405 then
-                                    if IsUnitType(enumU, UNIT_TYPE_SUMMONED) or IsUnitIllusion(enumU) or IsUnitInGroup(enumU, udg_FakeHeroGroup) then
+                                    if IsUnitIllusion(enumU) or GetUnitTypeId(enumU) == 'u000' then
                                         set curOrder = GetUnitCurrentOrder(enumU)
                                         if curOrder == 0 or curOrder == 851972 or curOrder == 851973 then
                                             call IssuePointOrder(enumU, "attack", GetUnitX(nearestEnemy), GetUnitY(nearestEnemy))
@@ -8461,21 +8636,25 @@ function AI_TacticalLoop takes nothing returns nothing
                         endif
 
                     elseif hTypeId == 'H003' then
-                        // Ninja Tactical Brain
-                        if GetUnitAbilityLevel(h, 'A012') > 0 and not udg_Ninja_AuraOn[i] then
-                            set udg_Ninja_AuraOn[i] = true
-                            if udg_Ninja_AuraFx[i] == null then
-                                set udg_Ninja_AuraFx[i] = AddSpecialEffectTarget("Abilities\\Spells\\Other\\GeneralAuraTarget\\GeneralAuraTarget.mdl", h, "origin")
+                        // Hero #2: Magic Sound Ninja Tactical Brain
+                        if udg_AI_CastCD_Q[i] <= 0.0 and GetUnitAbilityLevel(h, 'A011') > 0 and GetUnitState(h, UNIT_STATE_MANA) >= 60.0 and nearestEnemy != null and minD <= 600.0 then
+                            if IssuePointOrder(h, "blizzard", GetUnitX(nearestEnemy), GetUnitY(nearestEnemy)) then
+                                set udg_AI_CastCD_Q[i] = 8.0
                             endif
                         endif
 
-                        // Cast R: A014
-                        if GetUnitAbilityLevel(h, 'A014') > 0 and udg_AI_CastCD_R[i] <= 0.0 and GetUnitState(h, UNIT_STATE_MANA) >= 120.0 and enemyCount >= 1 then
-                            call IssueImmediateOrder(h, "summongrizzly")
-                            set udg_AI_CastCD_R[i] = 60.0
+                        if udg_AI_CastCD_E[i] <= 0.0 and GetUnitAbilityLevel(h, 'A013') > 0 and GetUnitState(h, UNIT_STATE_MANA) >= 50.0 and bestEnemy != null then
+                            if IssueTargetOrder(h, "shadowstrike", bestEnemy) then
+                                set udg_AI_CastCD_E[i] = 10.0
+                            endif
                         endif
 
-                        // Command nearby ninja clones to fight
+                        if udg_AI_CastCD_R[i] <= 0.0 and GetUnitAbilityLevel(h, 'A014') > 0 and GetUnitState(h, UNIT_STATE_MANA) >= 100.0 and (enemyCount >= 1 or GetWidgetLife(h) < (GetUnitState(h, UNIT_STATE_MAX_LIFE) * 0.60)) then
+                            if IssueImmediateOrder(h, "summongrizzly") then
+                                set udg_AI_CastCD_R[i] = 60.0
+                            endif
+                        endif
+
                         if nearestEnemy != null then
                             call GroupClear(udg_EnumGroup)
                             call GroupEnumUnitsInRange(udg_EnumGroup, hx, hy, 1000.0, null)
@@ -8494,101 +8673,33 @@ function AI_TacticalLoop takes nothing returns nothing
                             endloop
                         endif
 
-                    elseif hTypeId == 'H005' then
-                        // Hero #4: The Wild Avatar Tactical AI
-                        set heroLv = GetHeroLevel(h)
-                        // 1. Cast Ultimate D (A035 众野之怒)
-                        if udg_AI_CastCD_R[i] <= 0.0 and GetUnitAbilityLevel(h, 'A035') > 0 and GetUnitState(h, UNIT_STATE_MANA) >= 175.0 and enemyCount >= 2 then
-                            call IssueImmediateOrder(h, "starfall")
-                            set udg_AI_CastCD_R[i] = 110.0
-                        endif
-
-                        // 2. Morph if cooldown ready
-                        if udg_Wild_MorphCD[i] <= 0.0 then
-                            if enemyCount >= 3 or GetWidgetLife(h) < (GetUnitState(h, UNIT_STATE_MAX_LIFE) * 0.45) then
-                                call Wild_DoMorph(h, 3, heroLv, 1)
-                            elseif enemyCount >= 1 then
-                                call Wild_DoMorph(h, 1, heroLv, 2)
-                            else
-                                call Wild_DoMorph(h, 2, heroLv, 2)
-                            endif
-                        endif
-
-                        // 3. Cast signature form abilities in combat
-                        if udg_AI_CastCD_W[i] <= 0.0 and enemyCount >= 1 and nearestEnemy != null then
-                            set abil = udg_Wild_CurrentAbil[i]
-                            if abil == 'ACst' then
-                                call IssueImmediateOrder(h, "stomp")
-                                set udg_AI_CastCD_W[i] = 8.0
-                            elseif abil == 'ACro' then
-                                call IssueImmediateOrder(h, "roar")
-                                set udg_AI_CastCD_W[i] = 12.0
-                            elseif abil == 'ACsh' then
-                                call IssuePointOrder(h, "shockwave", GetUnitX(nearestEnemy), GetUnitY(nearestEnemy))
-                                set udg_AI_CastCD_W[i] = 8.0
-                            elseif abil == 'ACtb' then
-                                call IssueTargetOrder(h, "thunderbolt", nearestEnemy)
-                                set udg_AI_CastCD_W[i] = 7.0
-                            elseif abil == 'ACen' then
-                                call IssueTargetOrder(h, "ensnare", nearestEnemy)
-                                set udg_AI_CastCD_W[i] = 10.0
-                            elseif abil == 'ACsw' then
-                                call IssueTargetOrder(h, "slow", nearestEnemy)
-                                set udg_AI_CastCD_W[i] = 6.0
-                            elseif abil == 'ACpu' then
-                                call IssueTargetOrder(h, "purge", nearestEnemy)
-                                set udg_AI_CastCD_W[i] = 8.0
-                            elseif abil == 'ACls' then
-                                call IssueTargetOrder(h, "lightningshield", h)
-                                set udg_AI_CastCD_W[i] = 10.0
-                            elseif abil == 'ACfn' then
-                                call IssueTargetOrder(h, "frostnova", nearestEnemy)
-                                set udg_AI_CastCD_W[i] = 8.0
-                            elseif abil == 'ACbl' then
-                                call IssueTargetOrder(h, "bloodlust", h)
-                                set udg_AI_CastCD_W[i] = 8.0
-                            elseif abil == 'ACfl' then
-                                call IssueTargetOrder(h, "forkedlightning", nearestEnemy)
-                                set udg_AI_CastCD_W[i] = 8.0
-                            elseif abil == 'AChx' then
-                                call IssueTargetOrder(h, "hex", nearestEnemy)
-                                set udg_AI_CastCD_W[i] = 10.0
-                            elseif abil == 'ACf2' then
-                                call IssueTargetOrder(h, "frostarmor", h)
-                                set udg_AI_CastCD_W[i] = 8.0
-                            endif
-                        endif
-                    elseif hTypeId == 'H006' then
-                        // Hero #5: Mahoraga Tactical AI
-                        // 1. Cast E (A043 法轮强转) if low health (<40%) or CCed
-                        if udg_AI_CastCD_E[i] <= 0.0 and (GetWidgetLife(h) < (GetUnitState(h, UNIT_STATE_MAX_LIFE) * 0.40) or udg_Maho_CCTimer[i] > 0.05) and GetUnitState(h, UNIT_STATE_MANA) >= 50.0 then
-                            call IssueImmediateOrder(h, "resurrection")
-                            set udg_AI_CastCD_E[i] = 14.0
-                        endif
-
-                        // 2. Cast Q (A041 法轮注视) on best enemy / enemy hero
-                        if udg_AI_CastCD_Q[i] <= 0.0 and bestEnemy != null and GetUnitState(h, UNIT_STATE_MANA) >= 20.0 then
-                            call IssueTargetOrder(h, "faeriefire", bestEnemy)
-                            set udg_AI_CastCD_Q[i] = 6.0
-                        endif
-
-                        // 3. Cast W (A042 退魔之剑·破界斩) on nearest enemy
-                        if udg_AI_CastCD_W[i] <= 0.0 and nearestEnemy != null and minD <= 320.0 and GetUnitState(h, UNIT_STATE_MANA) >= 40.0 then
-                            call IssueTargetOrder(h, "cripple", nearestEnemy)
-                            set udg_AI_CastCD_W[i] = 8.0
-                        endif
                     elseif hTypeId == 'H004' then
-                        // Hero #3 Primordial Strain Tactical Brain
-                        // 1. If burrowed and enemy is close: unburrow to knockup and strike!
+                        // Hero #3: Primordial Strain Tactical Brain (Predator & Swarm Emperor)
+                        // 1. Q Burrowing & Unburrowing Logic
                         if udg_Strain_Burrowed[i] then
-                            if nearestEnemy != null and minD <= 220.0 then
+                            // If burrowed, close to enemies and healthy (> 55%): burst out to knockup!
+                            if nearestEnemy != null and minD <= 220.0 and GetWidgetLife(h) > (GetUnitState(h, UNIT_STATE_MAX_LIFE) * 0.55) then
                                 call IssueImmediateOrder(h, "windwalk")
                             endif
                         else
-                            // 2. Cast W (A022 捕食吞噬) on low-HP target
+                            // Low health (< 40%) in danger -> Burrow to escape and regenerate
+                            if udg_AI_CastCD_Q[i] <= 0.0 and GetUnitAbilityLevel(h, 'A021') > 0 and GetUnitState(h, UNIT_STATE_MANA) >= 50.0 and bestEnemy != null and GetWidgetLife(h) < (GetUnitState(h, UNIT_STATE_MAX_LIFE) * 0.40) then
+                                if IssueImmediateOrder(h, "windwalk") then
+                                    set udg_AI_CastCD_Q[i] = 12.0
+                                endif
+                            // Or initiation: enemy hero within 500 range, burrow to close the distance
+                            elseif udg_AI_CastCD_Q[i] <= 0.0 and GetUnitAbilityLevel(h, 'A021') > 0 and GetUnitState(h, UNIT_STATE_MANA) >= 50.0 and bestIsHero and minD <= 500.0 and minD > 220.0 and GetWidgetLife(h) > (GetUnitState(h, UNIT_STATE_MAX_LIFE) * 0.70) then
+                                if IssueImmediateOrder(h, "windwalk") then
+                                    set udg_AI_CastCD_Q[i] = 12.0
+                                endif
+                            endif
+
+                            // 2. Cast W (A022 捕食吞噬) with independent variables and 650.0 range scan
                             if udg_AI_CastCD_W[i] <= 0.0 and GetUnitAbilityLevel(h, 'A022') > 0 and udg_Strain_DigestTimer[i] <= 0.0 and GetUnitState(h, UNIT_STATE_MANA) >= 75.0 then
+                                set devourTgt = null
+                                set devourIsHero = false
                                 call GroupClear(udg_EnumGroup)
-                                call GroupEnumUnitsInRange(udg_EnumGroup, hx, hy, 300.0, null)
+                                call GroupEnumUnitsInRange(udg_EnumGroup, hx, hy, 650.0, null)
                                 loop
                                     set enumU = FirstOfGroup(udg_EnumGroup)
                                     exitwhen enumU == null
@@ -8596,88 +8707,154 @@ function AI_TacticalLoop takes nothing returns nothing
                                     if IsUnitEnemy(enumU, Player(i)) and not IsUnitType(enumU, UNIT_TYPE_DEAD) and not IsUnitType(enumU, UNIT_TYPE_STRUCTURE) and GetUnitTypeId(enumU) != 'u000' and not IsUnitInGroup(enumU, udg_FakeHeroGroup) and not Refuge_IsInvulnerable(enumU) then
                                         if IsUnitType(enumU, UNIT_TYPE_HERO) or IsHeroUnitId(GetUnitTypeId(enumU)) then
                                             if GetWidgetLife(enumU) <= (GetUnitState(h, UNIT_STATE_MAX_LIFE) * 0.10) or GetWidgetLife(enumU) <= (GetUnitState(enumU, UNIT_STATE_MAX_LIFE) * 0.28) then
-                                                set bestEnemy = enumU
+                                                set devourTgt = enumU
+                                                set devourIsHero = true
                                                 exitwhen true
                                             endif
                                         else
-                                            if GetWidgetLife(enumU) <= (GetUnitState(h, UNIT_STATE_MAX_LIFE) * 0.10) or GetWidgetLife(enumU) <= (GetUnitState(enumU, UNIT_STATE_MAX_LIFE) * 0.35) then
-                                                set bestEnemy = enumU
+                                            if not devourIsHero then
+                                                if GetWidgetLife(enumU) <= (GetUnitState(h, UNIT_STATE_MAX_LIFE) * 0.10) or GetWidgetLife(enumU) <= (GetUnitState(enumU, UNIT_STATE_MAX_LIFE) * 0.35) then
+                                                    if devourTgt == null or (GetUnitState(enumU, UNIT_STATE_MAX_LIFE) > GetUnitState(devourTgt, UNIT_STATE_MAX_LIFE)) then
+                                                        set devourTgt = enumU
+                                                    endif
+                                                endif
                                             endif
                                         endif
                                     endif
                                 endloop
-                                if bestEnemy != null then
-                                    call IssueTargetOrder(h, "devour", bestEnemy)
-                                    set udg_AI_CastCD_W[i] = 25.0 - 5.0 * I2R(GetUnitAbilityLevel(h, 'A022'))
-                                endif
-                            endif
 
-                            // 3. Cast Q (A021 渊潜掠影) in combat or when low HP
-                            if udg_AI_CastCD_Q[i] <= 0.0 and GetUnitAbilityLevel(h, 'A021') > 0 and GetUnitState(h, UNIT_STATE_MANA) >= 50.0 and (enemyCount >= 1 or GetWidgetLife(h) < (GetUnitState(h, UNIT_STATE_MAX_LIFE) * 0.50)) then
-                                call IssueImmediateOrder(h, "windwalk")
-                                set udg_AI_CastCD_Q[i] = 12.0
-                            endif
-
-                            // 4. Cast E (A023 拟态伪装) when out of combat to prepare ambush
-                            if udg_AI_CastCD_E[i] <= 0.0 and GetUnitAbilityLevel(h, 'A023') > 0 and not udg_Strain_MimicActive[i] and udg_Strain_MimicType[i] != 0 and enemyCount == 0 then
-                                call IssueImmediateOrder(h, "ambush")
-                                set udg_AI_CastCD_E[i] = 20.0
-                            endif
-
-                            // 5. Cast Stolen Abilities (Slot 1 or Slot 2)
-                            if udg_AI_CastCD_R[i] <= 0.0 and enemyCount >= 1 and nearestEnemy != null then
-                                set abil = udg_Strain_StolenAbil1[i]
-                                if abil == 0 then
-                                    set abil = udg_Strain_StolenAbil2[i]
-                                endif
-                                if abil != 0 then
-                                    if abil == 'AOwk' then
-                                        call IssueImmediateOrder(h, "windwalk")
-                                    elseif abil == 'AHtb' or abil == 'ACtb' then
-                                        call IssueTargetOrder(h, "thunderbolt", nearestEnemy)
-                                    elseif abil == 'AHtc' or abil == 'ACst' then
-                                        call IssueImmediateOrder(h, "stomp")
-                                    elseif abil == 'AOcl' then
-                                        call IssueTargetOrder(h, "chainlightning", nearestEnemy)
-                                    elseif abil == 'AUdc' then
-                                        call IssueTargetOrder(h, "deathcoil", nearestEnemy)
-                                    elseif abil == 'AUim' then
-                                        call IssuePointOrder(h, "impale", GetUnitX(nearestEnemy), GetUnitY(nearestEnemy))
-                                    elseif abil == 'A001' then
-                                        call IssueImmediateOrder(h, "mirrorimage")
-                                    elseif abil == 'A014' then
-                                        call IssueImmediateOrder(h, "summongrizzly")
-                                    elseif abil == 'ACbl' then
-                                        call IssueTargetOrder(h, "bloodlust", h)
-                                    elseif abil == 'ACls' then
-                                        call IssueTargetOrder(h, "lightningshield", h)
-                                    elseif abil == 'ACpu' then
-                                        call IssueTargetOrder(h, "purge", nearestEnemy)
-                                    elseif abil == 'ACro' then
-                                        call IssueImmediateOrder(h, "roar")
-                                    elseif abil == 'ACif' then
-                                        call IssueTargetOrder(h, "innerfire", h)
-                                    elseif abil == 'ACsw' then
-                                        call IssueTargetOrder(h, "slow", nearestEnemy)
-                                    elseif abil == 'AChx' then
-                                        call IssueTargetOrder(h, "hex", nearestEnemy)
-                                    elseif abil == 'ACsh' then
-                                        call IssuePointOrder(h, "shockwave", GetUnitX(nearestEnemy), GetUnitY(nearestEnemy))
-                                    elseif abil == 'ACfl' then
-                                        call IssueTargetOrder(h, "forkedlightning", nearestEnemy)
-                                    elseif abil == 'ACfn' then
-                                        call IssueTargetOrder(h, "frostnova", nearestEnemy)
-                                    elseif abil == 'ACf2' then
-                                        call IssueTargetOrder(h, "frostarmor", h)
-                                    elseif abil == 'ACen' then
-                                        call IssueTargetOrder(h, "ensnare", nearestEnemy)
-                                    elseif abil == 'ACrj' then
-                                        call IssueTargetOrder(h, "rejuvenation", h)
-                                    elseif abil == 'ACcs' then
-                                        call IssueTargetOrder(h, "curse", nearestEnemy)
+                                if devourTgt != null then
+                                    if IssueTargetOrder(h, "devour", devourTgt) then
+                                        if udg_Strain_EvoStage[i] >= 3 then
+                                            set udg_AI_CastCD_W[i] = 4.0
+                                        else
+                                            set udg_AI_CastCD_W[i] = 25.0 - 5.0 * I2R(GetUnitAbilityLevel(h, 'A022'))
+                                        endif
                                     endif
-                                    set udg_AI_CastCD_R[i] = 8.0
                                 endif
+                            endif
+
+                            // 3. E Mimicry (A023 拟态伪装): Out of combat with a mimic sample, stealth to ambush
+                            if udg_AI_CastCD_E[i] <= 0.0 and GetUnitAbilityLevel(h, 'A023') > 0 and udg_Strain_MimicType[i] != 0 and not udg_Strain_MimicActive[i] and enemyCount == 0 and GetUnitState(h, UNIT_STATE_MANA) >= 50.0 then
+                                if IssueImmediateOrder(h, "ambush") then
+                                    set udg_AI_CastCD_E[i] = 15.0
+                                endif
+                            endif
+
+                            // 4. Cast stolen active abilities from slot 1 or slot 2
+                            if udg_AI_CastCD_R[i] <= 0.0 and enemyCount >= 1 and nearestEnemy != null then
+                                set castSuccess = false
+                                if udg_Strain_StolenAbil1[i] != 0 and GetUnitAbilityLevel(h, udg_Strain_StolenAbil1[i]) > 0 then
+                                    set castSuccess = AI_CastStolenSkill(h, udg_Strain_StolenAbil1[i], nearestEnemy)
+                                endif
+                                if not castSuccess and udg_Strain_StolenAbil2[i] != 0 and GetUnitAbilityLevel(h, udg_Strain_StolenAbil2[i]) > 0 then
+                                    set castSuccess = AI_CastStolenSkill(h, udg_Strain_StolenAbil2[i], nearestEnemy)
+                                endif
+                                if castSuccess then
+                                    set udg_AI_CastCD_R[i] = 6.0
+                                endif
+                            endif
+                        endif
+
+                    elseif hTypeId == 'H005' then
+                        // Hero #4: The Wild Avatar Tactical AI (Wrath of the Wild & Overlord Morphs)
+                        set heroLv = GetHeroLevel(h)
+
+                        // 1. Cast Ultimate D (A035 众野之怒)
+                        if udg_AI_CastCD_R[i] <= 0.0 and GetUnitAbilityLevel(h, 'A035') > 0 then
+                            if heroLv < 8 then
+                                set wrathCD = 110.0
+                            elseif heroLv < 10 then
+                                set wrathCD = 100.0
+                            else
+                                set wrathCD = 90.0
+                            endif
+
+                            set shouldCastD = false
+                            if bestIsHero or enemyCount >= 2 or (nearestEnemy != null and minD <= 850.0) then
+                                set shouldCastD = true
+                            endif
+                            if not shouldCastD and udg_AI_LockedTarget[i] != null and IsUnitEnemy(udg_AI_LockedTarget[i], Player(i)) then
+                                set dx = GetUnitX(udg_AI_LockedTarget[i]) - hx
+                                set dy = GetUnitY(udg_AI_LockedTarget[i]) - hy
+                                if SquareRoot(dx * dx + dy * dy) <= 900.0 then
+                                    set shouldCastD = true
+                                endif
+                            endif
+
+                            if shouldCastD then
+                                if BlzGetUnitMaxMana(h) > 0 and GetUnitState(h, UNIT_STATE_MANA) >= 150.0 then
+                                    if IssueImmediateOrder(h, "starfall") then
+                                        set udg_AI_CastCD_R[i] = wrathCD
+                                    else
+                                        call SetUnitState(h, UNIT_STATE_MANA, GetUnitState(h, UNIT_STATE_MANA) - 150.0)
+                                        call Wild_CastWrath(h)
+                                        set udg_AI_CastCD_R[i] = wrathCD
+                                    endif
+                                elseif BlzGetUnitMaxMana(h) == 0 and udg_Wild_StoredManaRatio[i] >= 0.35 then
+                                    set udg_Wild_StoredManaRatio[i] = udg_Wild_StoredManaRatio[i] - 0.35
+                                    call Wild_CastWrath(h)
+                                    set udg_AI_CastCD_R[i] = wrathCD
+                                endif
+                            endif
+                        endif
+
+                        // 2. Intelligent Morph Selection
+                        if udg_Wild_MorphCD[i] <= 0.0 then
+                            if heroLv >= 10 then
+                                // 10-Level Ultimate Overlord Morph
+                                if GetWidgetLife(h) < (GetUnitState(h, UNIT_STATE_MAX_LIFE) * 0.55) then
+                                    // Low HP -> Adult Dragon (cat=2, sub=1: 260 Flying, Magic Immunity, Dragon Devour)
+                                    call Wild_DoMorph(h, 2, 10, 1)
+                                elseif bestIsHero or enemyCount >= 2 then
+                                    // Melee brawl -> Ancient Infernal (cat=1, sub=2)
+                                    call Wild_DoMorph(h, 1, 10, 2)
+                                else
+                                    // Spell burst & CC -> Eredar Warlock (cat=3, sub=1)
+                                    call Wild_DoMorph(h, 3, 10, 1)
+                                endif
+                            else
+                                // 1~9 Level Growth Morph
+                                if GetWidgetLife(h) < (GetUnitState(h, UNIT_STATE_MAX_LIFE) * 0.45) then
+                                    // Low HP -> E-branch magic/heal/control
+                                    call Wild_DoMorph(h, 3, heroLv, 1)
+                                elseif enemyCount >= 1 and minD <= 400.0 then
+                                    // Melee brawl -> Q-branch tank/damage
+                                    call Wild_DoMorph(h, 1, heroLv, 2)
+                                else
+                                    // Push/kite -> W-branch ranged/speed
+                                    call Wild_DoMorph(h, 2, heroLv, 1)
+                                endif
+                            endif
+                        endif
+
+                        // 3. Cast Active Abilities for Current Form (including A037 Dragon Devour and all multi-trait spells)
+                        if udg_AI_CastCD_W[i] <= 0.0 and enemyCount >= 1 then
+                            if AI_CastWildFormSkill(h, nearestEnemy) then
+                                set udg_AI_CastCD_W[i] = 7.0
+                            endif
+                        endif
+
+                    elseif hTypeId == 'H006' then
+                        // Hero #5: Mahoraga Tactical AI
+                        // 1. Cast E (A043 法轮强转) if low health (<50%) or CCed
+                        if udg_AI_CastCD_E[i] <= 0.0 and (GetWidgetLife(h) < (GetUnitState(h, UNIT_STATE_MAX_LIFE) * 0.50) or udg_Maho_CCTimer[i] > 0.05) and GetUnitState(h, UNIT_STATE_MANA) >= 50.0 then
+                            if IssueImmediateOrder(h, "resurrection") then
+                                set udg_AI_CastCD_E[i] = 14.0
+                            endif
+                        endif
+
+                        // 2. Cast Q (A041 法轮注视) on best enemy / enemy hero
+                        if udg_AI_CastCD_Q[i] <= 0.0 and bestEnemy != null and GetUnitState(h, UNIT_STATE_MANA) >= 20.0 then
+                            if IssueTargetOrder(h, "faeriefire", bestEnemy) then
+                                set udg_AI_CastCD_Q[i] = 6.0
+                            endif
+                        endif
+
+                        // 3. Cast W (A042 退魔之剑·破界斩) on nearest enemy
+                        if udg_AI_CastCD_W[i] <= 0.0 and nearestEnemy != null and minD <= 320.0 and GetUnitState(h, UNIT_STATE_MANA) >= 40.0 then
+                            if IssueTargetOrder(h, "cripple", nearestEnemy) then
+                                set udg_AI_CastCD_W[i] = 8.0
                             endif
                         endif
                     endif
@@ -8686,6 +8863,7 @@ function AI_TacticalLoop takes nothing returns nothing
                     set bestEnemy = null
                     set clusterEnemy = null
                     set nearestEnemy = null
+                    set devourTgt = null
                 endif
 
                 // 4. Strategic Army Commander (Every 4.0 seconds)
@@ -10613,7 +10791,7 @@ endfunction
 
 function AI_OnHeroLevel takes nothing returns boolean
     local unit h = GetLevelingUnit()
-    if h != null and (GetUnitTypeId(h) == 'H002' or GetUnitTypeId(h) == 'H003' or GetUnitTypeId(h) == 'H004' or GetUnitTypeId(h) == 'H005') then
+    if h != null and (GetUnitTypeId(h) == 'H002' or GetUnitTypeId(h) == 'H003' or GetUnitTypeId(h) == 'H004' or GetUnitTypeId(h) == 'H005' or GetUnitTypeId(h) == 'H006') then
         if GetPlayerController(GetOwningPlayer(h)) == MAP_CONTROL_COMPUTER then
             call AI_AutoLearnSkills(h)
         endif
