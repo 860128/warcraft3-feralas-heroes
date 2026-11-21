@@ -549,7 +549,7 @@ function Maho_ApplyAppearance takes unit h, integer pId returns nothing
         endif
     else
         call BlzSetUnitSkin(h, 'H006')
-        call SetUnitScale(h, 1.15, 1.15, 1.15)
+        call SetUnitScale(h, 1.25, 1.25, 1.25)
         call SetUnitVertexColor(h, 255, 215, 60, 255)
         call UnitAddAbility(h, 'Amrf')
         call UnitRemoveAbility(h, 'Amrf')
@@ -559,7 +559,7 @@ function Maho_ApplyAppearance takes unit h, integer pId returns nothing
     if udg_Maho_WheelFx[pId] != null then
         call DestroyEffect(udg_Maho_WheelFx[pId])
     endif
-    set udg_Maho_WheelFx[pId] = AddSpecialEffectTarget("Abilities\\Spells\\Human\\DevotionAura\\DevotionAura.mdl", h, "overhead")
+    set udg_Maho_WheelFx[pId] = AddSpecialEffectTarget("war3mapImported\\MahoWheel.mdx", h, "overhead")
     call SetUnitMoveSpeed(h, udg_Maho_MoveSpeed[pId])
 endfunction
 

@@ -6,6 +6,12 @@ Get-ChildItem "payload\_Locales" -Recurse -Filter "war3map.wts" | ForEach-Object
     $rel = $_.FullName.Substring((Resolve-Path "payload").Path.Length + 1)
     $files += $rel
 }
+if (Test-Path "payload\war3mapImported") {
+    Get-ChildItem "payload\war3mapImported" -Recurse -File | ForEach-Object {
+        $rel = $_.FullName.Substring((Resolve-Path "payload").Path.Length + 1)
+        $files += $rel
+    }
+}
 $fileListStr = $files -join ','
 
 Write-Host "Files to inject:" $fileListStr
