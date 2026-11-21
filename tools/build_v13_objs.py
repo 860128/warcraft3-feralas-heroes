@@ -1266,27 +1266,17 @@ Tip = "法轮注视 · 主动解析(|cffffcc00Q|r)"
 Ubertip = "将头顶八握剑法轮的因果视线锁定在一名敌方非建筑单位身上。每秒自动解析目标的攻击方式、护甲构造与技能脉络，为魔虚罗提供持续的防御适应(+0.5%/秒，遵循四段式登神曲线)、破甲增伤(+1.5%/秒)与技能抗性(+1.0%/秒)，并永久淬炼肉身(+3点最大生命值/秒，每4秒+1基础攻击力)。|n|n施法距离：600，冷却时间：6.0秒，消耗法力：20点。"
 
 [A042]
-_parent = "ANcl"
-Name = "退魔之剑 · 破界斩"
-Hotkey = "W"
+_parent = "ACev"
+Name = "退魔之剑 [被动]"
 Buttonpos_1 = 1
 Buttonpos_2 = 2
-levels = 1
-hero = 0
-Cost = 40
-Cool = 8.0
-Rng = 280.0
 Art = "ReplaceableTextures\\\\CommandButtons\\\\BTNArcaniteMelee.blp"
+Tip = "退魔之剑 (|cffffcc00被动|r)"
+Ubertip = "【被动】魔虚罗右臂的退魔之剑蕴含破魔正能量。普通攻击命中召唤物、幻象、忍者分身、万灵伥鬼与不死族单位时，伤害直接提升为 1.5 倍（与破甲适应倍率乘算叠加）。"
 DataA = 0.0
-DataB = 1
-DataC = 1
-DataD = 0.0
-DataE = 0
-DataF = "cripple"
-Order = "cripple"
-targs = "air,ground,enemy,neutral,organic,mechanical,vulnerable"
-Tip = "退魔之剑 · 破界斩(|cffffcc00W|r)"
-Ubertip = "右臂凝聚充溢正能量的退魔之剑，对单一目标造成【(70 + 基础攻击力×1.5) × (1 + 对该护甲进攻适应倍率)】点英雄物理伤害。|n|n|cffffcc00【破魔特攻】|r：若目标为召唤物、幻象、克隆体、假英雄或不死族单位，此击转化为【3.0倍真实纯粹破魔伤害】，并直接斩杀生命值低于40%的普通召唤物与幻象！|n|n施法距离：280，冷却时间：8.0秒，消耗法力：40点。"
+item = 0
+hero = 0
+levels = 1
 
 [A043]
 _parent = "ANcl"
@@ -1328,7 +1318,7 @@ DataE = 0
 DataF = "innerfire"
 Order = "innerfire"
 Tip = "八握剑法轮 · 适应总览(|cffffcc00R|r)"
-Ubertip = "点击在屏幕上完整输出魔虚罗当前的【全维因果适应档案】（包含7大常规防御四段式渐近登神抗性、8类护甲进攻破甲增伤、具体英雄战技适应度、对空与翼化飞行进度以及凤凰蛋涅槃冷却）。|n|n|cffffcc00【四段式防御登神曲线】|r：|n- 0%~75%：1.00x 原速推进|n- 75%~90%：0.50x 减速推进|n- 90%~95%：0.20x 慢速推进|n- 95%~100%：0.05x 极难登神天堑（达成100%彻底绝对免疫）" 
+Ubertip = "点击在屏幕上完整输出魔虚罗当前的【全维因果适应档案】（包含7大常规防御四段式渐近登神抗性、8类护甲进攻破甲增伤、暴击/重击/闪避/战技适应度、对空与翼化飞行进度以及凤凰蛋涅槃冷却）。|n|n|cffffcc00【四段式防御登神曲线】|r：|n- 0%~75%：1.00x 原速推进|n- 75%~90%：0.50x 减速推进|n- 90%~95%：0.20x 慢速推进|n- 95%~100%：0.05x 极难登神天堑（达成100%彻底绝对免疫）|n|n|cffffcc00【因果转动律】|r：平时静悬头顶，唯有遭受攻击或触发因果适应时，法轮发出清脆声响动态自转！"
 
 
 [A045]
@@ -1342,6 +1332,23 @@ Ubertip = "魔虚罗已解析天空法则，唤醒远程破空剑气，可以直
 DataA = 0.0
 DataE = 2
 Area = 0.0
+item = 0
+hero = 0
+levels = 1
+
+[A046]
+_parent = "ACct"
+Name = "破除闪避·因果必中"
+Buttonpos_1 = 2
+Buttonpos_2 = 1
+Art = "ReplaceableTextures\\\\CommandButtons\\\\BTNCriticalStrike.blp"
+Tip = "破除闪避 · 因果必中 (|cffffcc00被动|r)"
+Ubertip = "魔虚罗已完全解析并适应敌方闪避身法。所有普通攻击与制空剑气获得 100% 绝对命中律，敌方任何闪避被动与高地 Miss 效果对其彻底失效！"
+DataA = 100.0
+DataB = 1.0
+DataC = 0.0
+DataD = 0.0
+DataE = 1
 item = 0
 hero = 0
 levels = 1
@@ -1666,7 +1673,7 @@ Propernames = "魔虚罗"
 nameCount = 1
 namecount = 1
 Tip = "召唤 异界神将 - 魔虚罗(|cffffcc00M|r)"
-Ubertip = "来自异界的无上神将。掌控万象因果与适应律。三围 1-1-1 极速慢行起步，但随着战斗时间的推移与伤害洗礼，将全维适应敌方一切攻击、护甲、移速、制空与英雄战技，达到极速后更可翼化升维翱翔高空，直至化为不可阻挡的终极存在！|n|n|cffffcc00技能：|r|n- 法轮注视 · 主动解析 (Q)|n- 退魔之剑 · 破界斩 (W)|n- 法轮强转 · 喀嚓 (E)|n- 八握剑法轮 · 适应总览 (R)"
+Ubertip = "来自异界的无上神将。掌控万象因果与适应律。三围 1-1-1 极速慢行起步，但随着战斗时间的推移与伤害洗礼，将全维适应敌方一切攻击、护甲、移速、制空、暴击、重击、闪避与敌方战技，达到极速后更可翼化升维翱翔高空，直至化为不可阻挡的终极存在！|n|n|cffffcc00技能：|r|n- 法轮注视 · 主动解析 (Q)|n- 退魔之剑 · 破魔斩 [被动] (W)|n- 法轮强转 · 喀嚓 (E)|n- 八握剑法轮 · 适应总览 (R)"
 Revivetip = "复活 异界神将 - 魔虚罗(|cffffcc00M|r)"
 Awakentip = "唤醒 异界神将 - 魔虚罗(|cffffcc00M|r)"
 Hotkey = "M"
@@ -1823,5 +1830,5 @@ for sym in [b'H002', b'H003', b'H004', b'H005', b'H006', b'u000', b'u001', b'u00
 
 with open(os.path.join(PAYLOAD_DIR, "war3map.w3a"), "rb") as f:
     w3a_data = f.read()
-for sym in [b'A001', b'A002', b'A003', b'A004', b'A00V', b'A011', b'A012', b'A013', b'A014', b'A015', b'A016', b'A017', b'A021', b'A022', b'A023', b'A024', b'A025', b'A026', b'A027', b'A031', b'A032', b'A033', b'A034', b'A035', b'ACbl', b'ACls', b'ACpu', b'ACct', b'ACbh', b'ACev', b'ACtb', b'ACro', b'ACif', b'ACsw', b'AChx', b'ACst', b'ACsh', b'ACfl', b'ACfn', b'ACf2', b'ACen', b'ACrj', b'ACcs', b'ACav', b'ACdv', b'A036', b'A037', b'ACmi', b'ANpi', b'A041', b'A042', b'A043', b'A044', b'A045']:
+for sym in [b'A001', b'A002', b'A003', b'A004', b'A00V', b'A011', b'A012', b'A013', b'A014', b'A015', b'A016', b'A017', b'A021', b'A022', b'A023', b'A024', b'A025', b'A026', b'A027', b'A031', b'A032', b'A033', b'A034', b'A035', b'ACbl', b'ACls', b'ACpu', b'ACct', b'ACbh', b'ACev', b'ACtb', b'ACro', b'ACif', b'ACsw', b'AChx', b'ACst', b'ACsh', b'ACfl', b'ACfn', b'ACf2', b'ACen', b'ACrj', b'ACcs', b'ACav', b'ACdv', b'A036', b'A037', b'ACmi', b'ANpi', b'A041', b'A042', b'A043', b'A044', b'A045', b'A046']:
     print(f"w3a contains {sym.decode('ascii')}: {sym in w3a_data}")
