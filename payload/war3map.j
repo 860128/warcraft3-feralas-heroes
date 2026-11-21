@@ -275,6 +275,7 @@ globals
     boolean array udg_Maho_IsWinged
     real array udg_Maho_WheelSpinTimer
     boolean array udg_Maho_HasNeverMiss
+    real array udg_Maho_AntiMahoAdapt
     button udg_TM_BtnMode5All = null
 endglobals
 
@@ -459,10 +460,24 @@ endfunction
 
 function Maho_TriggerWheelSpin takes integer pId, real duration, real speed returns nothing
     if udg_Maho_WheelFx[pId] != null then
-        call BlzSetSpecialEffectTimeScale(udg_Maho_WheelFx[pId], speed)
-        if duration > udg_Maho_WheelSpinTimer[pId] then
-            set udg_Maho_WheelSpinTimer[pId] = duration
+        if duration <= 0.0 then
+            set udg_Maho_WheelSpinTimer[pId] = 0.0
+            call BlzSetSpecialEffectTimeScale(udg_Maho_WheelFx[pId], 0.0001)
+        else
+            call BlzSetSpecialEffectTimeScale(udg_Maho_WheelFx[pId], speed)
+            if duration > udg_Maho_WheelSpinTimer[pId] then
+                set udg_Maho_WheelSpinTimer[pId] = duration
+            endif
         endif
+    endif
+endfunction
+
+function Maho_AddAntiMahoAdapt takes integer pId, real amount returns nothing
+    local real oldVal = udg_Maho_AntiMahoAdapt[pId]
+    local real newVal = RMinBJ(1.0, oldVal + amount)
+    set udg_Maho_AntiMahoAdapt[pId] = newVal
+    if oldVal < 0.9999 and newVal >= 0.9999 then
+        call DisplayTimedTextToPlayer(GetLocalPlayer(), 0, 0, 5.0, "|cffffcc00【法轮终极反制 · 破法适应完成！】|r 魔虚罗已完全解析同类的适应法则，此后斩击敌方魔虚罗将 100% 无视其防御免疫！")
     endif
 endfunction
 
@@ -603,7 +618,8 @@ function Maho_ApplyAppearance takes unit h, integer pId returns nothing
         call DestroyEffect(udg_Maho_WheelFx[pId])
     endif
     set udg_Maho_WheelFx[pId] = AddSpecialEffectTarget("war3mapImported\\MahoWheel.mdx", h, "overhead")
-    call BlzSetSpecialEffectTimeScale(udg_Maho_WheelFx[pId], 0.0)
+    set udg_Maho_WheelSpinTimer[pId] = 0.0
+    call BlzSetSpecialEffectTimeScale(udg_Maho_WheelFx[pId], 0.0001)
     call SetUnitMoveSpeed(h, udg_Maho_MoveSpeed[pId])
 endfunction
 
@@ -748,6 +764,9 @@ function Maho_UpdateUI takes integer pId returns nothing
     else
         set tip = tip + "- 翼化升维：蓄力中(" + I2S(udg_Maho_FlyProgress[pId]) + "/20)|n"
     endif
+    if udg_Maho_AntiMahoAdapt[pId] > 0.0 then
+        set tip = tip + "- |cffff3366破法穿透·反魔虚罗适应：|r穿透同类防御免疫 " + I2S(R2I(udg_Maho_AntiMahoAdapt[pId] * 100.0)) + "%|n"
+    endif
     set tip = tip + "|cff99ccff点击此技能在屏幕上打印完整适应档案。|r"
 
     if GetLocalPlayer() == Player(pId) then
@@ -797,6 +816,10 @@ function Maho_PrintOverview takes integer pId returns nothing
     endif
     call DisplayTimedTextToPlayer(p, 0, 0, 8.0, s)
 
+    if udg_Maho_AntiMahoAdapt[pId] > 0.0 then
+        call DisplayTimedTextToPlayer(p, 0, 0, 8.0, "|cffff3366[破法穿透·反魔虚罗适应]|r 穿透同类防御免疫: " + I2S(R2I(udg_Maho_AntiMahoAdapt[pId] * 100.0)) + "%")
+    endif
+
     if udg_Maho_SkillCount[pId] > 0 then
         set s = "|cffcc99ff[英雄技能深度解析]|r "
         set i = 0
@@ -820,6 +843,8 @@ function Maho_InitHero takes unit h returns nothing
     set pId = GetPlayerId(GetOwningPlayer(h))
     set udg_Maho_Hero[pId] = h
     set udg_Maho_MoveSpeed[pId] = 190.0
+    set udg_Maho_AntiMahoAdapt[pId] = 0.0
+    set udg_Maho_WheelSpinTimer[pId] = 0.0
 
     call SetHeroLevel(h, 10, false)
     call UnitModifySkillPoints(h, -GetHeroSkillPoints(h))
@@ -875,6 +900,8 @@ function Maho_ApplyDeathPenalty takes integer pId returns nothing
         set udg_Maho_SkillPct[pId * 12 + i] = udg_Maho_SkillPct[pId * 12 + i] * 0.70
         set i = i + 1
     endloop
+
+    set udg_Maho_AntiMahoAdapt[pId] = udg_Maho_AntiMahoAdapt[pId] * 0.70
 
     call DisplayTimedTextToPlayer(Player(pId), 0, 0, 4.0, "|cffff6600[法轮碎裂]|r 魔虚罗真正阵亡，已积累的适应进度回退 30%！")
     call Maho_UpdateUI(pId)
@@ -1062,6 +1089,27 @@ function Maho_AnalyzeTargetSkills takes integer pId, unit wt returns nothing
     endif
 endfunction
 
+function Maho_HasEnemyNearby takes player p, real x, real y, real radius returns boolean
+    local unit enumU = null
+    if udg_EnumGroup == null then
+        set udg_EnumGroup = CreateGroup()
+    endif
+    call GroupClear(udg_EnumGroup)
+    call GroupEnumUnitsInRange(udg_EnumGroup, x, y, radius, null)
+    loop
+        set enumU = FirstOfGroup(udg_EnumGroup)
+        exitwhen enumU == null
+        call GroupRemoveUnit(udg_EnumGroup, enumU)
+        if IsUnitEnemy(enumU, p) and not IsUnitType(enumU, UNIT_TYPE_DEAD) and GetWidgetLife(enumU) > 0.405 and GetUnitTypeId(enumU) != 'u000' and not IsUnitInvisible(enumU, p) then
+            call GroupClear(udg_EnumGroup)
+            set enumU = null
+            return true
+        endif
+    endloop
+    set enumU = null
+    return false
+endfunction
+
 function Maho_CapTimerLoop takes nothing returns nothing
     local integer pId = 0
     local unit h = null
@@ -1090,8 +1138,8 @@ function Maho_CapTimerLoop takes nothing returns nothing
         elseif udg_Maho_Hero[pId] != null and Maho_IsUnitAlive(udg_Maho_Hero[pId]) then
             set h = udg_Maho_Hero[pId]
 
-            // Chase Speed & Winged Flight Adaptation
-            if GetUnitCurrentOrder(h) != 0 then
+            // Chase Speed & Winged Flight Adaptation (Only triggers when moving AND near enemies or watching a target)
+            if GetUnitCurrentOrder(h) != 0 and (Maho_HasEnemyNearby(Player(pId), GetUnitX(h), GetUnitY(h), 1600.0) or (udg_Maho_WatchTarget[pId] != null and Maho_IsUnitAlive(udg_Maho_WatchTarget[pId]))) then
                 if udg_Maho_MoveSpeed[pId] < 522.0 then
                     set udg_Maho_MoveSpeed[pId] = udg_Maho_MoveSpeed[pId] + 3.0
                     if udg_Maho_MoveSpeed[pId] >= 522.0 then
@@ -1139,6 +1187,10 @@ function Maho_CapTimerLoop takes nothing returns nothing
                     endif
                     set udg_Maho_AtkAdapt[pId * 8 + defType] = udg_Maho_AtkAdapt[pId * 8 + defType] + 0.015
                     call Maho_AnalyzeTargetSkills(pId, wt)
+
+                    if GetUnitTypeId(wt) == 'H006' and IsUnitEnemy(wt, Player(pId)) then
+                        call Maho_AddAntiMahoAdapt(pId, 0.025)
+                    endif
 
                     call BlzSetUnitMaxHP(h, BlzGetUnitMaxHP(h) + 3)
                     if (udg_AI_CommandTick / 4) * 4 == udg_AI_CommandTick then
@@ -1196,14 +1248,18 @@ function Maho_StealthLoop takes nothing returns nothing
             endif
         endif
 
-        // Wheel dynamic spin countdown
+        // Wheel dynamic spin countdown & continuous freeze lock
         if udg_Maho_WheelSpinTimer[pId] > 0.0 then
             set udg_Maho_WheelSpinTimer[pId] = udg_Maho_WheelSpinTimer[pId] - 0.05
             if udg_Maho_WheelSpinTimer[pId] <= 0.0 then
                 set udg_Maho_WheelSpinTimer[pId] = 0.0
                 if udg_Maho_WheelFx[pId] != null then
-                    call BlzSetSpecialEffectTimeScale(udg_Maho_WheelFx[pId], 0.0)
+                    call BlzSetSpecialEffectTimeScale(udg_Maho_WheelFx[pId], 0.0001)
                 endif
+            endif
+        else
+            if udg_Maho_WheelFx[pId] != null then
+                call BlzSetSpecialEffectTimeScale(udg_Maho_WheelFx[pId], 0.0001)
             endif
         endif
 
@@ -1388,6 +1444,10 @@ function Maho_CastW takes unit caster, unit tgt returns nothing
         set udg_Maho_AtkHits[pId] = udg_Maho_AtkHits[pId] - 4
         call Maho_AddBaseDamage(caster, 1)
     endif
+    if GetUnitTypeId(tgt) == 'H006' and IsUnitEnemy(tgt, GetOwningPlayer(caster)) then
+        call Maho_AddAntiMahoAdapt(pId, 0.02)
+        call Maho_TriggerWheelSpin(pId, 0.55, 1.5)
+    endif
     call Maho_UpdateUI(pId)
 endfunction
 
@@ -1421,6 +1481,9 @@ function Maho_CastE takes unit caster returns nothing
         set defType = BlzGetUnitIntegerField(udg_Maho_WatchTarget[pId], UNIT_IF_DEFENSE_TYPE)
         if defType >= 0 and defType <= 7 then
             set udg_Maho_AtkAdapt[pId * 8 + defType] = udg_Maho_AtkAdapt[pId * 8 + defType] + 0.05
+        endif
+        if GetUnitTypeId(udg_Maho_WatchTarget[pId]) == 'H006' and IsUnitEnemy(udg_Maho_WatchTarget[pId], Player(pId)) then
+            call Maho_AddAntiMahoAdapt(pId, 0.06)
         endif
     endif
 
@@ -10130,6 +10193,7 @@ function DM_OnDamaged takes nothing returns boolean
     local integer tier = 0
     local unit enumU = null
     local integer mahoPid = 0
+    local integer srcMahoPid = 0
     local integer cat = 0
     local real effResist = 0.0
     local real skillPct = 0.0
@@ -10183,6 +10247,10 @@ function DM_OnDamaged takes nothing returns boolean
             if udg_Maho_AtkHits[pId] >= 4 then
                 set udg_Maho_AtkHits[pId] = udg_Maho_AtkHits[pId] - 4
                 call Maho_AddBaseDamage(src, 1)
+            endif
+            if GetUnitTypeId(tgt) == 'H006' and IsUnitEnemy(tgt, GetOwningPlayer(src)) then
+                call Maho_AddAntiMahoAdapt(pId, 0.02)
+                call Maho_TriggerWheelSpin(pId, 0.55, 1.5)
             endif
             call Maho_UpdateUI(pId)
         endif
@@ -10273,6 +10341,11 @@ function DM_OnDamaged takes nothing returns boolean
             endif
 
             set effResist = RMaxBJ(udg_Maho_DefAdapt[mahoPid * 8 + cat], skillPct)
+            if GetUnitTypeId(src) == 'H006' then
+                set srcMahoPid = GetPlayerId(GetOwningPlayer(src))
+                set effResist = effResist * (1.0 - udg_Maho_AntiMahoAdapt[srcMahoPid])
+            endif
+
             if effResist >= 0.9999 then
                 set finalDmg = 0.0
                 set effResist = 1.00
