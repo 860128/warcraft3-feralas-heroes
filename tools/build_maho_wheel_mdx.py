@@ -9,7 +9,7 @@ Includes:
 - Central Hub: cylinder/disc (R=12.0, H=9.0)
 - Z position: centered around Z=+18.0
 - Continuous 360-degree rotation animation ("Stand", 4000ms loop, 5 KGRT keyframes)
-- Texture: ReplaceableTextures\\TeamColor\\TeamColor04.blp (Pure golden yellow)
+- Texture: Textures\\white.blp (Pure golden yellow)
 - Double-sided material (shadingFlags = 16)
 - Built-in binary self-verification validating all chunks, offsets, and quaternion norms.
 """
@@ -261,7 +261,7 @@ def generate_maho_wheel_mdx(output_path="payload/war3mapImported/MahoWheel.mdx")
     # TEXS (TeamColor04.blp - pure golden yellow)
     texs_data = bytearray()
     texs_data += struct.pack('<I', 0) # replaceableId
-    texs_data += b'ReplaceableTextures\\TeamColor\\TeamColor04.blp'.ljust(260, b'\x00')
+    texs_data += b'Textures\\white.blp'.ljust(260, b'\x00')
     texs_data += struct.pack('<I', 0) # flags
     buf += b'TEXS'
     buf += struct.pack('<I', len(texs_data))
