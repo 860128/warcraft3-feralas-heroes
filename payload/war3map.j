@@ -274,6 +274,7 @@ globals
     integer array udg_Maho_FlyProgress
     boolean array udg_Maho_IsWinged
     real array udg_Maho_WheelSpinTimer
+    real array udg_Maho_ReskinTimer
     boolean array udg_Maho_HasNeverMiss
     real array udg_Maho_AntiMahoAdapt
     button udg_TM_BtnMode5All = null
@@ -631,6 +632,7 @@ function Maho_ApplyAppearance takes unit h, integer pId returns nothing
         return
     endif
     if udg_Maho_IsWinged[pId] then
+        call BlzSetUnitSkin(h, 'H006')
         call BlzSetUnitSkin(h, 'nbal')
         call SetUnitScale(h, 1.25, 1.25, 1.25)
         call SetUnitVertexColor(h, 255, 215, 60, 255)
@@ -908,6 +910,7 @@ function Maho_InitHero takes unit h returns nothing
     set udg_Maho_MoveSpeed[pId] = 190.0
     set udg_Maho_AntiMahoAdapt[pId] = 0.0
     set udg_Maho_WheelSpinTimer[pId] = 0.0
+    set udg_Maho_ReskinTimer[pId] = 0.0
 
     call SetHeroLevel(h, 10, false)
     call UnitModifySkillPoints(h, -GetHeroSkillPoints(h))
@@ -923,14 +926,23 @@ endfunction
 
 function Maho_ApplyDeathPenalty takes integer pId returns nothing
     local integer i = 0
+    local unit h = udg_Maho_Hero[pId]
     if udg_Maho_EggUnit[pId] != null then
         call RemoveUnit(udg_Maho_EggUnit[pId])
         set udg_Maho_EggUnit[pId] = null
     endif
     set udg_Maho_InEgg[pId] = false
     set udg_Maho_PendingEggEnter[pId] = false
+    set udg_Maho_EggTimer[pId] = 0.0
     set udg_Maho_HasNeverMiss[pId] = false
     set udg_Maho_WheelSpinTimer[pId] = 0.0
+    set udg_Maho_ReskinTimer[pId] = 0.0
+    if h != null then
+        call SetUnitInvulnerable(h, false)
+        call PauseUnit(h, false)
+        call SetUnitVertexColor(h, 255, 255, 255, 255)
+    endif
+    set h = null
     if udg_Maho_WheelFx[pId] != null then
         call DestroyEffect(udg_Maho_WheelFx[pId])
         set udg_Maho_WheelFx[pId] = null
@@ -940,8 +952,6 @@ function Maho_ApplyDeathPenalty takes integer pId returns nothing
         set udg_Maho_WatchFx[pId] = null
         set udg_Maho_WatchTarget[pId] = null
     endif
-    set udg_Maho_InEgg[pId] = false
-    set udg_Maho_EggTimer[pId] = 0.0
 
     set i = 0
     loop
@@ -972,6 +982,7 @@ function Maho_ApplyDeathPenalty takes integer pId returns nothing
 endfunction
 
 function Maho_TriggerEgg takes unit tgt, integer pId, integer fatalCat, integer fatalSkill returns nothing
+    set udg_Maho_Hero[pId] = tgt
     call BlzSetEventDamage(0.0)
     call SetWidgetLife(tgt, 1.0)
     set udg_Maho_InEgg[pId] = true
@@ -986,18 +997,23 @@ endfunction
 function Maho_OnEggComplete takes integer pId returns nothing
     local unit h = udg_Maho_Hero[pId]
     local integer cat = 0
-    if h != null and udg_Maho_InEgg[pId] then
-        set udg_Maho_InEgg[pId] = false
 
-        // 1. Remove and cleanup golden egg unit
-        if udg_Maho_EggUnit[pId] != null then
-            call RemoveUnit(udg_Maho_EggUnit[pId])
-            set udg_Maho_EggUnit[pId] = null
-        endif
+    // Unconditional reset of egg states
+    set udg_Maho_InEgg[pId] = false
+    set udg_Maho_PendingEggEnter[pId] = false
+    set udg_Maho_EggTimer[pId] = 0.0
 
+    // 1. Remove and cleanup golden egg unit
+    if udg_Maho_EggUnit[pId] != null then
+        call RemoveUnit(udg_Maho_EggUnit[pId])
+        set udg_Maho_EggUnit[pId] = null
+    endif
+
+    if h != null then
         // 2. Unpause, remove invulnerability, and restore appearance
         call SetUnitInvulnerable(h, false)
         call PauseUnit(h, false)
+        call SetUnitVertexColor(h, 255, 255, 255, 255)
         call Maho_ApplyAppearance(h, pId)
         call SetWidgetLife(h, GetUnitState(h, UNIT_STATE_MAX_LIFE))
         call SetUnitState(h, UNIT_STATE_MANA, GetUnitState(h, UNIT_STATE_MAX_MANA))
@@ -1197,11 +1213,25 @@ function Maho_CapTimerLoop takes nothing returns nothing
 
         if udg_Maho_InEgg[pId] then
             set udg_Maho_EggTimer[pId] = udg_Maho_EggTimer[pId] - 1.0
-            if udg_Maho_EggTimer[pId] <= 0.0 then
+            if udg_Maho_EggTimer[pId] <= 0.0 or (not udg_Maho_PendingEggEnter[pId] and (udg_Maho_EggUnit[pId] == null or not Maho_IsUnitAlive(udg_Maho_EggUnit[pId]))) then
                 call Maho_OnEggComplete(pId)
             endif
         elseif udg_Maho_Hero[pId] != null and Maho_IsUnitAlive(udg_Maho_Hero[pId]) then
             set h = udg_Maho_Hero[pId]
+
+            // Watchdog: Anti-freeze / Anti-invulnerable lock (ensures never stuck at 1-2 HP paused or invulnerable)
+            if not udg_Maho_InEgg[pId] and not udg_Maho_PendingEggEnter[pId] then
+                if IsUnitPaused(h) or BlzIsUnitInvulnerable(h) then
+                    call SetUnitInvulnerable(h, false)
+                    call PauseUnit(h, false)
+                    call SetUnitVertexColor(h, 255, 215, 60, 255)
+                endif
+            endif
+
+            // Watchdog: Winged model & flight recovery if reset by native morph/hex
+            if udg_Maho_IsWinged[pId] and (BlzGetUnitSkin(h) != 'nbal' or GetUnitFlyHeight(h) < 100.0) then
+                call Maho_ApplyAppearance(h, pId)
+            endif
 
             // Chase Speed & Winged Flight Adaptation (Only triggers when moving AND near enemies or watching a target)
             if GetUnitCurrentOrder(h) != 0 and (Maho_HasEnemyNearby(Player(pId), GetUnitX(h), GetUnitY(h), 1600.0) or (udg_Maho_WatchTarget[pId] != null and Maho_IsUnitAlive(udg_Maho_WatchTarget[pId]))) then
@@ -1313,6 +1343,18 @@ function Maho_StealthLoop takes nothing returns nothing
             endif
         endif
 
+        // Reskin timer countdown (recovers winged skin after hex/morph dispel)
+        if udg_Maho_ReskinTimer[pId] > 0.0 then
+            set udg_Maho_ReskinTimer[pId] = udg_Maho_ReskinTimer[pId] - 0.05
+            if udg_Maho_ReskinTimer[pId] <= 0.0 then
+                set udg_Maho_ReskinTimer[pId] = 0.0
+                set h = udg_Maho_Hero[pId]
+                if udg_Maho_IsWinged[pId] and h != null and Maho_IsUnitAlive(h) and not udg_Maho_InEgg[pId] then
+                    call Maho_ApplyAppearance(h, pId)
+                endif
+            endif
+        endif
+
         // Wheel dynamic spin countdown & continuous freeze lock
         if udg_Maho_WheelSpinTimer[pId] > 0.0 then
             set udg_Maho_WheelSpinTimer[pId] = udg_Maho_WheelSpinTimer[pId] - 0.05
@@ -1331,7 +1373,7 @@ function Maho_StealthLoop takes nothing returns nothing
         set h = udg_Maho_Hero[pId]
         if h != null and Maho_IsUnitAlive(h) and not udg_Maho_InEgg[pId] then
             set hasCC = false
-            if UnitHasBuffBJ(h, 'BPSE') or UnitHasBuffBJ(h, 'BSTN') or UnitHasBuffBJ(h, 'BHtb') or UnitHasBuffBJ(h, 'Bslo') or UnitHasBuffBJ(h, 'Bhex') or UnitHasBuffBJ(h, 'Bens') or UnitHasBuffBJ(h, 'Bweb') or UnitHasBuffBJ(h, 'Bslp') or UnitHasBuffBJ(h, 'Bcy2') or UnitHasBuffBJ(h, 'Bcri') then
+            if UnitHasBuffBJ(h, 'BPSE') or UnitHasBuffBJ(h, 'BSTN') or UnitHasBuffBJ(h, 'BHtb') or UnitHasBuffBJ(h, 'Bslo') or UnitHasBuffBJ(h, 'Bhex') or UnitHasBuffBJ(h, 'Bply') or UnitHasBuffBJ(h, 'Bens') or UnitHasBuffBJ(h, 'Bweb') or UnitHasBuffBJ(h, 'Bslp') or UnitHasBuffBJ(h, 'Bcy2') or UnitHasBuffBJ(h, 'Bcri') then
                 set hasCC = true
             endif
 
@@ -1348,14 +1390,23 @@ function Maho_StealthLoop takes nothing returns nothing
                 if ccAdapt >= 0.99 then
                     call UnitRemoveBuffs(h, false, true)
                     set udg_Maho_CCTimer[pId] = 0.0
+                    if udg_Maho_IsWinged[pId] then
+                        set udg_Maho_ReskinTimer[pId] = 0.15
+                    endif
                     call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\DispelMagic\\DispelMagicTarget.mdl", h, "origin"))
                 elseif ccAdapt >= 0.50 and udg_Maho_CCTimer[pId] >= 0.60 then
                     call UnitRemoveBuffs(h, false, true)
                     set udg_Maho_CCTimer[pId] = 0.0
+                    if udg_Maho_IsWinged[pId] then
+                        set udg_Maho_ReskinTimer[pId] = 0.15
+                    endif
                     call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\DispelMagic\\DispelMagicTarget.mdl", h, "origin"))
                 elseif ccAdapt >= 0.25 and udg_Maho_CCTimer[pId] >= 1.20 then
                     call UnitRemoveBuffs(h, false, true)
                     set udg_Maho_CCTimer[pId] = 0.0
+                    if udg_Maho_IsWinged[pId] then
+                        set udg_Maho_ReskinTimer[pId] = 0.15
+                    endif
                     call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\DispelMagic\\DispelMagicTarget.mdl", h, "origin"))
                 endif
             else
@@ -1529,6 +1580,9 @@ function Maho_CastE takes unit caster returns nothing
 
     call UnitRemoveBuffs(caster, false, true)
     set udg_Maho_CCTimer[pId] = 0.0
+    if udg_Maho_IsWinged[pId] then
+        set udg_Maho_ReskinTimer[pId] = 0.15
+    endif
 
     set healAmt = GetUnitState(caster, UNIT_STATE_MAX_LIFE) * 0.20
     call SetWidgetLife(caster, RMinBJ(GetUnitState(caster, UNIT_STATE_MAX_LIFE), GetWidgetLife(caster) + healAmt))
@@ -10473,17 +10527,22 @@ function DM_OnDamaged takes nothing returns boolean
 
         // Nirvana Golden Egg [u004] Special Damage Filtering
         if GetUnitTypeId(tgt) == 'u004' then
-            set srcPid = GetPlayerId(GetOwningPlayer(src))
-            if GetUnitTypeId(src) == 'H006' and udg_Maho_AntiMahoAdapt[srcPid] >= 3.9999 and IsUnitEnemy(tgt, GetOwningPlayer(src)) then
-                set dmg = dmg + I2R(BlzGetUnitMaxHP(tgt)) * 0.05
+            if dmg >= 50000.0 then
+                // Whosyourdaddy cheat bypass
                 call BlzSetEventDamage(dmg)
-                call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Orc\\CriticalStrike\\CriticalStrikeTarget.mdl", tgt, "origin"))
             else
-                call BlzSetEventDamage(0.0)
-                call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\DivineShield\\DivineShieldTarget.mdl", tgt, "origin"))
-                set src = null
-                set tgt = null
-                return false
+                set srcPid = GetPlayerId(GetOwningPlayer(src))
+                if GetUnitTypeId(src) == 'H006' and udg_Maho_AntiMahoAdapt[srcPid] >= 3.9999 and IsUnitEnemy(tgt, GetOwningPlayer(src)) then
+                    set dmg = dmg + I2R(BlzGetUnitMaxHP(tgt)) * 0.05
+                    call BlzSetEventDamage(dmg)
+                    call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Orc\\CriticalStrike\\CriticalStrikeTarget.mdl", tgt, "origin"))
+                else
+                    call BlzSetEventDamage(0.0)
+                    call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Human\\DivineShield\\DivineShieldTarget.mdl", tgt, "origin"))
+                    set src = null
+                    set tgt = null
+                    return false
+                endif
             endif
         endif
 
@@ -10532,11 +10591,17 @@ function DM_OnDamaged takes nothing returns boolean
         // Hero #5: Mahoraga Defensive Damage Adaptation & Nirvana Egg
         if GetUnitTypeId(tgt) == 'H006' and not IsUnitIllusion(tgt) and not IsUnitInGroup(tgt, udg_FakeHeroGroup) and dmg > 0.5 then
             set mahoPid = GetPlayerId(GetOwningPlayer(tgt))
+            set udg_Maho_Hero[mahoPid] = tgt
             if udg_Maho_InEgg[mahoPid] then
-                call BlzSetEventDamage(0.0)
-                set src = null
-                set tgt = null
-                return false
+                if dmg >= 50000.0 then
+                    // Whosyourdaddy cheat bypass
+                    call BlzSetEventDamage(dmg)
+                else
+                    call BlzSetEventDamage(0.0)
+                    set src = null
+                    set tgt = null
+                    return false
+                endif
             endif
 
             // Anti-air adaptation check
@@ -10649,6 +10714,11 @@ function DM_OnDamaged takes nothing returns boolean
                 set finalDmg = finalDmg + I2R(BlzGetUnitMaxHP(tgt)) * 0.015 * p3
             endif
 
+            // Whosyourdaddy cheat bypass: lethal damage to H006
+            if dmg >= 50000.0 then
+                set finalDmg = dmg
+            endif
+
             call BlzSetEventDamage(finalDmg)
 
             // Defense adaptation growth (Four-Stage Asymptotic Diminishing Returns Curve)
@@ -10663,7 +10733,9 @@ function DM_OnDamaged takes nothing returns boolean
 
             // Check lethal damage
             if finalDmg >= (GetWidgetLife(tgt) - 0.5) then
-                if finalDmg >= (GetUnitState(tgt, UNIT_STATE_MAX_LIFE) * 0.70) and effResist < 0.25 then
+                if dmg >= 50000.0 then
+                    // Whosyourdaddy cheat bypass: kill directly without egg
+                elseif finalDmg >= (GetUnitState(tgt, UNIT_STATE_MAX_LIFE) * 0.70) and effResist < 0.25 then
                     // First-encounter execution!
                     call DisplayTimedTextToPlayer(GetLocalPlayer(), 0, 0, 5.0, "|cffff0000【初见绝杀！】|r 魔虚罗在适应完成前遭遇毁灭性爆发一击，未能开启法轮涅槃！")
                 elseif udg_Maho_EggCD[mahoPid] > 0.0 then
@@ -10920,6 +10992,7 @@ function DM_OnUnitDeath takes nothing returns boolean
             exitwhen i > 7
             if udg_Maho_InEgg[i] and udg_Maho_EggUnit[i] == dead then
                 set udg_Maho_InEgg[i] = false
+                set udg_Maho_PendingEggEnter[i] = false
                 set udg_Maho_EggUnit[i] = null
                 set udg_Maho_EggTimer[i] = 0.0
                 set th = udg_Maho_Hero[i]
@@ -10928,6 +11001,7 @@ function DM_OnUnitDeath takes nothing returns boolean
                     call PauseUnit(th, false)
                     call SetUnitVertexColor(th, 255, 255, 255, 255)
                     call KillUnit(th)
+                    call Maho_ApplyDeathPenalty(i)
                     call DisplayTimedTextToPlayer(GetLocalPlayer(), 0, 0, 6.0, "|cffff0033【因果斩断 · 金卵破碎！】|r 涅槃金卵被四阶弑神魔虚罗当场斩碎，涅槃彻底失败！")
                 endif
             endif
