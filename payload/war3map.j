@@ -204,6 +204,7 @@ globals
     real array udg_Asn_KillerLastY
     integer array udg_Asn_KillerStuck
     integer udg_Asn_KillerCount = 0
+    rect udg_Asn_WorldRect = null
 
 
     // Hero #4: The Wild Avatar (万灵化身 H005) Globals
@@ -10515,13 +10516,45 @@ function Asn_GetDefaultHumanBuyer takes nothing returns player
     return Player(0)
 endfunction
 
+function Asn_GetPlayerFactionName takes player p returns string
+    local integer pid = 0
+    if p == null then
+        return "未知势力"
+    endif
+    set pid = GetPlayerId(p)
+    if pid == 0 then
+        return "|cffff3333红方(" + GetPlayerName(p) + ")|r"
+    elseif pid == 1 then
+        return "|cff3399ff蓝方(" + GetPlayerName(p) + ")|r"
+    elseif pid == 2 then
+        return "|cff00e6c8青方(" + GetPlayerName(p) + ")|r"
+    elseif pid == 3 then
+        return "|cff9944ff紫方(" + GetPlayerName(p) + ")|r"
+    elseif pid == 4 then
+        return "|cffffff33黄方(" + GetPlayerName(p) + ")|r"
+    elseif pid == 5 then
+        return "|cffff8822橙方(" + GetPlayerName(p) + ")|r"
+    elseif pid == 6 then
+        return "|cff33dd33绿方(" + GetPlayerName(p) + ")|r"
+    elseif pid == 7 then
+        return "|cffff77cc粉方(" + GetPlayerName(p) + ")|r"
+    elseif pid == PLAYER_NEUTRAL_AGGRESSIVE or pid == 24 then
+        return "|cffff5522中立敌对势力|r"
+    endif
+    return "|cffcccccc" + GetPlayerName(p) + "|r"
+endfunction
+
 function Asn_SetShopAbilVisible takes integer slotIdx, boolean visible returns nothing
     local integer abilId = udg_Asn_SlotAbil[slotIdx]
     local integer s = 0
     loop
         exitwhen s >= udg_Asn_ShopCount
         if udg_Asn_Shop[s] != null then
-            call BlzUnitHideAbility(udg_Asn_Shop[s], abilId, not visible)
+            call UnitRemoveAbility(udg_Asn_Shop[s], abilId)
+            if visible then
+                call UnitAddAbility(udg_Asn_Shop[s], abilId)
+                call UnitMakeAbilityPermanent(udg_Asn_Shop[s], true, abilId)
+            endif
         endif
         set s = s + 1
     endloop
@@ -10551,7 +10584,10 @@ function Asn_RefreshBoard takes nothing returns nothing
     local integer ut = 0
 
     // 扫描全图敌对高价值目标（英雄 + 沙盒Boss + 涅槃金卵对应的魔虚罗）
-    call GroupEnumUnitsInRect(g, bj_mapInitialPlayableArea, null)
+    if udg_Asn_WorldRect == null then
+        set udg_Asn_WorldRect = GetWorldBounds()
+    endif
+    call GroupEnumUnitsInRect(g, udg_Asn_WorldRect, null)
     loop
         set u = FirstOfGroup(g)
         exitwhen u == null
@@ -10628,15 +10664,14 @@ function Asn_RefreshBoard takes nothing returns nothing
                 set extStr = "目标身份：" + label + " (" + GetPlayerName(GetOwningPlayer(u)) + ")|n" + "目标属性：生命 " + I2S(R2I(GetUnitState(u, UNIT_STATE_MAX_LIFE))) + " | 攻击 " + I2S(BlzGetUnitBaseDamage(u, 0)) + " | 护甲 " + I2S(R2I(BlzGetUnitArmor(u))) + "|n" + "特派杀手：" + Asn_GetKillerSquadName(kType) + "|n" + "克制手段：" + Asn_GetCounterDesc(u) + "|n|n|cffffcc00雇佣报价：" + I2S(candQuotes[s]) + " 黄金|r（一次性买断！绝不受雇主控制，顺路摧毁一切阻拦者，若阵亡则无限增援更强波次直到目标彻底死亡！）"
             endif
 
+            call BlzSetAbilityTooltip(abilId, tipStr, 0)
+            call BlzSetAbilityExtendedTooltip(abilId, extStr, 0)
             if udg_Asn_SlotHidden[s] or udg_Asn_SlotLastUnit[s] != u or udg_Asn_SlotLastIcon[s] != iconPath then
                 call BlzSetAbilityIcon(abilId, iconPath)
                 set udg_Asn_SlotLastIcon[s] = iconPath
                 set udg_Asn_SlotLastUnit[s] = u
-                call Asn_SetShopAbilVisible(s, false)
                 call Asn_SetShopAbilVisible(s, true)
             endif
-            call BlzSetAbilityTooltip(abilId, tipStr, 0)
-            call BlzSetAbilityExtendedTooltip(abilId, extStr, 0)
         else
             set udg_Asn_BoardUnit[s] = null
             set udg_Asn_BoardPrice[s] = 0
@@ -10964,12 +10999,25 @@ function Asn_OnCastAbility takes unit shop, integer abilId returns boolean
 
     if abilId == 'A05A' then
         call Asn_RefreshBoard()
-        call DisplayTimedTextToPlayer(buyer, 0, 0, 8.0, "|cffffcc00【暗杀介绍所 · 实时情报】|r 悬赏榜头像与报价已同步刷新！输入 |-kill|r 可快捷定位介绍所。")
+        call DisplayTimedTextToPlayer(buyer, 0, 0, 10.0, "|cffffcc00【暗杀介绍所 · 实时悬赏榜单】|r 敌方头像与报价已刷新：")
+        set i = 0
+        set aliveK = 0
+        loop
+            exitwhen i >= 10
+            if udg_Asn_BoardUnit[i] != null then
+                set aliveK = aliveK + 1
+                call DisplayTimedTextToPlayer(buyer, 0, 0, 10.0, "  [" + I2S(i + 1) + "] " + Asn_GetPlayerFactionName(GetOwningPlayer(udg_Asn_BoardUnit[i])) + " · |cffffffff" + Asn_GetUnitDisplayLabel(udg_Asn_BoardUnit[i]) + "|r — 报价 |cffffdd44" + I2S(udg_Asn_BoardPrice[i]) + " 黄金|r")
+            endif
+            set i = i + 1
+        endloop
+        if aliveK == 0 then
+            call DisplayTimedTextToPlayer(buyer, 0, 0, 8.0, "  |cffaaaaaa（当前全图尚未发现存活的敌方英雄或Boss，请稍待电脑出英雄或输入 -archimonde 测试）|r")
+        endif
         set i = 0
         loop
             exitwhen i >= 8
             if udg_Asn_ConActive[i] and udg_Asn_ConTarget[i] != null then
-                call DisplayTimedTextToPlayer(buyer, 0, 0, 8.0, "  • 进行中契约 #" + I2S(i + 1) + "：追杀 |cffff3366" + Asn_GetUnitDisplayLabel(udg_Asn_ConTarget[i]) + "|r（当前第 " + I2S(udg_Asn_ConWave[i]) + " 波）")
+                call DisplayTimedTextToPlayer(buyer, 0, 0, 10.0, "  • 进行中契约 #" + I2S(i + 1) + "：" + Asn_GetPlayerFactionName(udg_Asn_ConVictimOwner[i]) + " 【" + Asn_GetUnitDisplayLabel(udg_Asn_ConTarget[i]) + "】（第 " + I2S(udg_Asn_ConWave[i]) + " 波）")
             endif
             set i = i + 1
         endloop
@@ -11056,6 +11104,15 @@ function Asn_OnCastAbility takes unit shop, integer abilId returns boolean
     set udg_Asn_ConSpawnY[freeC] = GetUnitY(shop) - 220.0
 
     call DisplayTimedTextToPlayer(buyer, 0, 0, 6.0, "|cff00ff80[契约成立]|r 已支付 |cffffdd44" + I2S(quote) + "|r 黄金！幽影公会绝不受任何人操纵，杀手小队不死不休！")
+    set i = 0
+    loop
+        exitwhen i > 7
+        if GetPlayerSlotState(Player(i)) == PLAYER_SLOT_STATE_PLAYING then
+            call DisplayTimedTextToPlayer(Player(i), 0, 0, 8.0, "|cffff2244【全图通缉 · 暗杀契约生效！】|r " + Asn_GetPlayerFactionName(GetOwningPlayer(tgt)) + " 的 |cffffcc00【" + Asn_GetUnitDisplayLabel(tgt) + "】|r 已经被下单买命（悬赏 |cffffdd44" + I2S(quote) + " 黄金|r）！幽影公会已派出 " + Asn_GetKillerSquadName(udg_Asn_ConKillerType[freeC]) + "，不死不休！")
+        endif
+        set i = i + 1
+    endloop
+    call PingMinimapEx(GetUnitX(tgt), GetUnitY(tgt), 5.0, 255, 40, 40, true)
     call Asn_SpawnWave(freeC)
     call Asn_RefreshBoard()
 
@@ -11328,6 +11385,7 @@ function Asn_InitSystem takes nothing returns nothing
     set tSel = null
 
     // 在东西两座中立酒馆旁各自建设一座暗杀介绍所
+    set udg_Asn_WorldRect = GetWorldBounds()
     set s1 = Asn_SpawnAgencyAt(-5760.0, -128.0)
     set s2 = Asn_SpawnAgencyAt(5120.0, -192.0)
     if s1 != null then
@@ -11339,6 +11397,12 @@ function Asn_InitSystem takes nothing returns nothing
     set s1 = null
     set s2 = null
 
+    set i = 0
+    loop
+        exitwhen i >= 10
+        call Asn_SetShopAbilVisible(i, false)
+        set i = i + 1
+    endloop
     call Asn_RefreshBoard()
     call TimerStart(CreateTimer(), 1.25, true, function Asn_Loop)
     call DisplayTimedTextToPlayer(GetLocalPlayer(), 0, 0, 10.0, "|cffff3366【暗杀介绍所已开业】|r 东西中立酒馆旁已开放【暗杀介绍所】：可凭敌方头像按实时战力报价雇佣针对性必杀杀手！输入 |-kill|r 一键直达！")
