@@ -10219,15 +10219,21 @@ endfunction
 
 function Asn_IsUnitAliveOrEgg takes unit t returns boolean
     local integer pId = 0
+    local integer ut = 0
     if t == null then
         return false
     endif
     if not IsUnitType(t, UNIT_TYPE_DEAD) and GetWidgetLife(t) > 0.405 then
         return true
     endif
-    if GetUnitTypeId(t) == 'H006' then
-        set pId = GetPlayerId(GetOwningPlayer(t))
+    set ut = GetUnitTypeId(t)
+    set pId = GetPlayerId(GetOwningPlayer(t))
+    if ut == 'H006' then
         if pId >= 0 and pId <= 7 and udg_Maho_InEgg[pId] and udg_Maho_EggUnit[pId] != null and not IsUnitType(udg_Maho_EggUnit[pId], UNIT_TYPE_DEAD) and GetWidgetLife(udg_Maho_EggUnit[pId]) > 0.405 then
+            return true
+        endif
+    elseif ut == 'H003' then
+        if pId >= 0 and pId <= 7 and Ninja_PickLivingClone(pId) != null then
             return true
         endif
     endif
@@ -10236,13 +10242,23 @@ endfunction
 
 function Asn_GetCombatUnitForTarget takes unit t returns unit
     local integer pId = 0
+    local integer ut = 0
+    local unit cl = null
     if t == null then
         return null
     endif
-    if GetUnitTypeId(t) == 'H006' then
-        set pId = GetPlayerId(GetOwningPlayer(t))
+    set ut = GetUnitTypeId(t)
+    set pId = GetPlayerId(GetOwningPlayer(t))
+    if ut == 'H006' then
         if pId >= 0 and pId <= 7 and udg_Maho_InEgg[pId] and udg_Maho_EggUnit[pId] != null and not IsUnitType(udg_Maho_EggUnit[pId], UNIT_TYPE_DEAD) and GetWidgetLife(udg_Maho_EggUnit[pId]) > 0.405 then
             return udg_Maho_EggUnit[pId]
+        endif
+    elseif ut == 'H003' then
+        if (IsUnitType(t, UNIT_TYPE_DEAD) or GetWidgetLife(t) <= 0.405) and pId >= 0 and pId <= 7 then
+            set cl = Ninja_PickLivingClone(pId)
+            if cl != null then
+                return cl
+            endif
         endif
     endif
     return t
@@ -10721,17 +10737,21 @@ function Asn_ApplyAllianceForBuyerAndVictim takes player buyer, player victim re
 endfunction
 
 function Asn_StyleAndBuffKiller takes unit k, integer c, integer kType, integer wave returns nothing
-    local real scaleMul = 1.0 + 0.65 * I2R(wave - 1)
-    local real dmgMul = 1.0 + 0.75 * I2R(wave - 1)
-    local integer hp = R2I(I2R(udg_Asn_ConBaseHP[c]) * scaleMul)
-    local integer dmg = R2I(I2R(udg_Asn_ConBaseDmg[c]) * dmgMul)
-    local real arm = udg_Asn_ConBaseArmor[c] + 6.0 * I2R(wave - 1)
+    local real w = I2R(wave - 1)
+    local real hpMul = RMinBJ(120.0, 1.0 + 0.90 * w + 0.40 * w * w + 0.12 * w * w * w)
+    local real dmgMul = RMinBJ(120.0, 1.0 + 0.85 * w + 0.38 * w * w + 0.12 * w * w * w)
+    local real hpR = RMinBJ(1800000.0, I2R(udg_Asn_ConBaseHP[c]) * hpMul)
+    local real dmgR = RMinBJ(450000.0, I2R(udg_Asn_ConBaseDmg[c]) * dmgMul)
+    local integer hp = R2I(hpR)
+    local integer dmg = R2I(dmgR)
+    local real arm = udg_Asn_ConBaseArmor[c] * (1.0 + 0.45 * w) + 7.0 * w
+    local real sc = RMinBJ(1.75, 0.95 + 0.12 * w)
 
-    if hp < 2500 then
-        set hp = 2500
+    if hp < 750 then
+        set hp = 750
     endif
-    if dmg < 120 then
-        set dmg = 120
+    if dmg < 42 then
+        set dmg = 42
     endif
 
     call BlzSetUnitMaxHP(k, hp)
@@ -10739,8 +10759,9 @@ function Asn_StyleAndBuffKiller takes unit k, integer c, integer kType, integer 
     call BlzSetUnitBaseDamage(k, dmg, 0)
     call BlzSetUnitBaseDamage(k, dmg, 1)
     call BlzSetUnitArmor(k, arm)
-    call SetUnitMoveSpeed(k, RMinBJ(522.0, 445.0 + 18.0 * I2R(wave - 1)))
-    call BlzSetUnitAttackCooldown(k, RMaxBJ(0.32, 0.82 - 0.08 * I2R(wave - 1)), 0)
+    call SetUnitMoveSpeed(k, RMinBJ(522.0, 395.0 + 30.0 * w))
+    call BlzSetUnitAttackCooldown(k, RMaxBJ(0.30, 1.15 - 0.15 * w), 0)
+    call SetUnitScale(k, sc, sc, sc)
     call SetUnitAcquireRange(k, 1400.0)
     call RemoveGuardPosition(k)
 
@@ -10766,28 +10787,86 @@ function Asn_SpawnWave takes integer c returns nothing
     local integer wave = udg_Asn_ConWave[c]
     local real sx = udg_Asn_ConSpawnX[c]
     local real sy = udg_Asn_ConSpawnY[c]
-    local integer count = 4 + (wave - 1) * 2
+    local integer count = 2 + (wave - 1) * 2
     local integer i = 0
     local real ang = 0.0
     local real px = 0.0
     local real py = 0.0
     local unit k = null
+    local unit firstK = null
     local unit combatTgt = Asn_GetCombatUnitForTarget(tgt)
+    local integer tPid = 0
+    local integer tUt = 0
+    local real curHP = 0.0
+    local integer curAtk = 0
+    local real curArm = 0.0
+    local integer heroStat = 0
+    local real liveScale = 1.0
+    local integer tc = 0
+    local integer liveBaseHP = 0
+    local integer liveBaseDmg = 0
+    local real liveBaseArmor = 0.0
+    local integer truePctShow = 0
+
+    // 每一波全部重新扫描目标【当前最新进化属性与战力】，叠加后续指数级波次压制！
+    if tgt != null then
+        set tUt = GetUnitTypeId(tgt)
+        set tPid = GetPlayerId(GetOwningPlayer(tgt))
+        set curHP = RMaxBJ(800.0, GetUnitState(tgt, UNIT_STATE_MAX_LIFE))
+        set curAtk = IMaxBJ(40, BlzGetUnitBaseDamage(tgt, 0))
+        if IsUnitType(tgt, UNIT_TYPE_HERO) then
+            set heroStat = IMaxBJ(GetHeroStr(tgt, true), IMaxBJ(GetHeroAgi(tgt, true), GetHeroInt(tgt, true)))
+            set curAtk = curAtk + heroStat
+        endif
+        set curArm = RMaxBJ(0.0, BlzGetUnitArmor(tgt))
+
+        set liveScale = 1.0
+        if tUt == 'H006' and tPid >= 0 and tPid <= 7 then
+            set liveScale = 1.0 + Asn_GetMahoAvgAdapt(tPid) * 1.25 + udg_Maho_AntiMahoAdapt[tPid] * 0.25
+            if udg_Maho_IsWinged[tPid] then
+                set liveScale = liveScale + 0.65
+                if wave == 1 then
+                    set count = 3
+                endif
+            endif
+        elseif tUt == 'H004' and tPid >= 0 and tPid <= 7 then
+            set liveScale = 1.0 + I2R(udg_Strain_EvoStage[tPid]) * 0.35 + I2R(udg_Strain_DevourCount[tPid]) * 0.025
+        elseif tUt == 'H005' and tPid >= 0 and tPid <= 7 then
+            if udg_Wild_ArmyGroup != null then
+                set tc = CountUnitsInGroup(udg_Wild_ArmyGroup)
+            endif
+            set liveScale = 1.0 + I2R(udg_Wild_SoulStacks[tPid]) * 0.012 + I2R(IMinBJ(tc, 20)) * 0.08
+        elseif tUt == 'H003' and tPid >= 0 and tPid <= 7 then
+            if udg_Ninja_CloneGroup[tPid] != null then
+                set tc = CountUnitsInGroup(udg_Ninja_CloneGroup[tPid])
+            endif
+            set liveScale = 1.0 + I2R(tc) * 0.20
+        elseif tUt == 'Uwar' or tUt == 'Nklj' or tUt == 'Nman' or tUt == 'Nmag' then
+            set liveScale = 1.25
+            if wave == 1 then
+                set count = 3
+            endif
+        else
+            set liveScale = 1.0 + I2R(IMaxBJ(1, GetUnitLevel(tgt))) * 0.05
+        endif
+
+        set liveBaseHP = IMaxBJ(800, R2I(RMinBJ(600000.0, curHP * 0.45 * liveScale)) + 250)
+        set liveBaseDmg = IMaxBJ(45, R2I(RMinBJ(120000.0, (curHP * 0.015 + I2R(curAtk) * 0.65) * liveScale)) + 25)
+        set liveBaseArmor = RMaxBJ(4.0, curArm * 0.30 + 3.0)
+
+        if wave == 1 then
+            set udg_Asn_ConBaseHP[c] = liveBaseHP
+            set udg_Asn_ConBaseDmg[c] = liveBaseDmg
+            set udg_Asn_ConBaseArmor[c] = liveBaseArmor
+        else
+            set udg_Asn_ConBaseHP[c] = IMaxBJ(udg_Asn_ConBaseHP[c], liveBaseHP)
+            set udg_Asn_ConBaseDmg[c] = IMaxBJ(udg_Asn_ConBaseDmg[c], liveBaseDmg)
+            set udg_Asn_ConBaseArmor[c] = RMaxBJ(udg_Asn_ConBaseArmor[c], liveBaseArmor)
+        endif
+    endif
 
     if count > 12 then
         set count = 12
-    endif
-
-    // 按目标实时强度动态校准第 1 波基线面板，确保同等级灌死（高强度目标起手即更高配小队）
-    if wave == 1 and tgt != null then
-        set udg_Asn_ConBaseHP[c] = IMaxBJ(2800, R2I(GetUnitState(tgt, UNIT_STATE_MAX_LIFE) * 1.15) + 1200)
-        set udg_Asn_ConBaseDmg[c] = IMaxBJ(140, R2I(GetUnitState(tgt, UNIT_STATE_MAX_LIFE) * 0.045) + BlzGetUnitBaseDamage(tgt, 0) + 95)
-        set udg_Asn_ConBaseArmor[c] = RMaxBJ(12.0, BlzGetUnitArmor(tgt) * 0.55 + 10.0)
-        if GetUnitTypeId(tgt) == 'H006' and Asn_GetMahoAvgAdapt(GetPlayerId(GetOwningPlayer(tgt))) >= 0.45 then
-            set count = 5
-            set udg_Asn_ConBaseHP[c] = udg_Asn_ConBaseHP[c] + 2200
-            set udg_Asn_ConBaseDmg[c] = udg_Asn_ConBaseDmg[c] + 150
-        endif
     endif
 
     call Asn_ApplyAllianceForBuyerAndVictim(udg_Asn_ConBuyer[c], udg_Asn_ConVictimOwner[c])
@@ -10802,6 +10881,9 @@ function Asn_SpawnWave takes integer c returns nothing
             set k = CreateUnit(Player(26), kType, px, py, 270.0)
             if k != null then
                 call Asn_StyleAndBuffKiller(k, c, kType, wave)
+                if firstK == null then
+                    set firstK = k
+                endif
                 set udg_Asn_KillerUnit[udg_Asn_KillerCount] = k
                 set udg_Asn_KillerCon[udg_Asn_KillerCount] = c
                 set udg_Asn_KillerLastX[udg_Asn_KillerCount] = px
@@ -10817,15 +10899,23 @@ function Asn_SpawnWave takes integer c returns nothing
         endif
         set i = i + 1
     endloop
-    set k = null
-    set combatTgt = null
 
     if tgt != null then
-        call DisplayTimedTextToPlayer(GetLocalPlayer(), 0, 0, 6.0, "|cffff3366【幽影暗杀出动】|r 第 |cffffcc00" + I2S(wave) + "|r 波 " + Asn_GetKillerSquadName(kType) + "（" + I2S(count) + "名）已受雇出征，猎杀目标：【" + Asn_GetUnitDisplayLabel(tgt) + "】！")
+        set truePctShow = IMinBJ(35, R2I(2.5 + 4.5 * I2R(wave - 1)))
+        if firstK != null then
+            if wave == 1 then
+                call DisplayTimedTextToPlayer(GetLocalPlayer(), 0, 0, 6.0, "|cffff3366【幽影暗杀出动】|r 第 |cffffcc001|r 波试探先锋 " + Asn_GetKillerSquadName(kType) + "（" + I2S(count) + "名，单兵 " + I2S(BlzGetUnitMaxHP(firstK)) + "血/" + I2S(BlzGetUnitBaseDamage(firstK, 0)) + "攻/" + I2S(truePctShow) + "%真伤）出击，追杀【" + Asn_GetUnitDisplayLabel(tgt) + "】！")
+            else
+                call DisplayTimedTextToPlayer(GetLocalPlayer(), 0, 0, 7.0, "|cffff2244【幽影暗杀 · 第 " + I2S(wave) + " 波反进化强袭！】|r 已重扫目标最新战力并大幅升维！派出 " + I2S(count) + " 名" + Asn_GetKillerSquadName(kType) + "（单兵 |cffffdd44" + I2S(BlzGetUnitMaxHP(firstK)) + "血 / " + I2S(BlzGetUnitBaseDamage(firstK, 0)) + "攻 / " + I2S(truePctShow) + "%真伤|r），锁定【" + Asn_GetUnitDisplayLabel(tgt) + "】！")
+            endif
+        endif
         if GetLocalPlayer() == udg_Asn_ConBuyer[c] then
             call PingMinimapEx(sx, sy, 4.0, 255, 50, 100, false)
         endif
     endif
+    set firstK = null
+    set k = null
+    set combatTgt = null
     set tgt = null
 endfunction
 
@@ -10902,14 +10992,14 @@ function Asn_OnDamagedHook takes unit src, unit tgt, real dmg returns real
             endif
 
             if GetUnitTypeId(src) == 'u005' then
-                // 反魔虚罗：绝对真伤，无视适应与金卵无敌
+                // 反魔虚罗：绝对真伤（W1 2.5% -> W2 7% -> W3 11.5%... 上限 35%；金卵 W1 15% + 8%/波）
                 if tgtType == 'u004' then
-                    set trueDmg = I2R(BlzGetUnitMaxHP(tgt)) * 0.35
+                    set trueDmg = I2R(BlzGetUnitMaxHP(tgt)) * RMinBJ(0.55, 0.15 + 0.08 * I2R(wave - 1))
                 else
-                    set trueDmg = I2R(BlzGetUnitMaxHP(tgt)) * RMinBJ(0.24, 0.08 + 0.025 * I2R(wave))
+                    set trueDmg = I2R(BlzGetUnitMaxHP(tgt)) * RMinBJ(0.35, 0.025 + 0.045 * I2R(wave - 1))
                 endif
             elseif GetUnitTypeId(src) == 'u006' then
-                // 反魔音忍者：强行熄灭竭心光环 + 真伤
+                // 反魔音忍者：强行熄灭竭心光环 + 逐波递增真伤
                 if tgtType == 'H003' and pId >= 0 and pId <= 7 then
                     if udg_Ninja_AuraOn[pId] then
                         set udg_Ninja_AuraOn[pId] = false
@@ -10919,7 +11009,7 @@ function Asn_OnDamagedHook takes unit src, unit tgt, real dmg returns real
                         endif
                     endif
                 endif
-                set trueDmg = I2R(BlzGetUnitMaxHP(tgt)) * RMinBJ(0.22, 0.07 + 0.02 * I2R(wave))
+                set trueDmg = I2R(BlzGetUnitMaxHP(tgt)) * RMinBJ(0.35, 0.025 + 0.045 * I2R(wave - 1))
             elseif GetUnitTypeId(src) == 'u007' then
                 // 反异种虫皇：震破潜地/伪装 + 净化焚烧真伤
                 if tgtType == 'H004' and pId >= 0 and pId <= 7 then
@@ -10930,19 +11020,19 @@ function Asn_OnDamagedHook takes unit src, unit tgt, real dmg returns real
                         call Strain_BreakMimicry(tgt, pId)
                     endif
                 endif
-                set trueDmg = I2R(BlzGetUnitMaxHP(tgt)) * RMinBJ(0.22, 0.07 + 0.02 * I2R(wave))
+                set trueDmg = I2R(BlzGetUnitMaxHP(tgt)) * RMinBJ(0.35, 0.025 + 0.045 * I2R(wave - 1))
             elseif GetUnitTypeId(src) == 'u008' then
                 // 反万灵化身：破灵无视魔免斩首真伤
-                set trueDmg = I2R(BlzGetUnitMaxHP(tgt)) * RMinBJ(0.22, 0.07 + 0.02 * I2R(wave))
+                set trueDmg = I2R(BlzGetUnitMaxHP(tgt)) * RMinBJ(0.35, 0.025 + 0.045 * I2R(wave - 1))
             elseif GetUnitTypeId(src) == 'u009' then
                 // 反幻梦大师：破妄破隐 + 真伤
                 if tgtType == 'H002' then
                     call DM_BreakInvisibility(tgt, src)
                 endif
-                set trueDmg = I2R(BlzGetUnitMaxHP(tgt)) * RMinBJ(0.24, 0.08 + 0.02 * I2R(wave))
+                set trueDmg = I2R(BlzGetUnitMaxHP(tgt)) * RMinBJ(0.35, 0.025 + 0.045 * I2R(wave - 1))
             else
-                // 圣光混乱裁决者 (u00A)：对阿克蒙德等恶魔Boss与常规英雄灌伤
-                set trueDmg = I2R(BlzGetUnitMaxHP(tgt)) * RMinBJ(0.22, 0.065 + 0.02 * I2R(wave))
+                // 圣光混乱裁决者 (u00A)：对阿克蒙德等恶魔Boss与常规英雄逐波倍增灌伤
+                set trueDmg = I2R(BlzGetUnitMaxHP(tgt)) * RMinBJ(0.35, 0.025 + 0.045 * I2R(wave - 1))
             endif
 
             call DestroyEffect(AddSpecialEffectTarget("Abilities\\Spells\\Orc\\CriticalStrike\\CriticalStrikeTarget.mdl", tgt, "origin"))
@@ -10963,9 +11053,9 @@ function Asn_OnDamagedHook takes unit src, unit tgt, real dmg returns real
             elseif GetUnitTypeId(src) == 'u008' and (IsUnitIllusion(tgt) or IsUnitType(tgt, UNIT_TYPE_SUMMONED) or IsUnitInGroup(tgt, udg_Wild_ArmyGroup) or tgtType == 'u003') then
                 set bonusMult = 8.0
             elseif IsUnitType(tgt, UNIT_TYPE_SUMMONED) or IsUnitIllusion(tgt) then
-                set bonusMult = 3.0
+                set bonusMult = 1.8 + 0.6 * I2R(wave - 1)
             else
-                set bonusMult = 2.5
+                set bonusMult = 1.4 + 0.5 * I2R(wave - 1)
             endif
             return dmg * bonusMult
         endif
@@ -11190,7 +11280,7 @@ function Asn_Loop takes nothing returns nothing
                 if aliveK == 0 then
                     if udg_Asn_ConRespawnCD[c] <= 0.0 then
                         set udg_Asn_ConRespawnCD[c] = 3.0
-                        call DisplayTimedTextToPlayer(GetLocalPlayer(), 0, 0, 4.0, "|cffff6600【暗杀升级警报！】|r 第 " + I2S(udg_Asn_ConWave[c]) + " 波杀手已被拦下！幽影公会正在集结更庞大的第 " + I2S(udg_Asn_ConWave[c] + 1) + " 波强化杀手小队（3秒后抵达）...")
+                        call DisplayTimedTextToPlayer(GetLocalPlayer(), 0, 0, 4.0, "|cffff6600【暗杀升级警报！】|r 第 " + I2S(udg_Asn_ConWave[c]) + " 波杀手已被拦下！幽影公会正在重扫目标最新进化状态，集结第 " + I2S(udg_Asn_ConWave[c] + 1) + " 波狂暴反制小队（3秒后抵达）...")
                     else
                         set udg_Asn_ConRespawnCD[c] = udg_Asn_ConRespawnCD[c] - 1.0
                         if udg_Asn_ConRespawnCD[c] <= 0.0 then
@@ -11954,9 +12044,11 @@ function DM_OnDamaged takes nothing returns boolean
             set dmg = Asn_OnDamagedHook(src, tgt, dmg)
             if Asn_IsAssassin(src) then
                 call BlzSetEventDamage(dmg)
-                set src = null
-                set tgt = null
-                return false
+                if GetUnitTypeId(tgt) != 'H003' then
+                    set src = null
+                    set tgt = null
+                    return false
+                endif
             endif
         endif
 
@@ -12272,13 +12364,14 @@ function DM_OnDamaged takes nothing returns boolean
             endif
         endif
 
-        // Ninja (A011) - Pre-lethal swap (sealed against Assassins)
-        if GetUnitTypeId(tgt) == 'H003' and not IsUnitInGroup(tgt, udg_FakeHeroGroup) and not IsUnitIllusion(tgt) and not Asn_IsAssassin(src) then
+        // Ninja (A011) - Pre-lethal swap (clones keep Ninja alive until all clones are purged)
+        if GetUnitTypeId(tgt) == 'H003' and not IsUnitInGroup(tgt, udg_FakeHeroGroup) and not IsUnitIllusion(tgt) then
             set pId = GetPlayerId(GetOwningPlayer(tgt))
             set udg_Ninja_TrueHero[pId] = tgt
-            if GetEventDamage() >= (GetWidgetLife(tgt) - 1.0) then
+            if RMaxBJ(dmg, GetEventDamage()) >= (GetWidgetLife(tgt) - 1.0) then
                 set c = Ninja_PickLivingClone(pId)
                 if c != null then
+                    call BlzSetEventDamage(0.0)
                     // Hero survived via clone swap! Do not mark killer with Karma
                     set oldX = GetUnitX(tgt)
                     set oldY = GetUnitY(tgt)
@@ -12562,8 +12655,8 @@ function DM_OnUnitDeath takes nothing returns boolean
         endif
     endif
 
-    // 4. Ninja Clone on Kill (A011): Clones CANNOT be cloned; victims must not be any clone!
-    if killer != null and not IsUnitType(dead, UNIT_TYPE_STRUCTURE) and not isAnyClone and deadType != 'u000' and deadType != 'u001' and deadType != 'u002' and deadType != 'H003' and not isFakeHero and not isIllusion and (GetUnitTypeId(killer) == 'H003' or GetUnitTypeId(killer) == 'u002' or GetUnitTypeId(killer) == 'u001') then
+    // 4. Ninja Clone on Kill (A011): Clones CANNOT be cloned; assassins do not spawn free clones!
+    if killer != null and not IsUnitType(dead, UNIT_TYPE_STRUCTURE) and not isAnyClone and not Asn_IsAssassin(dead) and deadType != 'u000' and deadType != 'u001' and deadType != 'u002' and deadType != 'H003' and not isFakeHero and not isIllusion and (GetUnitTypeId(killer) == 'H003' or GetUnitTypeId(killer) == 'u002' or GetUnitTypeId(killer) == 'u001') then
         set kp = GetOwningPlayer(killer)
         set th = Ninja_GetTrueHero(kp)
         if GetUnitAbilityLevel(killer, 'A011') > 0 or (th != null and GetUnitAbilityLevel(th, 'A011') > 0) or GetPlayerController(kp) == MAP_CONTROL_COMPUTER or GetUnitTypeId(killer) == 'u001' then
@@ -12573,8 +12666,8 @@ function DM_OnUnitDeath takes nothing returns boolean
         set th = null
     endif
 
-    // 5. Ninja Clone Swap Fallback (sealed when slain by Assassin!)
-    if deadType == 'H003' and not isFakeHero and not isIllusion and not isAnyClone and not Asn_IsAssassin(killer) then
+    // 5. Ninja Clone Swap Fallback (revive via living clone until all clones are purged)
+    if deadType == 'H003' and not isFakeHero and not isIllusion and not isAnyClone then
         set c = Ninja_PickLivingClone(deadPId)
         if c != null then
             set nx = GetUnitX(c)
