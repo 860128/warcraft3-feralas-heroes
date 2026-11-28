@@ -12422,10 +12422,13 @@ function SM_CreateMirror takes unit orig, real mx, real my returns unit
         call SetUnitVertexColor(m, 165, 225, 255, 230)
     endif
 
-    set curHP = RMinBJ(I2R(BlzGetUnitMaxHP(m)), RMaxBJ(1.0, GetWidgetLife(orig)))
+    if ut == 'H005' then
+        set udg_Wild_StoredManaRatio[13] = 1.0
+    endif
+    set curHP = GetUnitState(m, UNIT_STATE_MAX_LIFE)
     call SetWidgetLife(m, curHP)
-    if BlzGetUnitMaxMana(m) > 0 then
-        set curMana = RMinBJ(I2R(BlzGetUnitMaxMana(m)), GetUnitState(orig, UNIT_STATE_MANA))
+    set curMana = GetUnitState(m, UNIT_STATE_MAX_MANA)
+    if curMana > 0.0 then
         call SetUnitState(m, UNIT_STATE_MANA, curMana)
     endif
 
@@ -12837,6 +12840,14 @@ function SM_CloseAndRelease takes integer outcome returns nothing
     if outcome == 2 and m != null then
         if udg_Maho_InEgg[13] then
             call Maho_OnEggComplete(13)
+        elseif udg_Maho_PendingEggEnter[13] then
+            set udg_Maho_PendingEggEnter[13] = false
+            call ShowUnit(m, true)
+            call PauseUnit(m, false)
+            call SetUnitInvulnerable(m, false)
+        endif
+        if IsUnitType(m, UNIT_TYPE_DEAD) and IsUnitType(m, UNIT_TYPE_HERO) then
+            call ReviveHero(m, udg_SM_ReturnX, udg_SM_ReturnY, false)
         endif
         call SM_CleanArenaUnits(udg_SM_VictimOwner, null)
         call SM_CleanArenaUnits(Player(13), m)
@@ -12867,9 +12878,26 @@ function SM_CloseAndRelease takes integer outcome returns nothing
         endif
         call SM_ResetCustomHeroSlot(13)
 
+        call PauseUnit(m, false)
+        call SetUnitInvulnerable(m, false)
+        call UnitRemoveBuffs(m, false, true)
+        call UnitResetCooldown(m)
+        if ut == 'H005' then
+            set udg_Wild_StoredManaRatio[dstPid] = 1.0
+            set udg_Wild_MorphCD[dstPid] = 0.0
+        elseif ut == 'H006' then
+            set udg_Maho_EggCD[dstPid] = 0.0
+            set udg_Maho_CCTimer[dstPid] = 0.0
+        endif
+        call SetWidgetLife(m, GetUnitState(m, UNIT_STATE_MAX_LIFE))
+        if GetUnitState(m, UNIT_STATE_MAX_MANA) > 0.0 then
+            call SetUnitState(m, UNIT_STATE_MANA, GetUnitState(m, UNIT_STATE_MAX_MANA))
+        endif
+
         call SetUnitPosition(m, udg_SM_ReturnX, udg_SM_ReturnY)
         call DestroyEffect(AddSpecialEffect("Abilities\\Spells\\Human\\MassTeleport\\MassTeleportTarget.mdl", GetUnitX(m), GetUnitY(m)))
         call DestroyEffect(AddSpecialEffect("Abilities\\Spells\\Demon\\DarkPortal\\DarkPortalTarget.mdl", GetUnitX(m), GetUnitY(m)))
+        call DestroyEffect(AddSpecialEffect("Abilities\\Spells\\Human\\Resurrect\\ResurrectTarget.mdl", GetUnitX(m), GetUnitY(m)))
         if udg_SM_ConqueredGroup != null then
             call GroupAddUnit(udg_SM_ConqueredGroup, m)
         endif
@@ -12878,7 +12906,7 @@ function SM_CloseAndRelease takes integer outcome returns nothing
             call SelectUnit(m, true)
             call PingMinimapEx(GetUnitX(m), GetUnitY(m), 5.0, 120, 220, 255, false)
         endif
-        call DisplayTimedTextToPlayer(GetLocalPlayer(), 0, 0, 9.0, "|cffcc66ff【镜像夺舍 · 破山而出！】|r 封印之山内的镜像彻底击杀了本尊【|cffffcc00" + GetUnitName(m) + "|r】，现已携全套属性与技能破封而出，永久归属于你麾下！")
+        call DisplayTimedTextToPlayer(GetLocalPlayer(), 0, 0, 9.0, "|cffcc66ff【镜像夺舍 · 破山而出！】|r 封印之山内的镜像彻底击杀了本尊【|cffffcc00" + GetUnitName(m) + "|r】，现已满血满蓝携全套属性与技能破封而出，永久归属于你麾下！")
     else
         call SM_ResetCustomHeroSlot(13)
         call SM_CleanArenaUnits(Player(13), null)
