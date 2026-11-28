@@ -123,7 +123,7 @@ Cool = {1 = 3.0}
 Cast = {1 = 0.0}
 targs = {1 = "air,ground,enemy,friend,self,neutral,organic,mechanical"}
 Tip = "|cffff3366万厄全 Debuff 诅咒|r(|cffffcc00W|r)"
-Ubertip = "实验性全负面减益（省略吹风/沉睡/放逐以保证仍可被攻击测试）：|n令目标瞬间同时承受 |cffff664414 重经典 Debuff|r：残废、减速、诅咒、精灵之火、酸液炸弹、恐怖嚎叫、醉酒云雾、沉默术、灵魂燃烧、暗影突袭、纠缠根须、寒冰霜冻、诱捕网、妖术！"
+Ubertip = "实验性全负面减益（纯粹 14 重负面减益，已归零直接伤害绝不会直接毒死测试单位，且省略吹风/沉睡/放逐确保可被集火测试）：|n令目标瞬间同时承受 |cffff664414 重经典 Debuff|r：残废、减速、诅咒、精灵之火、酸液炸弹、恐怖嚎叫、醉酒云雾、沉默术、灵魂燃烧、暗影突袭、纠缠根须、寒冰霜冻、诱捕网、妖术！"
 
 [A062]
 _parent = "Aspb"
@@ -527,8 +527,8 @@ HeroDur = {1 = 15.0}
 DataA = {1 = 0}
 DataB = {1 = 0}
 DataC = {1 = 5}
-DataD = {1 = 8.0}
-DataE = {1 = 5.0}
+DataD = {1 = 0.0}
+DataE = {1 = 0.0}
 DataF = {1 = 1.0}
 targs = {1 = "air,ground,enemy,neutral,organic,mechanical"}
 
@@ -603,7 +603,7 @@ Cast = {1 = 0.0}
 Rng = {1 = 9999.0}
 Dur = {1 = 14.0}
 HeroDur = {1 = 6.0}
-DataA = {1 = 10.0}
+DataA = {1 = 0.0}
 DataB = {1 = 1.0}
 DataC = {1 = 0.50}
 DataD = {1 = 0}
@@ -620,15 +620,15 @@ checkdep = 0
 Requires = ""
 Cost = {1 = 0}
 Cool = {1 = 0.0}
-Cast = {1 = 0.0}
+Cast = {1 = 3.0}
 Rng = {1 = 9999.0}
 Dur = {1 = 15.1}
 HeroDur = {1 = 15.1}
-DataA = {1 = 12.0}
+DataA = {1 = 0.0}
 DataB = {1 = 0.50}
 DataC = {1 = 0.0}
 DataD = {1 = 3.0}
-DataE = {1 = 15.0}
+DataE = {1 = 0.0}
 targs = {1 = "air,ground,enemy,neutral,organic,mechanical"}
 
 [A07F]
@@ -645,7 +645,7 @@ Cast = {1 = 0.0}
 Rng = {1 = 9999.0}
 Dur = {1 = 9.0}
 HeroDur = {1 = 3.0}
-DataA = {1 = 10.0}
+DataA = {1 = 0.0}
 targs = {1 = "air,ground,enemy,neutral,organic,mechanical"}
 
 [A080]
@@ -660,11 +660,11 @@ Cost = {1 = 0}
 Cool = {1 = 0.0}
 Cast = {1 = 0.0}
 Rng = {1 = 9999.0}
-Area = {1 = 1.0}
+Area = {1 = 64.0}
 Dur = {1 = 8.0}
 HeroDur = {1 = 4.0}
-DataA = {1 = 5.0}
-DataB = {1 = 5.0}
+DataA = {1 = 0.0}
+DataB = {1 = 0.0}
 targs = {1 = "air,ground,enemy,neutral,organic,mechanical"}
 
 [A081]
